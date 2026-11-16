@@ -1,0 +1,20 @@
+.home {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--s-xxl) var(--s-md);
+}
+.home-kicker { color: var(--c-accent); font-weight: 700; font-size: var(--fs-sm); }
+.home h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
+.home-lead { font-size: var(--fs-lg); max-width: 40ch; }
+
+.home-steps {
+  list-style: none;
+  padding: 0;
+  margin: var(--s-xl) 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-md);
+}
+.home-steps h2 { font-size: var(--fs-md); }
+
+.home-actions { display: flex; flex-wrap: wrap; gap: var(--s-sm); }

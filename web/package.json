@@ -11,12 +11,15 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
+    "@nenm/shared": "*",
+    "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@nenm/shared": "*"
+    "react-router": "^7.18.5"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

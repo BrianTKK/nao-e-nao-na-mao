@@ -1,0 +1,165 @@
+/* As variáveis --c-*, --s-*, --r-*, --fs-*, --d-* vêm de shared/src/tokens.ts (ver tokens.ts). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 var(--s-sm);
+}
+
+h1 { font-size: var(--fs-xl); }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-md); }
+
+p { margin: 0 0 var(--s-sm); }
+
+a { color: var(--c-accent); text-underline-offset: 3px; }
+
+/* Foco sempre visível, em amarelo, para quem navega pelo teclado. */
+:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--s-md);
+  top: -100px;
+  background: var(--c-accent);
+  color: var(--c-onAccent);
+  padding: var(--s-xs) var(--s-md);
+  border-radius: var(--r-sm);
+  z-index: 10;
+}
+.skip-link:focus { top: var(--s-md); }
+
+/* ---------------------------------------------------------------- Botões */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-xs);
+  min-height: var(--touch);
+  padding: var(--s-sm) var(--s-lg);
+  border-radius: var(--r-md);
+  border: 2px solid var(--c-borderStrong);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--d-fast) var(--ease-standard),
+    background-color var(--d-fast) var(--ease-standard);
+}
+.btn:hover { background: var(--c-surfaceRaised); }
+.btn:active { transform: scale(0.97); }
+.btn[disabled] { opacity: 0.6; cursor: progress; }
+
+.btn-primary {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: var(--c-onAccent);
+}
+.btn-primary:hover { background: var(--c-accent); filter: brightness(1.08); }
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.btn-block { width: 100%; }
+
+/* ---------------------------------------------------------------- Campos */
+
+.field { display: grid; gap: var(--s-xxs); margin-bottom: var(--s-md); }
+.field label { font-weight: 700; }
+.field input,
+.field select {
+  min-height: var(--touch);
+  padding: var(--s-xs) var(--s-sm);
+  border-radius: var(--r-sm);
+  border: 2px solid var(--c-borderStrong);
+  background: var(--c-bg);
+  color: var(--c-text);
+  font: inherit;
+}
+
+.error {
+  color: var(--c-danger);
+  font-weight: 700;
+}
+
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-lg);
+}
+
+.muted { color: var(--c-textMuted); }
+
+/* Selo de estado: sempre com texto e ícone, nunca só a cor. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-xxs);
+  padding: 2px var(--s-xs);
+  border-radius: var(--r-pill);
+  border: 2px solid currentColor;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-open { color: var(--c-status-open); }
+.status-seen { color: var(--c-status-seen); }
+.status-on_the_way { color: var(--c-status-on_the_way); }
+.status-resolved { color: var(--c-status-resolved); }
+.status-cancelled { color: var(--c-status-cancelled); }
+
+/* Quem pediu menos movimento no sistema não vê animação. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

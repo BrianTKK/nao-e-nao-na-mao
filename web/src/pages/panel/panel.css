@@ -1,0 +1,170 @@
+.panel { min-height: 100dvh; }
+.panel-loading { padding: var(--s-xl); }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-md);
+  padding: var(--s-md) var(--s-lg);
+  border-bottom: 1px solid var(--c-border);
+}
+.panel-brand { font-weight: 700; margin: 0; }
+.panel-who { margin: 0; font-size: var(--fs-sm); }
+
+.panel-nav {
+  display: flex;
+  gap: var(--s-xs);
+  padding: var(--s-sm) var(--s-lg);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--c-border);
+}
+.panel-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 var(--s-md);
+  border-radius: var(--r-pill);
+  color: var(--c-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--d-fast) var(--ease-standard);
+}
+.panel-nav a:hover { background: var(--c-surface); }
+.panel-nav a.active {
+  background: var(--c-surfaceRaised);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--c-accent);
+}
+
+.panel-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--s-lg);
+}
+.panel-main:focus { outline: none; }
+.panel-section { margin-bottom: var(--s-xl); }
+
+.panel-login {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--s-xxl) var(--s-md);
+}
+.panel-demo {
+  margin-top: var(--s-lg);
+  padding: var(--s-md);
+  border: 1px dashed var(--c-borderStrong);
+  border-radius: var(--r-md);
+}
+
+/* Agora */
+.live-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-sm); }
+.live-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-sm);
+  padding: var(--s-md);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  border-left: 6px solid var(--c-status-open);
+  animation: slide-in var(--d-base) var(--ease-standard);
+  transition: border-color var(--d-base) var(--ease-standard);
+}
+.live-seen { border-left-color: var(--c-status-seen); }
+.live-on_the_way { border-left-color: var(--c-status-on_the_way); }
+
+/* Números */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-md);
+  margin: 0;
+}
+.kpi {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-md) var(--s-lg);
+}
+.kpi dt { color: var(--c-textMuted); font-size: var(--fs-sm); }
+.kpi dd { margin: var(--s-xxs) 0 0; font-size: var(--fs-xxl); font-weight: 700; }
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--s-md);
+}
+
+.bars, .plain-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-sm); }
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 2fr auto;
+  align-items: center;
+  gap: var(--s-sm);
+}
+.bar-track { height: 12px; border-radius: var(--r-pill); background: var(--c-bg); overflow: hidden; }
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--c-accent);
+  border-radius: var(--r-pill);
+  transition: width var(--d-slow) var(--ease-standard);
+}
+.bar-value { font-weight: 700; min-width: 2ch; text-align: right; }
+.plain-list li { display: flex; justify-content: space-between; gap: var(--s-md); }
+
+/* Tabela */
+.panel-filter { max-width: 280px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--c-border); border-radius: var(--r-md); }
+.table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.table th,
+.table td { padding: var(--s-sm); text-align: left; border-bottom: 1px solid var(--c-border); white-space: nowrap; }
+.table th { background: var(--c-surface); position: sticky; top: 0; }
+
+/* Equipe */
+.staff-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--s-md);
+}
+.staff-card h2 { margin-bottom: 0; }
+.staff-card dl { display: grid; grid-template-columns: auto 1fr; gap: var(--s-xxs) var(--s-sm); margin: var(--s-sm) 0 0; }
+.staff-card dt { color: var(--c-textMuted); }
+.staff-card dd { margin: 0; }
+
+/* QR codes */
+.spot-form { max-width: 480px; margin-bottom: var(--s-lg); }
+.spots-toolbar { margin-bottom: var(--s-md); }
+.spot-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s-md);
+}
+.spot-card { display: grid; justify-items: start; gap: var(--s-xs); }
+.spot-card h2 { margin: var(--s-xs) 0 0; }
+.spot-print-hint { display: none; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 600px) {
+  .panel-header, .panel-nav, .panel-main { padding-left: var(--s-md); padding-right: var(--s-md); }
+  .kpi dd { font-size: var(--fs-xl); }
+}
+
+/* Impressão: só os cartões de QR code, em preto e branco. */
+@media print {
+  body { background: #fff; color: #000; }
+  .panel-header, .panel-nav, .spot-form, .spots-toolbar, .spot-link, .panel-main > h1, .panel-main > p { display: none; }
+  .spot-grid { grid-template-columns: repeat(2, 1fr); }
+  .spot-card { background: #fff; color: #000; border: 2px solid #000; break-inside: avoid; }
+  .spot-card .muted { color: #333; }
+  .spot-print-hint { display: block; font-weight: 700; }
+}
