@@ -43,7 +43,8 @@ export function TryApp() {
               <strong>Espere carregar.</strong> A primeira vez pode levar até 1 minuto.
             </li>
             <li>
-              <strong>Entre com a conta de teste.</strong> Peça o e-mail e a senha ao Brian.
+              <strong>Entre com a conta de teste:</strong> toque em "Preencher com a conta de teste do Diego" e em "Entrar". É uma conta só do bar
+              de demonstração, que volta ao estado inicial todo dia.
             </li>
             <li>
               <strong>Faça um pedido de ajuda</strong> pelo botão "Simular um pedido" no fim da lista, ou abrindo{' '}

@@ -76,7 +76,7 @@ Para o servidor criar o bar de demonstração, copie `server/.env.example` para 
 
 1. Instale o **Expo Go** (SDK 58) no celular.
 2. Abra **https://naoenao.obrian.me/testar** e leia o QR code. No próprio celular, use o botão "abrir no Expo Go".
-3. Entre com a conta de teste (peça ao Brian).
+3. Entre com o botão "Preencher com a conta de teste do Diego" (conta só do bar de demonstração).
 
 O app vem de um Metro em modo de produção na VPS (`expo-naoenao.obrian.me`) e fala com o servidor publicado. O detalhe está em `docs/DEPLOY.md`.
 
