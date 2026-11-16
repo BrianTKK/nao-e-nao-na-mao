@@ -2,7 +2,7 @@
  * A camada de dados que o app e a web usam. As telas só conhecem estas
  * interfaces; quem as implementa é trocável:
  * - `mock.ts`: dados simulados em memória (funciona sem conta e sem internet);
- * - Supabase (fatia F1) ou um backend próprio na VPS, se for a escolha.
+ * - `api`: o servidor próprio (server/), por HTTP e WebSocket (fatia F1).
  */
 import type {
   Alert,
@@ -79,7 +79,7 @@ export interface ManagerApi {
 }
 
 export interface DataSource {
-  readonly kind: 'mock' | 'supabase';
+  readonly kind: 'mock' | 'api';
   readonly public: PublicApi;
   /** A gerência usa o mesmo login da equipe (staff.signIn) e depois o manager. */
   readonly staff: StaffApi;

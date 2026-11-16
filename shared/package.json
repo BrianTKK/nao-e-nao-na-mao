@@ -9,9 +9,6 @@
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.119.0"
-  },
   "devDependencies": {
     "typescript": "~6.0.3",
     "vitest": "^5.1.0",

@@ -1,6 +1,6 @@
 /**
- * Dados de demonstração do bar fictício, os mesmos de supabase/seed.sql e
- * supabase/test-users.json (o teste demo.test.ts confere que não divergem).
+ * Dados de demonstração do bar fictício, os mesmos de db/seed.sql e
+ * db/test-users.json (o teste demo.test.ts confere que não divergem).
  */
 import type { MenuSection, Spot, StaffMember, Venue } from '../domain';
 

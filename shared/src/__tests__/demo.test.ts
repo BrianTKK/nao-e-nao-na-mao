@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { DEMO_PASSWORD, DEMO_SPOTS, DEMO_USERS, DEMO_VENUE } from '../data/demo';
 
 const root = new URL('../../../', import.meta.url);
-const testUsers = JSON.parse(readFileSync(new URL('supabase/test-users.json', root), 'utf8')) as {
+const testUsers = JSON.parse(readFileSync(new URL('db/test-users.json', root), 'utf8')) as {
   password: string;
   users: { email: string; full_name: string; role: string; appearance: string }[];
 };
-const seedSql = readFileSync(new URL('supabase/seed.sql', root), 'utf8');
+const seedSql = readFileSync(new URL('db/seed.sql', root), 'utf8');
 
 describe('os dados simulados batem com o seed do banco', () => {
   it('mesmas contas de teste e mesma senha', () => {

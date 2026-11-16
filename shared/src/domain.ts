@@ -1,4 +1,4 @@
-/** Tipos e textos do domínio, iguais no app, na web e no banco (supabase/migrations). */
+/** Tipos e textos do domínio, iguais no app, na web, no servidor e no banco (db/migrations). */
 
 export type AlertKind = 'unsafe' | 'leave' | 'talk';
 export type AlertStatus = 'open' | 'seen' | 'on_the_way' | 'resolved' | 'cancelled';

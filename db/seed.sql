@@ -1,12 +1,12 @@
 -- Dados de teste: um bar fictício, os locais com QR code, a equipe e um
 -- histórico simulado de 30 dias. Nada aqui é real.
 --
--- Ordem: 1) migrações; 2) contas da equipe criadas no Auth
--- (scripts/create-test-users.mjs, a partir de supabase/test-users.json);
+-- Ordem: 1) migrações; 2) contas da equipe (tabela users)
+-- (server: npm run seed, a partir de db/test-users.json, com a senha em hash);
 -- 3) este arquivo. A equipe é ligada às contas pelo e-mail: se a conta não
 -- existir, a linha é pulada.
 
-insert into public.venues (id, name, neighborhood, city, help_phrase, menu)
+insert into venues (id, name, neighborhood, city, help_phrase, menu)
 values (
   '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01',
   'Bar Esquina da Vila',
@@ -33,7 +33,7 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into public.spots (venue_id, code, label, kind) values
+insert into spots (venue_id, code, label, kind) values
   ('0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01', 'ESQBF7K2', 'Banheiro feminino', 'restroom'),
   ('0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01', 'ESQBM4P9', 'Banheiro masculino', 'restroom'),
   ('0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01', 'ESQM12T3', 'Mesa 12', 'table'),
@@ -42,7 +42,7 @@ insert into public.spots (venue_id, code, label, kind) values
   ('0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01', 'ESQEXT9R', 'Área externa', 'outdoor')
 on conflict (code) do nothing;
 
-insert into public.staff (id, venue_id, full_name, role, job_title, appearance, trained_at)
+insert into staff (id, venue_id, full_name, role, job_title, appearance, trained_at)
 select u.id, '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01', t.full_name, t.role, t.job_title, t.appearance, t.trained_at
 from (values
   ('diego@bar-esquina.test', 'Diego Santos', 'staff', 'Segurança', 'camisa preta', date '2026-08-12'),
@@ -50,7 +50,7 @@ from (values
   ('rafael@bar-esquina.test', 'Rafael Souza', 'staff', 'Bartender', 'boné vermelho', date '2026-09-03'),
   ('marta@bar-esquina.test', 'Marta Ribeiro', 'manager', 'Gerente', 'blazer azul', date '2026-07-28')
 ) as t (email, full_name, role, job_title, appearance, trained_at)
-join auth.users u on u.email = t.email
+join users u on u.email = t.email
 on conflict (id) do nothing;
 
 -- Histórico simulado: 42 pedidos nos últimos 30 dias, das 20h às 2h.
@@ -76,13 +76,13 @@ timed as (
 ),
 spots as (
   select id, row_number() over (order by code) as rn, count(*) over () as total
-  from public.spots where venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01'
+  from spots where venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01'
 ),
 crew as (
   select id, row_number() over (order by full_name) as rn, count(*) over () as total
-  from public.staff where venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01' and role = 'staff'
+  from staff where venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01' and role = 'staff'
 )
-insert into public.alerts (
+insert into alerts (
   venue_id, spot_id, kind, status, short_code, token_hash,
   created_at, seen_at, on_the_way_at, resolved_at, cancelled_at, responder_id, outcome
 )
@@ -91,8 +91,8 @@ select
   s.id,
   case when t.r_kind < 0.5 then 'unsafe' when t.r_kind < 0.8 then 'leave' else 'talk' end,
   case when t.r_out < 0.05 then 'cancelled' else 'resolved' end,
-  public.random_short_code(),
-  public.hash_token('seed-' || t.n || '-' || gen_random_uuid()),
+  random_short_code(),
+  hash_token('seed-' || t.n || '-' || gen_random_uuid()),
   t.created,
   case when t.r_out < 0.05 then null else t.created + make_interval(secs => t.secs_seen) end,
   case when t.r_out < 0.05 then null else t.created + make_interval(secs => t.secs_seen + t.secs_go) end,
@@ -114,5 +114,5 @@ join spots s on s.rn = 1 + floor(t.r_spot * s.total)
 left join crew c on c.rn = 1 + floor(t.r_staff * c.total)
 where t.created < now() - interval '1 hour'
   and not exists (
-    select 1 from public.alerts a where a.venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01'
+    select 1 from alerts a where a.venue_id = '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01'
   );
