@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { DEMO_PASSWORD, DataError, type StaffMember } from '@nenm/shared';
-import { dataSource } from '../../data/source';
+import { dataSource, showDemo } from '../../data/source';
 import { useDocumentTitle } from '../../hooks/hooks';
 import './panel.css';
 
@@ -77,7 +77,13 @@ function Login({ onSignedIn }: { onSignedIn: (m: StaffMember) => void }) {
     try {
       onSignedIn(await dataSource.staff.signIn(email, password));
     } catch (err) {
-      setError(err instanceof DataError && err.code === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Tente de novo.');
+      setError(
+        err instanceof DataError && err.code === 'invalid_credentials'
+          ? 'E-mail ou senha incorretos.'
+          : err instanceof DataError && err.code === 'rate_limited'
+            ? 'Muitas tentativas. Espere alguns minutos.'
+            : 'Não foi possível entrar. Tente de novo.',
+      );
     } finally {
       setBusy(false);
     }
@@ -108,7 +114,7 @@ function Login({ onSignedIn }: { onSignedIn: (m: StaffMember) => void }) {
           {busy ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-      {dataSource.kind === 'mock' && (
+      {showDemo && (
         <aside className="panel-demo">
           <p>
             <strong>Demonstração (bar fictício)</strong>

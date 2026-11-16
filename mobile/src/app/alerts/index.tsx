@@ -5,7 +5,8 @@ import { Button } from '@/components/Button';
 import { AlertCard } from '@/components/AlertCard';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 import { useSession } from '@/hooks/useSession';
-import { mockTools } from '@/data/source';
+import { showDemo, simulateAlert } from '@/data/source';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { space, ui } from '@/theme/theme';
 
 /** Pedidos abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
@@ -36,6 +37,7 @@ export default function Alerts() {
         contentContainerStyle={[ui.content, { flexGrow: 1 }]}
         ListHeaderComponent={
           <View style={{ gap: space.xxs }}>
+            <ConnectionBanner />
             <Text style={ui.muted} accessibilityRole="text">
               {me ? `${me.fullName.split(' ')[0]} · ${me.appearance ? `hoje de ${me.appearance}` : 'roupa do dia não informada'}` : ''}
             </Text>
@@ -53,11 +55,11 @@ export default function Alerts() {
           ) : undefined
         }
         ListFooterComponent={
-          mockTools ? (
+          showDemo ? (
             <View style={[ui.card, { marginTop: space.lg }]}>
               <Text style={ui.label}>Demonstração</Text>
               <Text style={ui.muted}>Cria um pedido como se alguém tivesse lido o QR code do banheiro feminino.</Text>
-              <Button label="Simular um pedido" onPress={() => mockTools?.simulateIncomingAlert().catch(() => {})} />
+              <Button label="Simular um pedido" onPress={() => simulateAlert().catch(() => {})} />
             </View>
           ) : undefined
         }

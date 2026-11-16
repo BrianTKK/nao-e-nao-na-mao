@@ -1,10 +1,12 @@
-import { createMockDataSource, type DataSource } from '@nenm/shared';
+import { createApiDataSource, createMockDataSource, type DataSource } from '@nenm/shared';
 
 /**
  * Escolhe a implementação da camada de dados.
- * VITE_DATA_SOURCE=mock (padrão): dados simulados no navegador; abas do mesmo
- * navegador conversam entre si (localStorage + BroadcastChannel).
- * VITE_DATA_SOURCE=api: o servidor próprio (server/), a partir da fatia F1.
+ * - VITE_DATA_SOURCE=api (padrão): o servidor (server/). Em produção a web é
+ *   servida por ele, na mesma origem; em desenvolvimento o Vite repassa /api e
+ *   /socket.io para o servidor local (vite.config.ts).
+ * - VITE_DATA_SOURCE=mock: dados simulados no navegador, sem servidor; abas do
+ *   mesmo navegador conversam entre si (localStorage + BroadcastChannel).
  */
 function safeStorage(): Storage | undefined {
   try {
@@ -17,13 +19,25 @@ function safeStorage(): Storage | undefined {
   }
 }
 
+const SESSION_KEY = 'nenm.session';
+
 function createDataSource(): DataSource {
-  const kind = import.meta.env.VITE_DATA_SOURCE ?? 'mock';
-  if (kind !== 'mock') {
-    console.warn(`VITE_DATA_SOURCE=${kind} ainda não existe nesta fatia; usando os dados simulados.`);
+  const storage = safeStorage();
+  if (import.meta.env.VITE_DATA_SOURCE === 'mock') {
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('nenm-mock') : undefined;
+    return createMockDataSource({ storage, channel, latencyMs: 350 });
   }
-  const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('nenm-mock') : undefined;
-  return createMockDataSource({ storage: safeStorage(), channel, latencyMs: 350 });
+  return createApiDataSource({
+    baseUrl: import.meta.env.VITE_API_URL ?? '',
+    // Só o painel usa login; a página da mulher nunca grava nada além do próprio pedido (sessionStorage).
+    tokenStore: {
+      get: () => storage?.getItem(SESSION_KEY) ?? null,
+      set: (v) => (v ? storage?.setItem(SESSION_KEY, v) : storage?.removeItem(SESSION_KEY)),
+    },
+  });
 }
 
 export const dataSource = createDataSource();
+
+/** Mostra o atalho "preencher com a conta de teste" (bar de demonstração). VITE_SHOW_DEMO=0 esconde. */
+export const showDemo = import.meta.env.VITE_SHOW_DEMO !== '0';

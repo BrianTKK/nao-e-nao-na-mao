@@ -24,6 +24,7 @@ const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
   already_taken: 'Outra pessoa da equipe já está indo.',
   invalid_transition: 'Este pedido já foi encerrado.',
   alert_not_found: 'Pedido não encontrado.',
+  network: 'Sem conexão. Tente de novo quando o sinal voltar.',
 };
 
 /** Atender um pedido: ver, dizer "Estou indo" e registrar como terminou. */

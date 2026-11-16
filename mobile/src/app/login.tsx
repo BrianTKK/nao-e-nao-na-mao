@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEMO_PASSWORD, DataError } from '@nenm/shared';
 import { Button } from '@/components/Button';
 import { useSession } from '@/hooks/useSession';
-import { dataSource } from '@/data/source';
+import { showDemo } from '@/data/source';
 import { color, space, ui } from '@/theme/theme';
 
 export default function Login() {
@@ -22,7 +22,15 @@ export default function Login() {
       await signIn(email, password);
       router.replace('/alerts');
     } catch (err) {
-      setError(err instanceof DataError && err.code === 'invalid_credentials' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Tente de novo.');
+      setError(
+        err instanceof DataError && err.code === 'invalid_credentials'
+          ? 'E-mail ou senha incorretos.'
+          : err instanceof DataError && err.code === 'network'
+            ? 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+            : err instanceof DataError && err.code === 'rate_limited'
+              ? 'Muitas tentativas. Espere alguns minutos.'
+              : 'Não foi possível entrar. Tente de novo.',
+      );
     } finally {
       setBusy(false);
     }
@@ -76,7 +84,7 @@ export default function Login() {
           )}
           <Button label="Entrar" variant="primary" large busy={busy} onPress={submit} />
 
-          {dataSource.kind === 'mock' && (
+          {showDemo && (
             <View style={[ui.card, { marginTop: space.lg }]}>
               <Text style={ui.label}>Demonstração (bar fictício)</Text>
               <Button

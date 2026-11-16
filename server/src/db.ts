@@ -1,3 +1,4 @@
+import { mkdirSync } from 'node:fs';
 import pg from 'pg';
 import { PGlite } from '@electric-sql/pglite';
 import type { Config } from './config';
@@ -60,6 +61,7 @@ function fromPg(url: string): Db {
 const isoDates = { [1184]: (v: string) => new Date(v).toISOString(), [1082]: (v: string) => v, [20]: (v: string) => Number(v) };
 
 function fromPglite(dir: string): Db {
+  if (dir !== 'memory') mkdirSync(dir, { recursive: true });
   const lite = new PGlite(dir === 'memory' ? undefined : dir, { parsers: isoDates });
   // O PGlite atende uma consulta por vez; a fila deixa as transações em ordem.
   let chain: Promise<unknown> = Promise.resolve();
