@@ -1,0 +1,25 @@
+{
+  "name": "nao-e-nao-na-mao",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pedido de ajuda discreto pelo QR code do bar, ligado ao celular da equipe (FIAP Global Solution CitizenTech).",
+  "workspaces": [
+    "shared",
+    "mobile",
+    "web"
+  ],
+  "scripts": {
+    "web": "npm run dev -w web",
+    "mobile": "npm run start -w mobile",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w web && npm run typecheck -w mobile",
+    "test:db": "node supabase/tests/rls.test.mjs",
+    "test": "npm run test -w shared && npm run test:db"
+  },
+  "overrides": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16"
+  }
+}

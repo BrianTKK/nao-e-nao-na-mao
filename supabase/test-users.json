@@ -1,0 +1,10 @@
+{
+  "_aviso": "Contas de TESTE do bar fictício. A senha é só para a demonstração e para a avaliação da FIAP; não use em nada real.",
+  "password": "demo-nenm-2026",
+  "users": [
+    { "email": "diego@bar-esquina.test", "full_name": "Diego Santos", "role": "staff", "job_title": "Segurança", "appearance": "camisa preta" },
+    { "email": "ana@bar-esquina.test", "full_name": "Ana Lima", "role": "staff", "job_title": "Garçonete", "appearance": "avental verde" },
+    { "email": "rafael@bar-esquina.test", "full_name": "Rafael Souza", "role": "staff", "job_title": "Bartender", "appearance": "boné vermelho" },
+    { "email": "marta@bar-esquina.test", "full_name": "Marta Ribeiro", "role": "manager", "job_title": "Gerente", "appearance": "blazer azul" }
+  ]
+}
