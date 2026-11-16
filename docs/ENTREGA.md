@@ -66,7 +66,9 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Item | Estado | Onde |
 | --- | --- | --- |
 | Quadro ao vivo com quem está indo e o tempo correndo | ✅ | `web/src/pages/panel/LiveBoard.tsx` |
-| Direcionar um pedido para alguém da equipe | ✅ | `POST /api/manager/alerts/:id/assign`. O app da pessoa destaca "A gerência pediu que VOCÊ vá" e vibra de novo. A página da mulher só diz "a caminho" quando alguém aceita |
+| "Vi o pedido" pelo painel | ✅ | A página dela passa a "A equipe viu o seu pedido" na hora. Testado no PC com as três telas |
+| "Mandar alguém" (direcionar) | ✅ | `POST /api/manager/alerts/:id/assign`, só para alguém ativo do mesmo bar. O app da pessoa mostra "Marta pediu que você vá" e vibra de novo. A página dela mostra "Diego, de camisa preta, foi chamado para ir até você" e, quando ele toca em "Estou indo", "está indo até você". Testado no PC com as três telas |
+| Motion e acessibilidade das ações do painel | 🟡 | O cartão "acende" a cada troca de estado. Os botões têm rótulo com o local para o leitor de tela, o retorno da ação fica numa região viva e o foco é visível. Falta a rodada com o NVDA (F3) |
 | Assumir (a gerência vai) e encerrar pelo painel | ✅ | Usa as mesmas rotas da equipe. Testado: a página mostrou "Marta, de blazer azul, está indo até você" |
 | Cadastrar e desativar a equipe, com a data do curso | ✅ | `POST/PATCH /api/manager/staff`, com senha provisória (bcrypt). Ninguém tira o próprio acesso |
 | QR codes com código aleatório, troca de código e página para imprimir | ✅ | `/painel/qr-codes` e `/painel/qr-codes/imprimir` (cartazes A4, dois por folha) |
@@ -145,7 +147,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | 5 | Design visual, hierarquia, consistência | Tokens compartilhados | 🟡 |
 | 6 | Motion design | Ver motion | 🟡 |
 | 7 | Acessibilidade e responsividade | Ver acessibilidade | 🟡 |
-| 8 | Qualidade técnica, código, deploy funcionando | 59 testes (15 do shared, 12 do banco, 32 da API e do tempo real), typecheck, deploy em produção | ✅ |
+| 8 | Qualidade técnica, código, deploy funcionando | 60 testes (15 do shared, 12 do banco, 33 da API e do tempo real), typecheck, deploy em produção | ✅ |
 | 9 | ODS justificado | PDF (F4) | ⬜ |
 | 10 | GitHub e documentação | README, este checklist | 🟡 |
 | 11 | Vídeo-pitch e argumentação | Roteiro (F4) | ⬜ |

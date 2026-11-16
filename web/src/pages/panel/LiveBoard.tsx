@@ -100,7 +100,7 @@ function LiveItem({ alert: a, crew, now }: { alert: Alert; crew: StaffMember[]; 
             type="button"
             className="btn btn-primary"
             disabled={!!busy}
-            aria-label={`Estou indo ao ${place} (eu mesma vou)`}
+            aria-label={`Estou indo ao ${place}: vou pessoalmente`}
             onClick={() => run('go', () => dataSource.staff.startResponse(a.id), `Você está indo ao ${place}. Ela já vê seu nome.`)}
           >
             {busy === 'go' ? 'Salvando…' : 'Estou indo'}
