@@ -4,7 +4,7 @@ import { createMockDataSource, type DataSource } from '@nenm/shared';
  * Escolhe a implementação da camada de dados.
  * VITE_DATA_SOURCE=mock (padrão): dados simulados no navegador; abas do mesmo
  * navegador conversam entre si (localStorage + BroadcastChannel).
- * VITE_DATA_SOURCE=supabase: backend real (fatia F1).
+ * VITE_DATA_SOURCE=api: o servidor próprio (server/), a partir da fatia F1.
  */
 function safeStorage(): Storage | undefined {
   try {

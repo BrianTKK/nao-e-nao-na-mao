@@ -2,7 +2,7 @@ import { createMockDataSource, type DataSource, type MockDataSource } from '@nen
 
 /**
  * Camada de dados do app. EXPO_PUBLIC_DATA_SOURCE=mock (padrão) usa os dados
- * simulados em memória; "supabase" chega na fatia F1.
+ * simulados em memória; "api" (o servidor, em EXPO_PUBLIC_API_URL) chega na fatia F1.
  */
 function create(): DataSource {
   const kind = process.env.EXPO_PUBLIC_DATA_SOURCE ?? 'mock';
