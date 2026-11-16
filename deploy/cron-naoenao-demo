@@ -1,0 +1,4 @@
+# /etc/cron.d/naoenao-demo
+# Volta o bar de demonstração ao seed todo dia às 09:00 UTC (06:00 em Brasília).
+# Só o bar de demonstração e as contas dele são apagados e recriados.
+0 9 * * * root cd /var/www/naoenao && docker compose exec -T app node server/dist/cli.js demo:reset >> /var/log/naoenao-demo.log 2>&1

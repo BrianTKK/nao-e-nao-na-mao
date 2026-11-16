@@ -1,0 +1,44 @@
+# Produção na VPS: app em 127.0.0.1 (Nginx na frente, com HTTPS e WebSocket)
+# e Postgres 17 sem porta publicada.
+# Variáveis no .env ao lado deste arquivo (modelo em deploy/.env.example):
+# APP_PORT, POSTGRES_PASSWORD, JWT_SECRET, SEED_DEMO.
+name: naoenao
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://naoenao:${POSTGRES_PASSWORD}@db:5432/naoenao
+      TRUST_PROXY: "1"
+    ports:
+      - "127.0.0.1:${APP_PORT:?defina APP_PORT no .env}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: naoenao
+      POSTGRES_USER: naoenao
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U naoenao -d naoenao"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+    cpus: 0.5
+
+volumes:
+  db:
