@@ -1,21 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  KIND_STAFF_LABEL,
-  OUTCOME_LABEL,
-  computeStats,
-  elapsedSeconds,
-  formatDuration,
-  isActive,
-  type AlertOutcome,
-  type StaffMember,
-} from '@nenm/shared';
+import { useOutletContext } from 'react-router';
+import { OUTCOME_LABEL, computeStats, formatDuration, isActive, type AlertOutcome, type StaffMember } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { useNow } from '../../hooks/hooks';
-import { StatusBadge } from '../../components/StatusBadge';
 import { useAlerts } from './usePanelData';
+import { LiveBoard } from './LiveBoard';
+import type { PanelContext } from './PanelLayout';
 
 /** Visão geral: o que está acontecendo agora e os números do mês (prova diante do Procon). */
 export function Overview() {
+  const { me } = useOutletContext<PanelContext>();
   const { alerts, error } = useAlerts(30);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const now = useNow(1000);
@@ -41,25 +35,10 @@ export function Overview() {
 
       <section aria-labelledby="agora" className="panel-section">
         <h2 id="agora">Agora</h2>
-        <div aria-live="polite">
-          {active.length === 0 ? (
-            <p className="muted">Nenhum pedido em aberto.</p>
-          ) : (
-            <ul className="live-list">
-              {active.map((a) => (
-                <li key={a.id} className={`live-item live-${a.status}`}>
-                  <StatusBadge status={a.status} />
-                  <strong>{a.spotLabel}</strong>
-                  <span>{KIND_STAFF_LABEL[a.kind]}</span>
-                  <span className="muted">
-                    há {formatDuration(elapsedSeconds(a.createdAt, now), true)}
-                    {a.responderName ? ` · ${a.responderName.split(' ')[0]} a caminho` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <p className="muted" aria-live="polite">
+          {active.length === 0 ? '' : `${active.length} pedido(s) em aberto`}
+        </p>
+        <LiveBoard alerts={active} staff={staff} me={me} now={now} />
       </section>
 
       <section aria-labelledby="mes" className="panel-section">

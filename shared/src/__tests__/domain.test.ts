@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeStats, formatDuration, onTheWayMessage, responseSeconds, type Alert } from '../domain';
+import { computeStats, formatDuration, onTheWayMessage, percentile, responseSeconds, type Alert } from '../domain';
 
 describe('domínio', () => {
   it('formata durações', () => {
@@ -32,5 +32,11 @@ describe('domínio', () => {
     expect(stats.medianResponseSeconds).toBe(40);
     expect(stats.byOutcome).toEqual({ escorted: 2, ride_called: 1 });
     expect(stats.bySpot).toEqual({ 'Mesa 12': 3 });
+  });
+
+  it('percentil 90', () => {
+    expect(percentile([], 90)).toBeNull();
+    expect(percentile([10, 20, 30, 40, 50, 60, 70, 80, 90, 100], 90)).toBe(90);
+    expect(percentile([5], 90)).toBe(5);
   });
 });

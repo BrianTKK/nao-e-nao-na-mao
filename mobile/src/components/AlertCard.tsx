@@ -20,10 +20,10 @@ const ICON: Record<Alert['status'], string> = { open: '●', seen: '◉', on_the
  * é escuro e barulhento, e o alerta precisa saltar aos olhos. Com "reduzir
  * movimento", a borda fica grossa e parada.
  */
-export function AlertCard({ alert, now, onPress }: { alert: Alert; now: number; onPress: () => void }) {
+export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: number; meId: string | null; onPress: () => void }) {
   const { reduceMotion } = useMotion();
   const pulse = useSharedValue(0);
-  const isNew = alert.status === 'open';
+  const isNew = alert.status === 'open' || (!alert.responderId && !!meId && alert.assignedToId === meId);
 
   useEffect(() => {
     if (isNew && !reduceMotion) {
@@ -46,8 +46,10 @@ export function AlertCard({ alert, now, onPress }: { alert: Alert; now: number; 
   }));
 
   const statusColor = color.status[alert.status];
+  const forMe = !alert.responderId && alert.assignedToId === meId;
+  const assignedText = alert.responderId ? null : forMe ? 'A gerência pediu que VOCÊ vá' : alert.assignedToName ? `Direcionado para ${alert.assignedToName.split(' ')[0]}` : null;
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
-  const label = `${STATUS_LABEL[alert.status]}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Código ${alert.shortCode.split('').join(' ')}.`;
+  const label = `${assignedText ? `${assignedText}. ` : ''}${STATUS_LABEL[alert.status]}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Código ${alert.shortCode.split('').join(' ')}.`;
 
   return (
     <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(motion.duration.base)} style={[styles.shadow, animated]}>
@@ -64,6 +66,7 @@ export function AlertCard({ alert, now, onPress }: { alert: Alert; now: number; 
           </Text>
           <Text style={styles.time}>há {waited}</Text>
         </View>
+        {assignedText && <Text style={[styles.assigned, forMe && styles.assignedMe]}>{assignedText}</Text>}
         <Text style={styles.spot}>{alert.spotLabel}</Text>
         <Text style={styles.kind}>{KIND_STAFF_LABEL[alert.kind]}</Text>
         <Text style={styles.code}>
@@ -84,4 +87,6 @@ const styles = StyleSheet.create({
   spot: { color: color.text, fontSize: fontSize.xl, fontWeight: '700' },
   kind: { color: color.text, fontSize: fontSize.md },
   code: { color: color.textMuted, fontSize: fontSize.sm },
+  assigned: { color: color.status.seen, fontSize: fontSize.sm, fontWeight: '700' },
+  assignedMe: { color: color.accent, fontSize: fontSize.md },
 });

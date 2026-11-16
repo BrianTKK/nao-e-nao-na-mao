@@ -74,6 +74,21 @@
 .live-seen { border-left-color: var(--c-status-seen); }
 .live-on_the_way { border-left-color: var(--c-status-on_the_way); }
 
+.live-item { flex-direction: column; align-items: stretch; }
+.live-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+.live-who { margin: 0; font-weight: 700; }
+.live-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
+.live-actions select,
+.staff-actions input {
+  min-height: var(--touch);
+  padding: 0 var(--s-sm);
+  border-radius: var(--r-sm);
+  border: 2px solid var(--c-borderStrong);
+  background: var(--c-bg);
+  color: var(--c-text);
+  font: inherit;
+}
+
 /* Números */
 .kpis {
   display: grid;
@@ -135,6 +150,13 @@
 .staff-card dt { color: var(--c-textMuted); }
 .staff-card dd { margin: 0; }
 
+.staff-inactive { opacity: 0.7; border-style: dashed; }
+.staff-actions { display: grid; gap: var(--s-xs); margin-top: var(--s-sm); }
+.staff-actions label { font-weight: 700; font-size: var(--fs-sm); }
+.staff-form { margin-bottom: var(--s-lg); }
+.staff-form summary { cursor: pointer; font-weight: 700; min-height: var(--touch); display: flex; align-items: center; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 var(--s-md); margin-top: var(--s-md); }
+
 /* QR codes */
 .spot-form { max-width: 480px; margin-bottom: var(--s-lg); }
 .spots-toolbar { margin-bottom: var(--s-md); }
@@ -148,6 +170,7 @@
 .spot-card { display: grid; justify-items: start; gap: var(--s-xs); }
 .spot-card h2 { margin: var(--s-xs) 0 0; }
 .spot-print-hint { display: none; }
+.spot-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
 
 @keyframes slide-in {
   from { opacity: 0; transform: translateY(-6px); }

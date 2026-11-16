@@ -1,0 +1,48 @@
+/* Páginas feitas para o papel: o cartaz dos QR codes e o relatório do mês. */
+
+.print-page { max-width: 960px; margin: 0 auto; padding: var(--s-lg) var(--s-md); }
+.print-toolbar { margin-bottom: var(--s-lg); display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-sm); }
+.print-toolbar h1, .print-toolbar p { width: 100%; }
+
+/* Cartazes */
+.poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-md); }
+.poster {
+  background: #fff;
+  color: #000;
+  border: 3px solid #000;
+  border-radius: var(--r-md);
+  padding: var(--s-lg);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--s-xs);
+}
+.poster-title { font-size: 2rem; font-weight: 700; margin: 0; }
+.poster-sub { font-size: 1.1rem; margin: 0; max-width: 28ch; }
+.poster-spot { font-size: 1.4rem; font-weight: 700; margin: var(--s-xs) 0 0; }
+.poster-foot { font-size: 0.85rem; margin: 0; }
+
+/* Relatório */
+.report-header { margin-bottom: var(--s-lg); }
+.report-kicker { color: var(--c-accent); font-weight: 700; font-size: var(--fs-sm); }
+.report h2 { margin-top: var(--s-lg); font-size: var(--fs-md); }
+.report-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.report-table th, .report-table td { text-align: left; padding: var(--s-xs) var(--s-sm); border-bottom: 1px solid var(--c-border); }
+.report-table tbody th { font-weight: 500; }
+.report-table td:last-child { text-align: right; }
+.report-list td:last-child { text-align: left; }
+.report-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s-md); }
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body { background: #fff !important; color: #000 !important; }
+  .no-print, .panel-header, .panel-nav, .skip-link { display: none !important; }
+  .panel-main { padding: 0 !important; max-width: none !important; }
+  .print-page { padding: 0; max-width: none; }
+  .poster-grid { grid-template-columns: 1fr; gap: 0; }
+  .poster { break-inside: avoid; height: 128mm; align-content: center; margin-bottom: 8mm; }
+  .report, .report * { color: #000 !important; }
+  .report-table th, .report-table td { border-bottom: 1px solid #999; }
+  .report-break { break-before: page; }
+  .report-table tr { break-inside: avoid; }
+}

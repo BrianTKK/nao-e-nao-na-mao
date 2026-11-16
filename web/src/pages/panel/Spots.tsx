@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { SPOT_KIND_LABEL, type Spot, type SpotKind } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { QrCode } from '../../components/QrCode';
@@ -55,9 +56,9 @@ export function Spots() {
       </form>
 
       <div className="spots-toolbar">
-        <button type="button" className="btn" onClick={() => window.print()}>
-          Imprimir QR codes
-        </button>
+        <Link className="btn" to="/painel/qr-codes/imprimir">
+          Página para imprimir os QR codes
+        </Link>
       </div>
 
       {!spots ? (
@@ -65,14 +66,42 @@ export function Spots() {
       ) : (
         <ul className="spot-grid">
           {spots.map((s) => (
-            <li key={s.id} className="card spot-card">
-              <QrCode value={spotUrl(s.code)} label={`QR code do local ${s.label}`} />
+            <li key={s.id} className={`card spot-card${s.active ? '' : ' staff-inactive'}`}>
+              {s.active ? <QrCode value={spotUrl(s.code)} label={`QR code do local ${s.label}`} /> : <p className="muted">QR desativado</p>}
               <h2>{s.label}</h2>
-              <p className="muted">{SPOT_KIND_LABEL[s.kind]}</p>
-              <p className="spot-print-hint">Precisa de ajuda? Leia o QR code. A equipe vem até você.</p>
-              <a href={`/q/${s.code}`} target="_blank" rel="noreferrer" className="spot-link">
-                Abrir a página deste QR code
-              </a>
+              <p className="muted">
+                {SPOT_KIND_LABEL[s.kind]} · código {s.code}
+              </p>
+              {s.active && (
+                <a href={`/q/${s.code}`} target="_blank" rel="noreferrer" className="spot-link">
+                  Abrir a página deste QR code
+                </a>
+              )}
+              <div className="spot-actions">
+                {s.active && (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={async () => {
+                      if (!window.confirm(`Trocar o código de "${s.label}"? O QR impresso hoje para de funcionar.`)) return;
+                      await dataSource.manager.rotateSpotCode(s.id);
+                      load();
+                    }}
+                  >
+                    Trocar código
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={async () => {
+                    await dataSource.manager.setSpotActive(s.id, !s.active);
+                    load();
+                  }}
+                >
+                  {s.active ? 'Desativar' : 'Reativar'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

@@ -49,6 +49,7 @@ export function PanelLayout() {
         <NavLink to="/painel/pedidos">Pedidos</NavLink>
         <NavLink to="/painel/equipe">Equipe</NavLink>
         <NavLink to="/painel/qr-codes">QR codes</NavLink>
+        <NavLink to="/painel/relatorio">Relatório do mês</NavLink>
       </nav>
       <main id="conteudo" className="panel-main" tabIndex={-1}>
         {me.role === 'manager' ? (

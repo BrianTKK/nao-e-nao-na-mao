@@ -10,6 +10,8 @@ import { Overview } from './pages/panel/Overview';
 import { History } from './pages/panel/History';
 import { Staff } from './pages/panel/Staff';
 import { Spots } from './pages/panel/Spots';
+import { PrintSpots } from './pages/panel/PrintSpots';
+import { Report } from './pages/panel/Report';
 import { NotFound } from './pages/NotFound';
 
 applyTokens();
@@ -27,6 +29,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="pedidos" element={<History />} />
           <Route path="equipe" element={<Staff />} />
           <Route path="qr-codes" element={<Spots />} />
+          <Route path="qr-codes/imprimir" element={<PrintSpots />} />
+          <Route path="relatorio" element={<Report />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

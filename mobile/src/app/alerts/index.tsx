@@ -12,7 +12,7 @@ import { space, ui } from '@/theme/theme';
 /** Pedidos abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
 export default function Alerts() {
   const { me } = useSession();
-  const alerts = useActiveAlerts(!!me);
+  const alerts = useActiveAlerts(me?.id ?? null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function Alerts() {
           </View>
         }
         renderItem={({ item }) => (
-          <AlertCard alert={item} now={now} onPress={() => router.push({ pathname: '/alerts/[id]', params: { id: item.id } })} />
+          <AlertCard alert={item} now={now} meId={me?.id ?? null} onPress={() => router.push({ pathname: '/alerts/[id]', params: { id: item.id } })} />
         )}
         ListEmptyComponent={
           alerts ? (

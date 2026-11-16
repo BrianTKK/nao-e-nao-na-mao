@@ -14,30 +14,35 @@ const VIBRATION = [0, 500, 200, 500, 200, 500];
  * recente). O push remoto, que acorda o celular com o app fechado, precisa de
  * um development build: no Expo Go do Android ele não existe desde a SDK 53.
  */
-export function useActiveAlerts(enabled: boolean): Alert[] | null {
+export function useActiveAlerts(meId: string | null): Alert[] | null {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const known = useRef<Set<string> | null>(null);
+  const assignedToMe = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!meId) return;
     return dataSource.staff.watchActiveAlerts((list) => {
       setAlerts(list);
       const fresh = known.current ? list.filter((a) => a.status === 'open' && !known.current!.has(a.id)) : [];
       known.current = new Set(list.map((a) => a.id));
-      if (fresh.length > 0) announce(fresh[fresh.length - 1]);
+      // A gerência direcionou um pedido para mim: avisa de novo, mesmo que eu já tenha visto.
+      const mine = list.filter((a) => a.assignedToId === meId && !a.responderId && !assignedToMe.current.has(a.id));
+      mine.forEach((a) => assignedToMe.current.add(a.id));
+      if (mine.length > 0) announce(mine[mine.length - 1], true);
+      else if (fresh.length > 0) announce(fresh[fresh.length - 1]);
     });
-  }, [enabled]);
+  }, [meId]);
 
   return alerts;
 }
 
-function announce(alert: Alert) {
+function announce(alert: Alert, assigned = false) {
   if (Platform.OS === 'web') return;
   Vibration.vibrate(VIBRATION);
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   Notifications.scheduleNotificationAsync({
     content: {
-      title: `Pedido de ajuda · ${alert.spotLabel}`,
+      title: `${assigned ? 'A gerência pediu que você vá' : 'Pedido de ajuda'} · ${alert.spotLabel}`,
       body: `${KIND_STAFF_LABEL[alert.kind]}. Código ${alert.shortCode}.`,
       data: { alertId: alert.id },
     },
