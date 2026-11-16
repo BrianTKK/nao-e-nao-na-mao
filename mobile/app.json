@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Não é Não na Mão · Equipe",
+    "slug": "nao-e-nao-na-mao",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#141118",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -24,7 +24,18 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF7EAD"
+        }
+      ]
+    ],
+    "scheme": "naoenao",
+    "backgroundColor": "#141118",
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
