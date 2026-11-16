@@ -40,6 +40,9 @@ export function Home() {
           <Link className="btn" to="/painel">
             Abrir o painel da gerência
           </Link>
+          <Link className="btn" to="/testar">
+            Testar o app da equipe no celular
+          </Link>
         </div>
       </section>
     </main>

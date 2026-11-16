@@ -18,3 +18,16 @@
 .home-steps h2 { font-size: var(--fs-md); }
 
 .home-actions { display: flex; flex-wrap: wrap; gap: var(--s-sm); }
+
+/* /testar */
+.try-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: var(--s-xl); align-items: start; margin-top: var(--s-xl); }
+.try-steps { padding-left: 1.4em; display: grid; gap: var(--s-sm); }
+.try-qr { margin: 0; display: grid; justify-items: center; text-align: center; gap: var(--s-sm); }
+.try-qr figcaption { display: grid; gap: var(--s-xs); justify-items: center; }
+.try-url { font-size: var(--fs-xs); word-break: break-all; }
+.try-help { margin-top: var(--s-xl); }
+.try-help ul { padding-left: 1.2em; display: grid; gap: var(--s-xs); }
+@media (max-width: 720px) {
+  .try-grid { grid-template-columns: 1fr; }
+  .try-qr { order: -1; }
+}

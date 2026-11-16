@@ -15,7 +15,9 @@ COPY server server
 COPY web web
 COPY db db
 # A web em produção fala com o servidor na mesma origem.
-RUN VITE_DATA_SOURCE=api npm run build -w web && npm run build -w server
+# SHOW_DEMO=0 esconde o botão "preencher com a conta de teste" do painel.
+ARG SHOW_DEMO=1
+RUN VITE_DATA_SOURCE=api VITE_SHOW_DEMO=$SHOW_DEMO npm run build -w web && npm run build -w server
 
 FROM node:24-slim AS deps
 WORKDIR /app

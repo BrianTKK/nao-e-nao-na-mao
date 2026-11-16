@@ -40,6 +40,40 @@ O Nginx fica na frente, com HTTPS e o upgrade de WebSocket.
    - `https://naoenao.obrian.me/q/ESQBF7K2` deve abrir a página do QR;
    - `https://naoenao.obrian.me/painel` deve abrir o painel.
 
+## App no celular: Expo Go público (expo-naoenao.obrian.me)
+
+O serviço `expo` do compose roda o Metro em modo de produção (`--no-dev --minify`, 2 workers). O Expo Go de qualquer celular abre `exps://expo-naoenao.obrian.me`, e o QR fica em https://naoenao.obrian.me/testar. Assim o teste não depende do PC nem do celular de ninguém.
+
+1. **DNS**: registro A `expo-naoenao` apontando para o IP da VPS.
+2. **`.env`**: `EXPO_PORT` (sugestão 3071; conferir a livre com `ss -tlnp | grep 127.0.0.1`).
+3. **Subir** (do PC):
+   ```bash
+   DEPLOY_SERVICES="app expo" DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
+   ```
+   A imagem do `expo` é `deploy/expo.Dockerfile`, com o ignore próprio `deploy/expo.Dockerfile.dockerignore`. Quando sobe, o script `mobile/scripts/serve-public.mjs` monta e aquece os bundles de Android e iOS (cerca de 30 s cada no PC), e o log mostra `[serve-public] bundle android pronto`.
+4. **Nginx** (o Metro é um servidor de desenvolvimento, então só passa o necessário):
+   ```bash
+   cp deploy/nginx-snippet-naoenao-expo-proxy.conf /etc/nginx/snippets/naoenao-expo-proxy.conf
+   cp deploy/nginx-expo-naoenao.obrian.me.conf /etc/nginx/sites-available/expo-naoenao.obrian.me
+   sed -i 's/127.0.0.1:3071/127.0.0.1:<EXPO_PORT>/' /etc/nginx/sites-available/expo-naoenao.obrian.me
+   ln -s /etc/nginx/sites-available/expo-naoenao.obrian.me /etc/nginx/sites-enabled/
+   nginx -t && systemctl reload nginx
+   certbot --nginx -d expo-naoenao.obrian.me
+   ```
+   - **Liberado**, só GET e HEAD: o manifesto em `/`, os `*.bundle`, `/assets/` e `/_expo/`.
+   - **Bloqueado** com 403: o upgrade de WebSocket e as ferramentas do Metro (`/debugger-ui`, `/json`, `/inspector`, `/message`, `/events`, `/open-stack-frame`, `/open-url`, `/symbolicate`, `/reload`, `/hot`, `/status`, `/logs`).
+   - **O resto**: 404.
+5. **Conferir**:
+   ```bash
+   curl -s -o /dev/null -w "%{http_code} %{content_type}
+" -H "expo-platform: android" -H "accept: multipart/mixed,application/expo+json" https://expo-naoenao.obrian.me/
+   ```
+   A resposta esperada é `200 multipart/mixed`. Depois disso, `https://expo-naoenao.obrian.me/json/list` deve responder 403. Por fim, leia o QR de `/testar` com o Expo Go (SDK 58).
+
+**Memória**: no PC (Windows), o Metro com 2 workers e `--max-old-space-size=768` chegou a 1,3 GB de pico na primeira montagem dos dois bundles. Sem limite de workers, chegou a 2,1 GB. O compose usa `mem_limit: 1536m`. Depois de montados os bundles, o Metro parado ficou perto de 300 MB.
+
+**Atualizar o app**: a cada mudança no `mobile/` ou no `shared/`, rode `DEPLOY_SERVICES=expo ./deploy.sh`. O Metro está com `CI=1`, sem recarregar sozinho.
+
 ## Atualizar
 
 ```bash
@@ -58,6 +92,8 @@ As migrações novas (`db/migrations/*.sql`) rodam sozinhas quando o contêiner 
 | `SESSION_HOURS` | Validade do login da equipe (padrão 16) |
 | `SEED_DEMO` | `1` cria o bar de demonstração no primeiro início |
 | `CORS_ORIGINS` | Normalmente vazio |
+| `EXPO_PORT` | Porta local do Metro (serviço `expo`); o Nginx de `expo-naoenao` aponta para ela |
+| `SHOW_DEMO` | `1` mostra o botão "preencher com a conta de teste" no painel e no app (a senha aparece na tela); `0` esconde. Mudar exige rebuild de `app` e `expo` |
 
 O `DATABASE_URL` e o `TRUST_PROXY=1` já estão no `docker-compose.yml`.
 

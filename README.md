@@ -72,7 +72,15 @@ npm run mobile       # app (Expo)
 
 Para o servidor criar o bar de demonstração, copie `server/.env.example` para `server/.env`; ele já vem com `SEED_DEMO=1`.
 
-### O app no celular (Expo Go)
+### Testar no celular, sem PC (para o grupo e para quem avalia)
+
+1. Instale o **Expo Go** (SDK 58) no celular.
+2. Abra **https://naoenao.obrian.me/testar** e leia o QR code. No próprio celular, use o botão "abrir no Expo Go".
+3. Entre com a conta de teste (peça ao Brian).
+
+O app vem de um Metro em modo de produção na VPS (`expo-naoenao.obrian.me`) e fala com o servidor publicado. O detalhe está em `docs/DEPLOY.md`.
+
+### O app no celular (Expo Go), pelo PC
 
 - **Com o servidor publicado**: o app aponta para `https://naoenao.obrian.me` por padrão. Basta ler o QR code que o `npm run mobile` mostra.
 - **Com o servidor no PC**: crie `mobile/.env` com `EXPO_PUBLIC_API_URL=http://<IP-do-PC-na-rede>:8080`. O celular precisa estar no mesmo Wi-Fi.

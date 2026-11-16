@@ -13,6 +13,7 @@ import { Spots } from './pages/panel/Spots';
 import { PrintSpots } from './pages/panel/PrintSpots';
 import { Report } from './pages/panel/Report';
 import { NotFound } from './pages/NotFound';
+import { TryApp } from './pages/TryApp';
 
 applyTokens();
 
@@ -21,6 +22,8 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        {/* QR público do Expo Go para testar o app da equipe. */}
+        <Route path="/testar" element={<TryApp />} />
         {/* Página aberta pelo QR code: sem login. */}
         <Route path="/q/:code" element={<HelpPage />} />
         {/* Painel da gerência. */}

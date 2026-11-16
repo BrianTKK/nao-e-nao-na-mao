@@ -1,12 +1,16 @@
 # Produção na VPS: app em 127.0.0.1 (Nginx na frente, com HTTPS e WebSocket)
 # e Postgres 17 sem porta publicada.
 # Variáveis no .env ao lado deste arquivo (modelo em deploy/.env.example):
-# APP_PORT, POSTGRES_PASSWORD, JWT_SECRET, SEED_DEMO.
+# APP_PORT, POSTGRES_PASSWORD, JWT_SECRET, SEED_DEMO e, para o Expo, EXPO_PORT.
 name: naoenao
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # 0 = sem o botão "preencher com a conta de teste" (a senha não aparece na tela).
+        SHOW_DEMO: ${SHOW_DEMO:-1}
     restart: unless-stopped
     env_file: .env
     environment:
@@ -19,6 +23,26 @@ services:
         condition: service_healthy
     mem_limit: 512m
     mem_reservation: 256m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+
+  # Metro em modo de produção para o Expo Go (QR público em naoenao.obrian.me/testar).
+  # O Nginx de expo-naoenao.obrian.me só deixa passar o manifesto, os bundles e as imagens.
+  expo:
+    build:
+      context: .
+      dockerfile: deploy/expo.Dockerfile
+    restart: unless-stopped
+    environment:
+      EXPO_PACKAGER_PROXY_URL: ${EXPO_PUBLIC_URL:-https://expo-naoenao.obrian.me}
+      EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-https://naoenao.obrian.me}
+      METRO_MAX_WORKERS: "2"
+      EXPO_PUBLIC_SHOW_DEMO: ${SHOW_DEMO:-1}
+    ports:
+      - "127.0.0.1:${EXPO_PORT:-3071}:8081"
+    # No PC, com 2 workers, o pico foi de 1,3 GB na primeira montagem dos dois bundles.
+    mem_limit: 1536m
     cpus: 1.0
     security_opt:
       - no-new-privileges:true

@@ -1,0 +1,15 @@
+# Ignore próprio do deploy/expo.Dockerfile (BuildKit): este build precisa de mobile/.
+**/node_modules
+**/.expo
+**/dist
+**/.data
+**/.env
+**/.env.*
+!**/.env.example
+.git
+docs
+db
+server/src
+server/test
+web/src
+web/public

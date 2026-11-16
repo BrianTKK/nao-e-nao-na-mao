@@ -17,7 +17,8 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
-| React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; o celular é com o Brian, pelo Expo Go |
+| React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; falta o celular |
+| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Serviço `expo` (Metro de produção na VPS) e página `/testar` com o QR. No PC foram testados o manifesto como o Expo Go pede, as URLs dentro das regras do Nginx e os bundles. Falta o deploy e a leitura real pelo Expo Go |
 | Navegação seguindo a jornada | 🟡 | Login → pedidos → pedido (Estou indo, desfecho) → ajustes |
 | Motion com função clara | 🟡 | Pedido novo pulsa até alguém ver; botão encolhe ao toque; cartões entram com fade. Falta a mudança de estado no detalhe (F3) |
 
