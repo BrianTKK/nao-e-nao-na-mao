@@ -269,6 +269,11 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
   const source: MockDataSource = {
     kind: 'mock',
 
+    watchConnection(onChange) {
+      onChange('online');
+      return () => {};
+    },
+
     public: {
       async getSpot(code) {
         await wait();

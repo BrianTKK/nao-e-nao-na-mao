@@ -18,6 +18,9 @@ import type {
 
 export type Unsubscribe = () => void;
 
+/** Estado da ligação em tempo real da equipe com o servidor (o app mostra). */
+export type ConnectionState = 'online' | 'connecting' | 'offline';
+
 export type DataErrorCode =
   | 'spot_not_found'
   | 'alert_not_found'
@@ -80,6 +83,8 @@ export interface ManagerApi {
 
 export interface DataSource {
   readonly kind: 'mock' | 'api';
+  /** Avisa quando a ligação em tempo real cai ou volta (só depois do login). */
+  watchConnection(onChange: (state: ConnectionState) => void): Unsubscribe;
   readonly public: PublicApi;
   /** A gerência usa o mesmo login da equipe (staff.signIn) e depois o manager. */
   readonly staff: StaffApi;

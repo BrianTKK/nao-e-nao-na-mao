@@ -17,6 +17,8 @@ export interface TestServer {
   api: <T = unknown>(path: string, init?: { method?: string; body?: unknown; token?: string; alertToken?: string }) => Promise<{ status: number; body: T }>;
   login: (email: string, password?: string) => Promise<string>;
   socket: (auth: Record<string, string>) => Promise<Socket>;
+  /** Derruba, pelo servidor, os WebSockets das páginas das mulheres. Devolve quantos caíram. */
+  dropAlertSockets: () => Promise<number>;
   stop: () => Promise<void>;
 }
 
@@ -73,8 +75,15 @@ export async function startTestServer(limits?: StartOptions['limits']): Promise<
         s.on('connect_error', reject);
       });
     },
+    async dropAlertSockets() {
+      const all = await server.io.fetchSockets();
+      const pages = all.filter((s) => [...s.rooms].some((r) => r.startsWith('alert:')));
+      pages.forEach((s) => s.disconnect(true));
+      return pages.length;
+    },
     async stop() {
       sockets.forEach((s) => s.close());
+      server.httpServer.closeAllConnections();
       await server.close();
       await new Promise((r) => server.httpServer.close(r));
       await db.close();
