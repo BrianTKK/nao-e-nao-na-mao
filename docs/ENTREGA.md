@@ -2,22 +2,22 @@
 
 Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ falta.
 
-Última atualização: **F0 ajustada para a VPS** (16/11/2026).
+Última atualização: **F1** (16/11/2026): o laço real funciona no PC.
 
 ## Quem usa o quê
 
 | Ator | Plataforma | Estado |
 | --- | --- | --- |
-| Mulher no bar | **Só a web**, pelo QR code (`/q/<código>`), sem login e sem instalar nada | 🟡 Telas prontas com dados simulados |
-| Quem vai até ela (garçom, segurança) | **App**: recebe o alerta, toca em "Estou indo" e em "Resolvido" com o desfecho | 🟡 Telas prontas. Faltam o estado da conexão e a fila de toques feitos sem sinal (F1 e F3) |
+| Mulher no bar | **Só a web**, pelo QR code (`/q/<código>`), sem login e sem instalar nada | ✅ Ligada ao servidor; testada no navegador |
+| Quem vai até ela (garçom, segurança) | **App**: recebe o alerta, toca em "Estou indo" e em "Resolvido" com o desfecho | 🟡 Ligado ao servidor, com o estado da conexão. Testado no Expo web; falta o celular. A fila de toques feitos sem sinal fica para a F3 |
 | Quem coordena e prova (gerência, caixa) | **Web** (`/painel`): quadro ao vivo, direcionar ou assumir, cadastro da equipe e dos locais, QR codes, histórico, tempo de resposta e relatório do mês para o Procon | 🟡 Quadro, números, histórico, equipe (só leitura) e QR codes feitos. Faltam direcionar ou assumir, o cadastro da equipe e o relatório (F2) |
-| Integração | Web da mulher → app da equipe → web da gerência, com a volta à página dela | ⬜ F1 |
+| Integração | Web da mulher → app da equipe → web da gerência, com a volta à página dela | ✅ Testada no PC nas três telas, à mão e em teste automático |
 
 ## App
 
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
-| React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router). Testado no Expo web, ainda não no celular |
+| React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; o celular é com o Brian, pelo Expo Go |
 | Navegação seguindo a jornada | 🟡 | Login → pedidos → pedido (Estou indo, desfecho) → ajustes |
 | Motion com função clara | 🟡 | Pedido novo pulsa até alguém ver; botão encolhe ao toque; cartões entram com fade. Falta a mudança de estado no detalhe (F3) |
 
@@ -28,14 +28,14 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | HTML, CSS e JS | ✅ | `web/` (Vite + React, CSS próprio a partir dos tokens) |
 | Navegação funcional | ✅ | Início, página do QR, painel com quatro seções. Testado no navegador |
 | Responsiva (celular, tablet, computador) | 🟡 | Layout fluido. Falta conferir nos três tamanhos (F3) |
-| Publicada | ⬜ | `naoenao.obrian.me` na VPS, servida pelo `server/` na mesma origem. A Central sobe; o compose e o Nginx são preparados na F1 |
+| Publicada | 🟡 | Os arquivos de deploy estão prontos (`Dockerfile`, `docker-compose.yml`, `deploy.sh`, `deploy/`, `docs/DEPLOY.md`). Falta a Central subir em `naoenao.obrian.me` |
 
 ## Papéis e integração
 
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | Papéis nascem das jornadas; a web não copia o app | ✅ | Tabela "Quem usa o quê" acima |
-| Dados compartilhados de verdade (ação numa parte tem efeito na outra) | ⬜ | F1: API + WebSocket no `server/`. Hoje, só entre abas do mesmo navegador (dados simulados) |
+| Dados compartilhados de verdade (ação numa parte tem efeito na outra) | ✅ | API e Socket.IO no `server/`, com salas por bar e por pedido. Testado (`server/test/api.test.ts` e `datasource.test.ts`) |
 | Dados iniciais simulados, fluxo real | 🟡 | Seed do bar fictício (`db/seed.sql`) carregado pelo servidor com `SEED_DEMO=1`; testado |
 
 ## Motion nas duas partes (orientar, dar retorno, mostrar estado, personalidade)
@@ -65,29 +65,30 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 
 | Item | Estado | Onde |
 | --- | --- | --- |
-| Página da mulher anônima; só ela lê o próprio pedido (token) | 🟡 | Banco testado (`db/tests`): token de 244 bits, só o hash guardado, validade de 12 h. A rota `POST /api/alerts` e o teste de leitura indevida pela API são da F1 |
-| `spot_code` do QR aleatório | 🟡 | Seed com códigos fixos de demonstração. A geração aleatória pela API é da F2 (cadastro de locais) |
-| Login da equipe com senha em hash e token com validade, papéis `staff` e `manager`, cada um no próprio bar | 🟡 | Tabela `users` com bcrypt (seed testado); as funções conferem o bar de quem age (testado). O login e o token são da F1 |
-| Limite de pedidos | 🟡 | Por local e por bar no banco (testado). Por IP na API (F1) |
+| Página da mulher anônima; só ela lê o próprio pedido (token) | ✅ | `POST /api/alerts` devolve o token; a leitura é por cabeçalho. Testados o token errado, o malformado, o ausente e o de outro bar |
+| `spot_code` do QR aleatório | ✅ | Locais novos ganham 10 caracteres ao acaso (`POST /api/manager/spots`), testado. Os códigos do seed são fixos só para a demonstração |
+| Login da equipe com senha em hash e token com validade, papéis `staff` e `manager`, cada um no próprio bar | ✅ | bcrypt + JWT de 16 h. Quem é desativado perde o acesso na hora. A equipe comum recebe 403 nas rotas da gerência. Testado |
+| Limite de pedidos | ✅ | Por local e por bar no banco; por IP nos pedidos (6/min) e no login (10 a cada 5 min). Testado |
 | Horários de cada etapa, quem atendeu, desfecho | ✅ | Tabela `alerts` + funções, testadas |
-| Validação de entrada, consultas parametrizadas, limite do corpo, helmet, CORS fechado | 🟡 | Helmet, limite de 10 kB e CORS por lista feitos e testados; consultas sempre com `$1`. A validação com zod nas rotas vem com as rotas (F1) |
-| Contêiner sem root; segredo do token só no `.env` | 🟡 | O servidor exige `JWT_SECRET` em produção (testado). O Dockerfile é da F1 |
+| Validação de entrada, consultas parametrizadas, limite do corpo, helmet, CORS fechado | ✅ | zod em todas as rotas (campos extras recusados), `$1` em todas as consultas, 10 kB, helmet, CORS por lista. Testado |
+| Contêiner sem root; segredo do token só no `.env` | 🟡 | `USER node` no Dockerfile; o servidor não sobe sem `JWT_SECRET` em produção (testado). A imagem não foi construída: o PC não tem Docker |
 | Disfarce (título neutro, "Ver cardápio") | ✅ | Testado no navegador. Falta teste com usuárias |
 | Sem sinal: cartão para o balcão | 🟡 | Feito; falta o teste com o modo avião (F3) |
 | Celular no bolso | 🟡 | Vibração, notificação local e alerta visual escritos. O push remoto exige development build (Expo Go no Android sem push desde a SDK 53, conferido na documentação): vai como próximo passo no README e no PDF |
-| WebSocket com reconexão; a página da mulher consulta a cada 3 s se cair | ⬜ | F1 |
+| WebSocket com reconexão; a página da mulher consulta a cada 3 s se cair | ✅ | Socket.IO com reconexão; a queda é testada derrubando o WebSocket pelo servidor |
+| Conta de demonstração inofensiva | ✅ | As contas só agem no bar de demonstração. O cron diário volta o bar ao seed, e o teste confere que o outro bar fica intacto. A Central pergunta ao Brian se a senha pode ficar pública |
 
 ## GitHub e README
 
 | Item | Estado |
 | --- | --- |
 | Repositório público | ⬜ Privado; público só com o ok do Brian, pedido pela Central |
-| As duas partes integradas | ⬜ F1 |
+| As duas partes integradas | ✅ Pelo servidor; testado no PC |
 | Identidade visual comum | ✅ `shared/src/tokens.ts` nas duas partes |
 | Hierarquia clara e código organizado | 🟡 `shared/`, `server/`, `web/`, `mobile/`, `db/` |
 | README: nome e integrantes | 🟡 Nome feito; integrantes pendentes |
-| README: descrição e como a integração funciona | 🟡 Descrição feita; a integração entra na F1 |
-| README: rodar o app (passo a passo com o Expo Go e a URL pública) | 🟡 Passos locais feitos; a URL pública entra depois do deploy |
+| README: descrição e como a integração funciona | ✅ Com o desenho do fluxo |
+| README: rodar o app (passo a passo com o Expo Go e a URL pública) | 🟡 Passos escritos; a URL pública vale depois do deploy |
 | README: link do deploy | ⬜ |
 
 ## PDF
@@ -126,11 +127,11 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | 1 | Clareza e criatividade, ligação com o problema real | Ideia com dado e lei (Rodada 2); página inicial `/` | 🟡 |
 | 2 | Foco no usuário: usuários, jornadas e interface coerentes | Três atores, cada um na plataforma que faz sentido | 🟡 |
 | 3 | Navegação, usabilidade e UX no app e na web | Telas das duas partes | 🟡 |
-| 4 | Integração mobile e web, papel de cada plataforma | F1 | ⬜ |
+| 4 | Integração mobile e web, papel de cada plataforma | Servidor + Socket.IO, três atores | ✅ |
 | 5 | Design visual, hierarquia, consistência | Tokens compartilhados | 🟡 |
 | 6 | Motion design | Ver motion | 🟡 |
 | 7 | Acessibilidade e responsividade | Ver acessibilidade | 🟡 |
-| 8 | Qualidade técnica, código, deploy funcionando | Testes (banco, shared, server), typecheck; deploy pendente | 🟡 |
+| 8 | Qualidade técnica, código, deploy funcionando | 48 testes (14 do shared, 12 do banco, 22 da API e do tempo real), typecheck; deploy pendente | 🟡 |
 | 9 | ODS justificado | PDF (F4) | ⬜ |
 | 10 | GitHub e documentação | README, este checklist | 🟡 |
 | 11 | Vídeo-pitch e argumentação | Roteiro (F4) | ⬜ |
