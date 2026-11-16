@@ -1,6 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Alert, Spot, StaffMember } from '@nenm/shared';
+import type { Alert, PublicAlert, Spot, StaffMember } from '@nenm/shared';
 import { loadConfig } from '../src/config';
 import { resetDemo } from '../src/migrate';
 import { nextEvent, startTestServer, OTHER_EMAIL, OTHER_PASSWORD, type TestServer } from './helpers';
@@ -52,6 +52,40 @@ test('direcionar: a pessoa escolhida recebe em tempo real; a página da mulher a
   assert.equal(go.body.responderName, 'Diego Santos');
   // Depois de alguém a caminho, não se direciona mais.
   assert.equal((await t.api(`/manager/alerts/${alert.id}/assign`, { token: marta, body: { staffId: byName('Ana').id } })).status, 409);
+});
+
+test('pelo painel: "Vi o pedido" e "Mandar Diego" chegam na hora à página dela e ao app dele', async () => {
+  const res = await t.api<{ token: string }>('/alerts', { body: { spotCode: 'ESQM07H6', kind: 'leave' } });
+  const token = res.body.token;
+  const page = await t.socket({ alertToken: token });
+  const app = await t.socket({ token: diego });
+  const alert = (await t.api<Alert[]>('/staff/alerts/active', { token: marta })).body.find((a) => a.spotLabel === 'Mesa 7' && a.status === 'open')!;
+
+  const seen = nextEvent<PublicAlert>(page, 'public:update');
+  await t.api(`/staff/alerts/${alert.id}/ack`, { token: marta, body: {} });
+  const v1 = await seen;
+  assert.equal(v1.status, 'seen');
+  assert.equal(v1.assignedFirstName, null);
+
+  const called = nextEvent<PublicAlert>(page, 'public:update');
+  const appGot = new Promise<Alert>((resolve) => app.on('alert:update', (a: Alert) => a.id === alert.id && a.assignedToId && resolve(a)));
+  await t.api(`/manager/alerts/${alert.id}/assign`, { token: marta, body: { staffId: byName('Diego').id } });
+  const v2 = await called;
+  assert.equal(v2.assignedFirstName, 'Diego');
+  assert.equal(v2.assignedAppearance, 'camisa preta');
+  assert.equal(v2.responderFirstName, null); // ainda não diz "está indo"
+  assert.equal((await appGot).assignedByName, 'Marta Ribeiro');
+
+  const going = nextEvent<PublicAlert>(page, 'public:update');
+  await t.api(`/staff/alerts/${alert.id}/start`, { token: diego, body: {} });
+  const v3 = await going;
+  assert.equal(v3.status, 'on_the_way');
+  assert.equal(v3.responderFirstName, 'Diego');
+  assert.equal(v3.assignedFirstName, null);
+
+  // Pela rota sem login, a mesma visão.
+  const mine = await t.api<PublicAlert>('/alerts/mine', { alertToken: token });
+  assert.equal(mine.body.responderFirstName, 'Diego');
 });
 
 test('assumir: a própria gerente vai e encerra pelo painel', async () => {

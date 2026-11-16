@@ -74,7 +74,21 @@
 .live-seen { border-left-color: var(--c-status-seen); }
 .live-on_the_way { border-left-color: var(--c-status-on_the_way); }
 
-.live-item { flex-direction: column; align-items: stretch; }
+.live-item { flex-direction: column; align-items: stretch; position: relative; overflow: hidden; }
+.live-group { display: inline-flex; flex-wrap: wrap; gap: var(--s-xs); }
+.live-feedback p { margin: 0; font-size: var(--fs-sm); }
+/* Ao mudar de estado, uma faixa clara passa pelo cartão (retorno da ação, ~0,6 s). */
+.live-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c-text) 14%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: live-flash var(--d-slow) var(--ease-standard) 1;
+}
+@keyframes live-flash {
+  to { transform: translateX(100%); }
+}
 .live-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
 .live-who { margin: 0; font-weight: 700; }
 .live-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); }

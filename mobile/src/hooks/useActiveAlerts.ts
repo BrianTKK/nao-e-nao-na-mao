@@ -42,7 +42,9 @@ function announce(alert: Alert, assigned = false) {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
   Notifications.scheduleNotificationAsync({
     content: {
-      title: `${assigned ? 'A gerência pediu que você vá' : 'Pedido de ajuda'} · ${alert.spotLabel}`,
+      title: assigned
+        ? `${alert.assignedByName?.split(' ')[0] ?? 'A gerência'} pediu que você vá: ${alert.spotLabel}`
+        : `Pedido de ajuda · ${alert.spotLabel}`,
       body: `${KIND_STAFF_LABEL[alert.kind]}. Código ${alert.shortCode}.`,
       data: { alertId: alert.id },
     },

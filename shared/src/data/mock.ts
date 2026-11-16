@@ -126,6 +126,7 @@ function makeHistory(nowMs: number, staff: DemoUser[]): Alert[] {
       responderName: cancelled ? null : who.fullName,
       assignedToId: null,
       assignedToName: null,
+      assignedByName: null,
       assignedAt: null,
       outcome,
       note: null,
@@ -213,6 +214,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
     const alert = state.alerts.find((a) => a.id === state.tokens[token]);
     if (!alert || now() - Date.parse(alert.createdAt) > TOKEN_TTL_MS) return null;
     const responder = state.staff.find((s) => s.id === alert.responderId);
+    const called = responder ? undefined : state.staff.find((s) => s.id === alert.assignedToId);
     return {
       status: alert.status,
       kind: alert.kind,
@@ -226,6 +228,8 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
       cancelledAt: alert.cancelledAt,
       responderFirstName: responder ? responder.fullName.split(' ')[0] : null,
       responderAppearance: responder?.appearance ?? null,
+      assignedFirstName: called ? called.fullName.split(' ')[0] : null,
+      assignedAppearance: called?.appearance ?? null,
     };
   };
 
@@ -262,6 +266,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
       responderName: null,
       assignedToId: null,
       assignedToName: null,
+      assignedByName: null,
       assignedAt: null,
       outcome: null,
       note: null,
@@ -458,6 +463,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         if (alert.status !== 'open' && alert.status !== 'seen') throw new DataError('invalid_transition');
         alert.assignedToId = target.id;
         alert.assignedToName = target.fullName;
+        alert.assignedByName = user.fullName;
         alert.assignedAt = iso();
         alert.status = 'seen';
         alert.seenAt ??= iso();

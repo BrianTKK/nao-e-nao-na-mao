@@ -80,6 +80,8 @@ export interface Alert {
   /** Para quem a gerência direcionou o pedido (ainda não é "a caminho"). */
   assignedToId: string | null;
   assignedToName: string | null;
+  /** Quem da gerência direcionou ("Marta pediu que você vá"). */
+  assignedByName: string | null;
   assignedAt: string | null;
   outcome: AlertOutcome | null;
   note: string | null;
@@ -108,6 +110,9 @@ export interface PublicAlert {
   cancelledAt: string | null;
   responderFirstName: string | null;
   responderAppearance: string | null;
+  /** Quem a gerência chamou, antes de a pessoa tocar em "Estou indo". */
+  assignedFirstName: string | null;
+  assignedAppearance: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +247,12 @@ export function computeStats(alerts: Alert[]): AlertStats {
 /** Primeiro nome, para a página da mulher ("Diego está indo"). */
 export function firstName(fullName: string | null): string | null {
   return fullName ? fullName.trim().split(/\s+/)[0] : null;
+}
+
+/** "Diego, de camisa preta, foi chamado para ir até você." */
+export function calledMessage(name: string | null, appearance: string | null): string {
+  const who = name ?? 'Alguém da equipe';
+  return appearance ? `${who}, de ${appearance}, foi chamado para ir até você.` : `${who} foi chamado para ir até você.`;
 }
 
 /** "Diego, de camisa preta, está indo até você." */

@@ -47,7 +47,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
 
   const statusColor = color.status[alert.status];
   const forMe = !alert.responderId && alert.assignedToId === meId;
-  const assignedText = alert.responderId ? null : forMe ? 'A gerência pediu que VOCÊ vá' : alert.assignedToName ? `Direcionado para ${alert.assignedToName.split(' ')[0]}` : null;
+  const assignedText = alert.responderId ? null : forMe ? `${alert.assignedByName?.split(' ')[0] ?? 'A gerência'} pediu que você vá` : alert.assignedToName ? `Direcionado para ${alert.assignedToName.split(' ')[0]}` : null;
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
   const label = `${assignedText ? `${assignedText}. ` : ''}${STATUS_LABEL[alert.status]}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Código ${alert.shortCode.split('').join(' ')}.`;
 

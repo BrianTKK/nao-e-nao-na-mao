@@ -7,12 +7,13 @@ const ALERT_SELECT = `
   select a.id, a.venue_id, a.spot_id, sp.label as spot_label, a.kind, a.status, a.short_code,
          a.created_at, a.seen_at, a.on_the_way_at, a.resolved_at, a.cancelled_at,
          a.responder_id, st.full_name as responder_name,
-         a.assigned_to, asg.full_name as assigned_to_name, a.assigned_at,
+         a.assigned_to, asg.full_name as assigned_to_name, by_.full_name as assigned_by_name, a.assigned_at,
          a.outcome, a.note
   from alerts a
   join spots sp on sp.id = a.spot_id
   left join staff st on st.id = a.responder_id
-  left join staff asg on asg.id = a.assigned_to`;
+  left join staff asg on asg.id = a.assigned_to
+  left join staff by_ on by_.id = a.assigned_by`;
 
 interface AlertRow {
   id: string;
@@ -31,6 +32,7 @@ interface AlertRow {
   responder_name: string | null;
   assigned_to: string | null;
   assigned_to_name: string | null;
+  assigned_by_name: string | null;
   assigned_at: string | null;
   outcome: Alert['outcome'];
   note: string | null;
@@ -53,6 +55,7 @@ const toAlert = (r: AlertRow): Alert => ({
   responderName: r.responder_name,
   assignedToId: r.assigned_to,
   assignedToName: r.assigned_to_name,
+  assignedByName: r.assigned_by_name,
   assignedAt: r.assigned_at,
   outcome: r.outcome,
   note: r.note,
@@ -92,6 +95,8 @@ interface PublicRow {
   cancelled_at: string | null;
   responder_first_name: string | null;
   responder_appearance: string | null;
+  assigned_first_name: string | null;
+  assigned_appearance: string | null;
 }
 
 const toPublic = (r: PublicRow): PublicAlert => ({
@@ -107,6 +112,9 @@ const toPublic = (r: PublicRow): PublicAlert => ({
   cancelledAt: r.cancelled_at,
   responderFirstName: r.responder_first_name,
   responderAppearance: r.responder_appearance,
+  // Depois que alguém está indo, a página mostra quem vai, não quem foi chamado.
+  assignedFirstName: r.responder_first_name ? null : r.assigned_first_name,
+  assignedAppearance: r.responder_first_name ? null : r.assigned_appearance,
 });
 
 export async function getPublicAlertByToken(db: Queryable, token: string): Promise<PublicAlert | null> {
@@ -119,11 +127,13 @@ export async function getPublicAlertByHash(db: Queryable, tokenHash: string): Pr
   const { rows } = await db.query<PublicRow>(
     `select a.status, a.kind, sp.label as spot_label, v.name as venue_name, a.short_code,
             a.created_at, a.seen_at, a.on_the_way_at, a.resolved_at, a.cancelled_at,
-            split_part(st.full_name, ' ', 1) as responder_first_name, st.appearance as responder_appearance
+            split_part(st.full_name, ' ', 1) as responder_first_name, st.appearance as responder_appearance,
+            split_part(asg.full_name, ' ', 1) as assigned_first_name, asg.appearance as assigned_appearance
      from alerts a
      join spots sp on sp.id = a.spot_id
      join venues v on v.id = a.venue_id
      left join staff st on st.id = a.responder_id
+     left join staff asg on asg.id = a.assigned_to
      where a.token_hash = $1 and a.created_at > now() - interval '12 hours'`,
     [tokenHash],
   );

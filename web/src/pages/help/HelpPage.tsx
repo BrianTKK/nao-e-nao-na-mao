@@ -5,6 +5,7 @@ import {
   DataError,
   KIND_LABEL,
   isActive,
+  calledMessage,
   onTheWayMessage,
   type AlertKind,
   type PublicAlert,
@@ -189,6 +190,9 @@ export function HelpPage() {
               {alert.status === 'on_the_way' && (
                 <p className="help-onway">{onTheWayMessage(alert.responderFirstName, alert.responderAppearance)}</p>
               )}
+              {alert.status === 'seen' && alert.assignedFirstName && (
+                <p className="help-onway help-called">{calledMessage(alert.assignedFirstName, alert.assignedAppearance)}</p>
+              )}
             </div>
             <StatusSteps alert={alert} />
             <p className="help-code">
@@ -231,7 +235,7 @@ function headline(a: PublicAlert): string {
     case 'open':
       return 'Pedido enviado à equipe';
     case 'seen':
-      return 'A equipe viu o seu pedido';
+      return a.assignedFirstName ? 'A equipe chamou alguém para você' : 'A equipe viu o seu pedido';
     case 'on_the_way':
       return 'Alguém está indo até você';
     case 'resolved':
