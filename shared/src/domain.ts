@@ -57,6 +57,8 @@ export interface StaffMember {
   appearance: string | null;
   trainedAt: string | null;
   active: boolean;
+  /** Só na lista da gerência. */
+  email?: string;
 }
 
 /** Pedido como a equipe e a gerência veem. */
@@ -75,6 +77,10 @@ export interface Alert {
   cancelledAt: string | null;
   responderId: string | null;
   responderName: string | null;
+  /** Para quem a gerência direcionou o pedido (ainda não é "a caminho"). */
+  assignedToId: string | null;
+  assignedToName: string | null;
+  assignedAt: string | null;
   outcome: AlertOutcome | null;
   note: string | null;
 }

@@ -28,7 +28,8 @@ export function createRealtime(httpServer: HttpServer, config: Config, db: Db, a
       if (token) {
         const actor = await auth.verify(token);
         socket.data.actor = actor;
-        await socket.join(`venue:${actor.venueId}`);
+        // Sala da pessoa: quando ela é desativada, o servidor derruba os sockets dela na hora.
+        await socket.join([`venue:${actor.venueId}`, `user:${actor.id}`]);
         return next();
       }
       if (typeof alertToken === 'string' && /^[0-9a-f]{64}$/.test(alertToken)) {
@@ -51,7 +52,12 @@ export function createRealtime(httpServer: HttpServer, config: Config, db: Db, a
     io.to(`alert:${row.token_hash}`).emit('public:update', publicView);
   }
 
-  return { io, alertChanged };
+  /** Derruba as conexões em tempo real de uma pessoa (desativada ou com o papel trocado). */
+  function disconnectUser(userId: string): void {
+    io.in(`user:${userId}`).disconnectSockets(true);
+  }
+
+  return { io, alertChanged, disconnectUser };
 }
 
 export type Realtime = ReturnType<typeof createRealtime>;

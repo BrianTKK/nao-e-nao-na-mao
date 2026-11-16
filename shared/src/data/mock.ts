@@ -124,6 +124,9 @@ function makeHistory(nowMs: number, staff: DemoUser[]): Alert[] {
       cancelledAt: cancelled ? iso(created + 40_000) : null,
       responderId: cancelled ? null : who.id,
       responderName: cancelled ? null : who.fullName,
+      assignedToId: null,
+      assignedToName: null,
+      assignedAt: null,
       outcome,
       note: null,
     });
@@ -257,6 +260,9 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
       cancelledAt: null,
       responderId: null,
       responderName: null,
+      assignedToId: null,
+      assignedToName: null,
+      assignedAt: null,
       outcome: null,
       note: null,
     };
@@ -416,7 +422,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
       async listStaff() {
         await wait();
         const user = me();
-        return state.staff.filter((s) => s.venueId === user.venueId).map(toStaffMember);
+        return state.staff.filter((s) => s.venueId === user.venueId).map((s) => ({ ...toStaffMember(s), email: s.email }));
       },
       async listSpots() {
         await wait();
@@ -432,6 +438,65 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         state.spots.push(spot);
         commit();
         return spot;
+      },
+      async rotateSpotCode(id) {
+        await wait();
+        const user = me();
+        const spot = state.spots.find((s) => s.id === id && s.venueId === user.venueId);
+        if (!spot || user.role !== 'manager') throw new DataError('spot_not_found');
+        spot.code = `ESQ${randomShortCode()}${Math.floor(Math.random() * 10)}`;
+        commit();
+        return { ...spot };
+      },
+      async assignAlert(id, staffId) {
+        await wait();
+        const user = me();
+        if (user.role !== 'manager') throw new DataError('not_manager');
+        const alert = myAlert(id);
+        const target = state.staff.find((s) => s.id === staffId && s.venueId === user.venueId && s.active);
+        if (!target) throw new DataError('staff_not_found');
+        if (alert.status !== 'open' && alert.status !== 'seen') throw new DataError('invalid_transition');
+        alert.assignedToId = target.id;
+        alert.assignedToName = target.fullName;
+        alert.assignedAt = iso();
+        alert.status = 'seen';
+        alert.seenAt ??= iso();
+        commit();
+      },
+      async createStaff(input) {
+        await wait();
+        const user = me();
+        if (user.role !== 'manager') throw new DataError('not_manager');
+        const email = input.email.trim().toLowerCase();
+        if (state.staff.some((s) => s.email === email)) throw new DataError('email_taken');
+        const created: DemoUser = {
+          id: `staff-${randomShortCode()}`,
+          email,
+          venueId: user.venueId,
+          fullName: input.fullName.trim(),
+          role: input.role,
+          jobTitle: input.jobTitle?.trim() || null,
+          appearance: null,
+          trainedAt: input.trainedAt ?? null,
+          active: true,
+        };
+        state.staff.push(created);
+        commit();
+        return { ...toStaffMember(created), email };
+      },
+      async updateStaff(id, patch) {
+        await wait();
+        const user = me();
+        if (user.role !== 'manager') throw new DataError('not_manager');
+        if (id === user.id && (patch.active === false || patch.role === 'staff')) throw new DataError('cannot_change_self');
+        const target = state.staff.find((s) => s.id === id && s.venueId === user.venueId);
+        if (!target) throw new DataError('staff_not_found');
+        if (patch.active !== undefined) target.active = patch.active;
+        if (patch.role) target.role = patch.role;
+        if (patch.jobTitle !== undefined) target.jobTitle = patch.jobTitle;
+        if (patch.trainedAt !== undefined) target.trainedAt = patch.trainedAt;
+        commit();
+        return { ...toStaffMember(target), email: target.email };
       },
       async setSpotActive(id, active) {
         await wait();

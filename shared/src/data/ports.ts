@@ -31,6 +31,10 @@ export type DataErrorCode =
   | 'outcome_required'
   | 'not_staff'
   | 'invalid_credentials'
+  | 'not_manager'
+  | 'staff_not_found'
+  | 'email_taken'
+  | 'cannot_change_self'
   | 'network'
   | 'unknown';
 
@@ -79,6 +83,29 @@ export interface ManagerApi {
   listSpots(): Promise<Spot[]>;
   createSpot(input: { label: string; kind: SpotKind }): Promise<Spot>;
   setSpotActive(id: string, active: boolean): Promise<void>;
+  /** Troca o código impresso no QR; o código antigo para de funcionar. */
+  rotateSpotCode(id: string): Promise<Spot>;
+  /** Direciona o pedido para alguém da equipe (assumir = staff.startResponse). */
+  assignAlert(id: string, staffId: string): Promise<void>;
+  createStaff(input: NewStaffInput): Promise<StaffMember>;
+  updateStaff(id: string, patch: StaffPatch): Promise<StaffMember>;
+}
+
+export interface NewStaffInput {
+  email: string;
+  fullName: string;
+  role: StaffMember['role'];
+  jobTitle?: string;
+  trainedAt?: string | null;
+  /** Senha provisória (8+ caracteres) que a gerência entrega à pessoa. */
+  password: string;
+}
+
+export interface StaffPatch {
+  active?: boolean;
+  role?: StaffMember['role'];
+  jobTitle?: string | null;
+  trainedAt?: string | null;
 }
 
 export interface DataSource {

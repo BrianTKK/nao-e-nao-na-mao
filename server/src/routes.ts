@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { Router, type Request } from 'express';
+import bcrypt from 'bcryptjs';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { ALERT_KINDS, ALERT_OUTCOMES, SPOT_KIND_LABEL, type SpotKind } from '@nenm/shared';
@@ -13,6 +14,8 @@ export interface RouteDeps {
   auth: Auth;
   /** Avisa o tempo real que um pedido mudou. */
   alertChanged: (alertId: string) => void;
+  /** Derruba o tempo real de quem foi desativado. */
+  disconnectUser: (userId: string) => void;
   limits: { alertsPerMinutePerIp: number; loginsPer5MinPerIp: number };
 }
 
@@ -41,7 +44,9 @@ const limiter = (limit: number, windowMs: number) =>
     },
   });
 
-export function createRoutes({ db, auth, alertChanged, limits }: RouteDeps): Router {
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }: RouteDeps): Router {
   const r = Router();
 
   // ------------------------------------------------------------------ página do QR (sem login)
@@ -146,6 +151,80 @@ export function createRoutes({ db, auth, alertChanged, limits }: RouteDeps): Rou
       [req.actor!.venueId, newSpotCode(), body.label, body.kind],
     );
     res.status(201).json(q.toSpot(rows[0]));
+  });
+
+  // Direcionar: a gerência escolhe quem vai. Assumir = a própria gerência usa /staff/alerts/:id/start.
+  r.post('/manager/alerts/:id/assign', auth.requireManager, async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const body = z.object({ staffId: uuid }).strict().parse(req.body);
+    await db.query('select assign_alert($1, $2, $3)', [req.actor!.id, id, body.staffId]);
+    alertChanged(id);
+    res.json(await q.getAlert(db, req.actor!.venueId, id));
+  });
+
+  r.post('/manager/staff', auth.requireManager, async (req, res) => {
+    const body = z
+      .object({
+        email: z.string().trim().toLowerCase().email().max(200),
+        fullName: z.string().trim().min(3).max(80),
+        role: z.enum(['staff', 'manager']),
+        jobTitle: z.string().trim().max(40).optional(),
+        trainedAt: isoDate.nullable().optional(),
+        // Senha provisória que a gerência entrega à pessoa.
+        password: z.string().min(8).max(200),
+      })
+      .strict()
+      .parse(req.body);
+    const hash = await bcrypt.hash(body.password, 10);
+    const id = await db.tx(async (t) => {
+      const taken = await t.query('select 1 from users where email = $1', [body.email]);
+      if (taken.rows.length) throw new HttpError(409, 'email_taken');
+      const { rows } = await t.query<{ id: string }>('insert into users (email, password_hash) values ($1, $2) returning id', [body.email, hash]);
+      await t.query(
+        'insert into staff (id, venue_id, full_name, role, job_title, trained_at) values ($1, $2, $3, $4, $5, $6)',
+        [rows[0].id, req.actor!.venueId, body.fullName, body.role, body.jobTitle || null, body.trainedAt ?? null],
+      );
+      return rows[0].id;
+    });
+    res.status(201).json(await q.getStaffInVenue(db, req.actor!.venueId, id));
+  });
+
+  r.patch('/manager/staff/:id', auth.requireManager, async (req, res) => {
+    const id = uuid.parse(req.params.id);
+    const body = z
+      .object({
+        active: z.boolean().optional(),
+        role: z.enum(['staff', 'manager']).optional(),
+        jobTitle: z.string().trim().max(40).nullable().optional(),
+        trainedAt: isoDate.nullable().optional(),
+      })
+      .strict()
+      .parse(req.body);
+    // Ninguém tira o próprio acesso pelo painel (o bar ficaria sem gerência).
+    if (id === req.actor!.id && (body.active === false || body.role === 'staff')) throw new HttpError(409, 'cannot_change_self');
+    const current = await q.getStaffInVenue(db, req.actor!.venueId, id);
+    if (!current) throw new HttpError(404, 'staff_not_found');
+    await db.query(
+      `update staff set
+         active = coalesce($3, active),
+         role = coalesce($4, role),
+         job_title = case when $5::boolean then $6 else job_title end,
+         trained_at = case when $7::boolean then $8::date else trained_at end
+       where id = $1 and venue_id = $2`,
+      [id, req.actor!.venueId, body.active ?? null, body.role ?? null, 'jobTitle' in body, body.jobTitle ?? null, 'trainedAt' in body, body.trainedAt ?? null],
+    );
+    if (body.active === false || (body.role && body.role !== current.role)) disconnectUser(id);
+    res.json(await q.getStaffInVenue(db, req.actor!.venueId, id));
+  });
+
+  // Troca o código do QR (ex.: QR arrancado ou usado para trote): o código antigo deixa de funcionar.
+  r.post('/manager/spots/:id/rotate-code', auth.requireManager, async (req, res) => {
+    const { rows } = await db.query<Parameters<typeof q.toSpot>[0]>(
+      'update spots set code = $1 where id = $2 and venue_id = $3 returning id, venue_id, code, label, kind, active',
+      [newSpotCode(), uuid.parse(req.params.id), req.actor!.venueId],
+    );
+    if (!rows[0]) throw new HttpError(404, 'spot_not_found');
+    res.json(q.toSpot(rows[0]));
   });
 
   r.patch('/manager/spots/:id', auth.requireManager, async (req, res) => {

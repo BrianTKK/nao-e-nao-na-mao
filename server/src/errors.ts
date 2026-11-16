@@ -21,6 +21,8 @@ const DB_ERRORS: Record<string, number> = {
   invalid_transition: 409,
   already_taken: 409,
   not_staff: 403,
+  not_manager: 403,
+  staff_not_found: 404,
 };
 
 export function toHttpError(err: unknown): HttpError | null {
@@ -31,6 +33,7 @@ export function toHttpError(err: unknown): HttpError | null {
   // Violação de check do banco (ex.: desfecho que não existe) = entrada inválida.
   const code = (err as { code?: string })?.code;
   if (code === '23514' || code === '22P02') return new HttpError(400, 'bad_request');
+  if (code === '23505') return new HttpError(409, 'conflict');
   return null;
 }
 

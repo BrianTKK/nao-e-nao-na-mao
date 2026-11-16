@@ -62,7 +62,9 @@ const isoDates = { [1184]: (v: string) => new Date(v).toISOString(), [1082]: (v:
 
 function fromPglite(dir: string): Db {
   if (dir !== 'memory') mkdirSync(dir, { recursive: true });
-  const lite = new PGlite(dir === 'memory' ? undefined : dir, { parsers: isoDates });
+  // Os parsers só valem por consulta nesta versão do PGlite.
+  const lite = new PGlite(dir === 'memory' ? undefined : dir);
+  const opts = { parsers: isoDates };
   // O PGlite atende uma consulta por vez; a fila deixa as transações em ordem.
   let chain: Promise<unknown> = Promise.resolve();
   const serial = <T>(fn: () => Promise<T>): Promise<T> => {
@@ -72,7 +74,7 @@ function fromPglite(dir: string): Db {
   };
   return {
     engine: 'pglite',
-    query: (sql, params) => serial(() => lite.query(sql, params)) as never,
+    query: (sql, params) => serial(() => lite.query(sql, params, opts)) as never,
     exec: async (sql) => {
       await serial(() => lite.exec(sql));
     },
@@ -80,7 +82,7 @@ function fromPglite(dir: string): Db {
       serial(() =>
         lite.transaction((t) =>
           fn({
-            query: (sql, params) => t.query(sql, params) as never,
+            query: (sql, params) => t.query(sql, params, opts) as never,
             exec: async (sql) => {
               await t.exec(sql);
             },

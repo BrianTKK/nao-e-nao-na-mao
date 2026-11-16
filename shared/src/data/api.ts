@@ -5,7 +5,7 @@
  */
 import { io, type Socket } from 'socket.io-client';
 import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue } from '../domain';
-import { DataError, type ConnectionState, type DataErrorCode, type DataSource, type Unsubscribe } from './ports';
+import { DataError, type ConnectionState, type DataErrorCode, type DataSource, type NewStaffInput, type StaffPatch, type Unsubscribe } from './ports';
 
 /** Onde guardar o token de login (localStorage na web, AsyncStorage no app). */
 export interface TokenStore {
@@ -31,6 +31,10 @@ const KNOWN_ERRORS: DataErrorCode[] = [
   'outcome_required',
   'not_staff',
   'invalid_credentials',
+  'not_manager',
+  'staff_not_found',
+  'email_taken',
+  'cannot_change_self',
 ];
 
 export function createApiDataSource(options: ApiOptions): DataSource {
@@ -289,6 +293,12 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       async setSpotActive(id, active) {
         await request(`/manager/spots/${id}`, { method: 'PATCH', auth: true, body: { active } });
       },
+      rotateSpotCode: (id: string) => request<Spot>(`/manager/spots/${id}/rotate-code`, { auth: true, body: {} }),
+      async assignAlert(id: string, staffId: string) {
+        await request(`/manager/alerts/${id}/assign`, { auth: true, body: { staffId } });
+      },
+      createStaff: (input: NewStaffInput) => request<StaffMember>('/manager/staff', { auth: true, body: input }),
+      updateStaff: (id: string, patch: StaffPatch) => request<StaffMember>(`/manager/staff/${id}`, { method: 'PATCH', auth: true, body: patch }),
     },
   };
 }

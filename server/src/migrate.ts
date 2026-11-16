@@ -63,6 +63,8 @@ export async function seedDemo(db: Db, repoRoot: string): Promise<boolean> {
 export async function resetDemo(db: Db, repoRoot: string): Promise<void> {
   const { data, seed } = await readDemo(repoRoot);
   await db.tx(async (q) => {
+    // Contas criadas no painel durante a demonstração também saem.
+    await q.query('delete from users where id in (select id from staff where venue_id = $1)', [DEMO_VENUE_ID]);
     await q.query('delete from venues where id = $1', [DEMO_VENUE_ID]);
     await q.query('delete from users where email = any($1::text[])', [data.users.map((u) => u.email)]);
     await insertDemo(q, data, seed);

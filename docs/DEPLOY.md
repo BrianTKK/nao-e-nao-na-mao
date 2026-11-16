@@ -26,7 +26,7 @@ O Nginx fica na frente, com HTTPS e o upgrade de WebSocket.
 4. **Nginx**:
    ```bash
    cp deploy/nginx-naoenao.obrian.me.conf /etc/nginx/sites-available/naoenao.obrian.me
-   sed -i 's/127.0.0.1:3060/127.0.0.1:<APP_PORT>/' /etc/nginx/sites-available/naoenao.obrian.me
+   sed -i 's/127.0.0.1:3070/127.0.0.1:<APP_PORT>/' /etc/nginx/sites-available/naoenao.obrian.me
    ln -s /etc/nginx/sites-available/naoenao.obrian.me /etc/nginx/sites-enabled/
    nginx -t && systemctl reload nginx
    certbot --nginx -d naoenao.obrian.me

@@ -6,10 +6,13 @@ import type { Queryable } from './db';
 const ALERT_SELECT = `
   select a.id, a.venue_id, a.spot_id, sp.label as spot_label, a.kind, a.status, a.short_code,
          a.created_at, a.seen_at, a.on_the_way_at, a.resolved_at, a.cancelled_at,
-         a.responder_id, st.full_name as responder_name, a.outcome, a.note
+         a.responder_id, st.full_name as responder_name,
+         a.assigned_to, asg.full_name as assigned_to_name, a.assigned_at,
+         a.outcome, a.note
   from alerts a
   join spots sp on sp.id = a.spot_id
-  left join staff st on st.id = a.responder_id`;
+  left join staff st on st.id = a.responder_id
+  left join staff asg on asg.id = a.assigned_to`;
 
 interface AlertRow {
   id: string;
@@ -26,6 +29,9 @@ interface AlertRow {
   cancelled_at: string | null;
   responder_id: string | null;
   responder_name: string | null;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+  assigned_at: string | null;
   outcome: Alert['outcome'];
   note: string | null;
 }
@@ -45,6 +51,9 @@ const toAlert = (r: AlertRow): Alert => ({
   cancelledAt: r.cancelled_at,
   responderId: r.responder_id,
   responderName: r.responder_name,
+  assignedToId: r.assigned_to,
+  assignedToName: r.assigned_to_name,
+  assignedAt: r.assigned_at,
   outcome: r.outcome,
   note: r.note,
 });
@@ -141,6 +150,7 @@ interface StaffRow {
   appearance: string | null;
   trained_at: string | null;
   active: boolean;
+  email?: string;
 }
 
 const toStaff = (r: StaffRow): StaffMember => ({
@@ -152,7 +162,13 @@ const toStaff = (r: StaffRow): StaffMember => ({
   appearance: r.appearance,
   trainedAt: r.trained_at,
   active: r.active,
+  ...(r.email ? { email: r.email } : {}),
 });
+
+export async function getStaffInVenue(db: Queryable, venueId: string, id: string): Promise<StaffMember | null> {
+  const { rows } = await db.query<StaffRow>('select s.*, u.email from staff s join users u on u.id = s.id where s.venue_id = $1 and s.id = $2', [venueId, id]);
+  return rows[0] ? toStaff(rows[0]) : null;
+}
 
 export async function getStaffMember(db: Queryable, id: string): Promise<StaffMember | null> {
   const { rows } = await db.query<StaffRow>('select * from staff where id = $1', [id]);
@@ -160,7 +176,10 @@ export async function getStaffMember(db: Queryable, id: string): Promise<StaffMe
 }
 
 export async function listStaff(db: Queryable, venueId: string): Promise<StaffMember[]> {
-  const { rows } = await db.query<StaffRow>('select * from staff where venue_id = $1 order by role desc, full_name', [venueId]);
+  const { rows } = await db.query<StaffRow>(
+    'select s.*, u.email from staff s join users u on u.id = s.id where s.venue_id = $1 order by s.active desc, s.role, s.full_name',
+    [venueId],
+  );
   return rows.map(toStaff);
 }
 

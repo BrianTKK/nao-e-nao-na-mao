@@ -12,6 +12,15 @@ import { createRoutes, type RouteDeps } from './routes';
 import { createRealtime } from './realtime';
 import { errorHandler } from './errors';
 
+const HOST = /^[a-z0-9.-]+(:\d{1,5})?$/i;
+
+/** ws(s)://<host> da própria requisição, só se o Host for um nome válido. */
+function sameOriginSocket(req: express.Request): string {
+  const host = req.headers.host ?? '';
+  if (!HOST.test(host)) return "'self'";
+  return `${req.protocol === 'https' ? 'wss' : 'ws'}://${host}`;
+}
+
 export interface StartOptions {
   config: Config;
   db: Db;
@@ -33,7 +42,9 @@ export function buildServer({ config, db, limits }: StartOptions) {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          connectSrc: ["'self'", 'ws:', 'wss:'],
+          // WebSocket só para o próprio servidor. O 'self' já cobre wss:// no Chrome e no
+          // Firefox; o endereço explícito garante os navegadores que não o tratam assim.
+          connectSrc: ["'self'", (req) => sameOriginSocket(req as express.Request)],
           imgSrc: ["'self'", 'data:'],
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
@@ -68,6 +79,7 @@ export function buildServer({ config, db, limits }: StartOptions) {
       alertChanged: (id) => {
         realtime.alertChanged(id).catch((err) => console.error('tempo real:', err));
       },
+      disconnectUser: realtime.disconnectUser,
       limits: { alertsPerMinutePerIp: 6, loginsPer5MinPerIp: 10, ...limits },
     }),
   );
