@@ -4,7 +4,7 @@ Pedido de ajuda discreto no bar. A mulher lê um QR code no banheiro ou na mesa 
 
 Projeto da Global Solution CitizenTech (FIAP, Web Design).
 
-> **Estado: fatia F1.** O laço real funciona no PC: a página do QR cria o pedido, o app da equipe recebe em tempo real e toca em "Estou indo", e a página da mulher e o quadro da gerência mudam juntos. O README completo (integrantes, link do deploy, vídeo) fica para a F4. O estado de cada requisito está em [`docs/ENTREGA.md`](docs/ENTREGA.md).
+> **Estado: fatia F2.** No ar em **https://naoenao.obrian.me** (a F1; a F2 sobe no próximo deploy). O laço real funciona: a página do QR cria o pedido, o app da equipe recebe em tempo real e toca em "Estou indo", e a página da mulher e o quadro da gerência mudam juntos. O painel da gerência faz quatro coisas: direciona ou assume um pedido, cadastra e desativa a equipe, imprime os QR codes e gera o relatório do mês para o Procon. O README completo (integrantes e vídeo) fica para a F4. O estado de cada requisito está em [`docs/ENTREGA.md`](docs/ENTREGA.md).
 
 ## Como as partes se dividem
 

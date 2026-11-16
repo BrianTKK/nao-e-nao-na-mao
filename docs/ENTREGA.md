@@ -2,7 +2,7 @@
 
 Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ falta.
 
-Última atualização: **F1** (16/11/2026): o laço real funciona no PC.
+Última atualização: **F2** (16/11/2026): o painel da gerência está completo. A F1 está em produção em https://naoenao.obrian.me.
 
 ## Quem usa o quê
 
@@ -10,7 +10,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | --- | --- | --- |
 | Mulher no bar | **Só a web**, pelo QR code (`/q/<código>`), sem login e sem instalar nada | ✅ Ligada ao servidor; testada no navegador |
 | Quem vai até ela (garçom, segurança) | **App**: recebe o alerta, toca em "Estou indo" e em "Resolvido" com o desfecho | 🟡 Ligado ao servidor, com o estado da conexão. Testado no Expo web; falta o celular. A fila de toques feitos sem sinal fica para a F3 |
-| Quem coordena e prova (gerência, caixa) | **Web** (`/painel`): quadro ao vivo, direcionar ou assumir, cadastro da equipe e dos locais, QR codes, histórico, tempo de resposta e relatório do mês para o Procon | 🟡 Quadro, números, histórico, equipe (só leitura) e QR codes feitos. Faltam direcionar ou assumir, o cadastro da equipe e o relatório (F2) |
+| Quem coordena e prova (gerência, caixa) | **Web** (`/painel`): quadro ao vivo, direcionar ou assumir, cadastro da equipe e dos locais, QR codes, histórico, tempo de resposta e relatório do mês para o Procon | ✅ Tudo feito na F2 e testado no navegador e pela API |
 | Integração | Web da mulher → app da equipe → web da gerência, com a volta à página dela | ✅ Testada no PC nas três telas, à mão e em teste automático |
 
 ## App
@@ -28,7 +28,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | HTML, CSS e JS | ✅ | `web/` (Vite + React, CSS próprio a partir dos tokens) |
 | Navegação funcional | ✅ | Início, página do QR, painel com quatro seções. Testado no navegador |
 | Responsiva (celular, tablet, computador) | 🟡 | Layout fluido. Falta conferir nos três tamanhos (F3) |
-| Publicada | 🟡 | Os arquivos de deploy estão prontos (`Dockerfile`, `docker-compose.yml`, `deploy.sh`, `deploy/`, `docs/DEPLOY.md`). Falta a Central subir em `naoenao.obrian.me` |
+| Publicada | ✅ | https://naoenao.obrian.me, no ar desde a F1 e testada em produção pela Central. A F2 sobe com o próximo deploy |
 
 ## Papéis e integração
 
@@ -61,6 +61,18 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Movimento reduzido | 🟡 | Ver motion |
 | Linguagem simples | ✅ | Textos em `shared/src/domain.ts` |
 
+## Painel da gerência (F2)
+
+| Item | Estado | Onde |
+| --- | --- | --- |
+| Quadro ao vivo com quem está indo e o tempo correndo | ✅ | `web/src/pages/panel/LiveBoard.tsx` |
+| Direcionar um pedido para alguém da equipe | ✅ | `POST /api/manager/alerts/:id/assign`. O app da pessoa destaca "A gerência pediu que VOCÊ vá" e vibra de novo. A página da mulher só diz "a caminho" quando alguém aceita |
+| Assumir (a gerência vai) e encerrar pelo painel | ✅ | Usa as mesmas rotas da equipe. Testado: a página mostrou "Marta, de blazer azul, está indo até você" |
+| Cadastrar e desativar a equipe, com a data do curso | ✅ | `POST/PATCH /api/manager/staff`, com senha provisória (bcrypt). Ninguém tira o próprio acesso |
+| QR codes com código aleatório, troca de código e página para imprimir | ✅ | `/painel/qr-codes` e `/painel/qr-codes/imprimir` (cartazes A4, dois por folha) |
+| Relatório do mês para o Procon | ✅ | `/painel/relatorio`. Traz acionamentos, tempos (mediana e 9 em cada 10), tipo, local, desfecho, equipe capacitada e o registro de cada pedido. Imprime ou salva em PDF |
+| Um bar não age sobre a equipe nem os locais de outro | ✅ | `server/test/manager.test.ts` |
+
 ## Requisitos próprios do produto
 
 | Item | Estado | Onde |
@@ -71,7 +83,9 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Limite de pedidos | ✅ | Por local e por bar no banco; por IP nos pedidos (6/min) e no login (10 a cada 5 min). Testado |
 | Horários de cada etapa, quem atendeu, desfecho | ✅ | Tabela `alerts` + funções, testadas |
 | Validação de entrada, consultas parametrizadas, limite do corpo, helmet, CORS fechado | ✅ | zod em todas as rotas (campos extras recusados), `$1` em todas as consultas, 10 kB, helmet, CORS por lista. Testado |
-| Contêiner sem root; segredo do token só no `.env` | 🟡 | `USER node` no Dockerfile; o servidor não sobe sem `JWT_SECRET` em produção (testado). A imagem não foi construída: o PC não tem Docker |
+| Contêiner sem root; segredo do token só no `.env` | ✅ | `USER node` no Dockerfile; o servidor não sobe sem `JWT_SECRET` em produção. A imagem foi construída e roda na VPS (F1) |
+| CSP: WebSocket só para a própria origem | ✅ | `connect-src 'self' ws(s)://<host>` (F2). Testado na API e no navegador: o Socket.IO conecta sem erro, e a página não cai na consulta de reserva |
+| Quem é desativado perde o tempo real na hora | ✅ | Sala `user:<id>`; o servidor derruba os sockets ao desativar. Testado |
 | Disfarce (título neutro, "Ver cardápio") | ✅ | Testado no navegador. Falta teste com usuárias |
 | Sem sinal: cartão para o balcão | 🟡 | Feito; falta o teste com o modo avião (F3) |
 | Celular no bolso | 🟡 | Vibração, notificação local e alerta visual escritos. O push remoto exige development build (Expo Go no Android sem push desde a SDK 53, conferido na documentação): vai como próximo passo no README e no PDF |
@@ -89,7 +103,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | README: nome e integrantes | 🟡 Nome feito; integrantes pendentes |
 | README: descrição e como a integração funciona | ✅ Com o desenho do fluxo |
 | README: rodar o app (passo a passo com o Expo Go e a URL pública) | 🟡 Passos escritos; a URL pública vale depois do deploy |
-| README: link do deploy | ⬜ |
+| README: link do deploy | 🟡 URL conhecida (https://naoenao.obrian.me); entra no README final (F4) |
 
 ## PDF
 
@@ -131,7 +145,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | 5 | Design visual, hierarquia, consistência | Tokens compartilhados | 🟡 |
 | 6 | Motion design | Ver motion | 🟡 |
 | 7 | Acessibilidade e responsividade | Ver acessibilidade | 🟡 |
-| 8 | Qualidade técnica, código, deploy funcionando | 48 testes (14 do shared, 12 do banco, 22 da API e do tempo real), typecheck; deploy pendente | 🟡 |
+| 8 | Qualidade técnica, código, deploy funcionando | 59 testes (15 do shared, 12 do banco, 32 da API e do tempo real), typecheck, deploy em produção | ✅ |
 | 9 | ODS justificado | PDF (F4) | ⬜ |
 | 10 | GitHub e documentação | README, este checklist | 🟡 |
 | 11 | Vídeo-pitch e argumentação | Roteiro (F4) | ⬜ |

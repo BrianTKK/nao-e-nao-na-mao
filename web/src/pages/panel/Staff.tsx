@@ -105,7 +105,7 @@ function NewStaffForm({ onCreated }: { onCreated: () => void }) {
         trainedAt: form.trainedAt || null,
         password: form.password,
       });
-      setDone(`${created.fullName} cadastrada. Entregue o e-mail e a senha provisória à pessoa.`);
+      setDone(`Cadastro de ${created.fullName} feito. Entregue o e-mail e a senha provisória à pessoa.`);
       setForm({ fullName: '', email: '', jobTitle: '', role: 'staff', trainedAt: '', password: '' });
       onCreated();
     } catch (err) {
