@@ -29,7 +29,11 @@ test('migração e seed: contas em hash, sem reaplicar nem duplicar', async () =
 test('cabeçalhos de segurança e corpo grande recusado', async () => {
   const res = await fetch(`${t.base}/api/health`);
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
-  assert.match(res.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/);
+  const csp = res.headers.get('content-security-policy') ?? '';
+  assert.match(csp, /frame-ancestors 'none'/);
+  // Fontes só do próprio site: nada de https: nem data: (as da web são @fontsource, servidas daqui).
+  assert.match(csp, /(^|;)font-src 'self'(;|$)/);
+  assert.match(csp, /(^|;)connect-src 'self' ws:\/\/127\.0\.0\.1:\d+(;|$)/);
   assert.equal(res.headers.get('x-powered-by'), null);
   const big = await t.api('/alerts', { body: { x: 'a'.repeat(20_000) } });
   assert.equal(big.status, 413);

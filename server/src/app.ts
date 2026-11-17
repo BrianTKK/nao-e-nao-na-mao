@@ -49,6 +49,9 @@ export function buildServer({ config, db, limits, push: pushOptions }: StartOpti
           // Firefox; o endereço explícito garante os navegadores que não o tratam assim.
           connectSrc: ["'self'", (req) => sameOriginSocket(req as express.Request)],
           imgSrc: ["'self'", 'data:'],
+          // As fontes vêm do próprio site (@fontsource, em web/dist/assets). Sem isto, o helmet
+          // deixa o padrão dele, "'self' https: data:", que aceitaria fonte de qualquer site.
+          fontSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
           frameAncestors: ["'none'"],
