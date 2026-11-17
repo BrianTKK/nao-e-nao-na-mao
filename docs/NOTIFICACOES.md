@@ -86,7 +86,11 @@ bash mobile/scripts/build-apk.sh
 
 - As ferramentas ficam no D:, porque o C: tem pouco espaço: JDK 17 (Temurin, da Adoptium) em `D:\Android\jdk-17`, Android SDK em `D:\Android\sdk` e o cache do Gradle em `D:\Android\gradle`.
 - A pasta `mobile/android/` é gerada pelo `expo prebuild` e fica fora do git. A assinatura release entra pelo plugin `mobile/plugins/withReleaseSigning.js`, que lê o `.properties` apontado por `MARIANA_KEYSTORE_PROPERTIES`.
-- O APK sai em `D:\Android\apk\mariana-<versão>-<commit>.apk`.
+- O APK sai em `D:\Android\apk\mariana-<versão>-<commit>.apk`, só com ARM (`armeabi-v7a` e `arm64-v8a`, os celulares de verdade). `MARIANA_ARCHS` muda isso; com x86, o APK quase dobra.
+- **Caminho longo no Windows**: o `ninja` do CMake 3.22 não passa de 260 caracteres, e um arquivo de objeto do `react-native-gesture-handler` chegou a 354. O plugin `mobile/plugins/withShortObjectPaths.js` resolve sem mexer no registro do Windows:
+  - `CMAKE_OBJECT_PATH_MAX=250` faz o CMake encurtar com um hash;
+  - `MARIANA_CXX_DIR` (`D:\Android\cxx`) tira o build nativo de dentro do projeto.
+- O primeiro build leva uns 25 min, porque baixa o Gradle, as dependências, o SDK 37 e o CMake e compila o código nativo. Os seguintes usam o cache em `D:\Android\gradle`.
 - Para instalar, mandar o APK para o celular e abrir, permitindo "instalar apps desconhecidos". Depois:
   - entrar com a conta;
   - aceitar as notificações;
@@ -137,7 +141,20 @@ Sugestão da Central (17/11/2026). Prova a entrega do Firebase sem depender da V
   - o `expo prebuild` gera o `android/` com o som em `res/raw`, o `google-services.json` e a assinatura release;
   - o Gradle 9.4.1 baixou e configurou o projeto;
   - o `push:test` do PC chegou ao FCM de verdade: com um token falso, a resposta foi 400, a recusa do token.
-- **Parou na licença**: o build pediu o NDK 27.1.12297006 e parou em "License for package NDK ... not accepted". Aceitar a licença do Android SDK (`sdkmanager --licenses`) é um ok do Brian. O APK ainda não foi gerado.
+- **Licença do Android SDK**: aceita pela Central em 17/11/2026, com o ok do Brian dado na Central ("Sim, aceitar"). Depois disso, o Gradle baixou sozinho o SDK 37, o build-tools e o CMake.
+- **APK gerado e conferido** (17/11/2026):
+  - assinado pela chave da Mariana (`CN=Mariana, O=GS CitizenTech`, `apksigner verify`);
+  - pacote `me.obrian.mariana`, versão 1.0.0 (código 1), alvo Android 16 (SDK 36), mínimo Android 7 (SDK 24);
+  - com as permissões `POST_NOTIFICATIONS`, `c2dm RECEIVE` (FCM), `VIBRATE` e `WAKE_LOCK`;
+  - com o Firebase (`google_app_id` e `project_id`) e o som `raw/mariana_alarme`, de 129.686 bytes, igual ao arquivo do repositório.
+- **Teste de ponta a ponta sem a VPS e sem celular**, feito no PC:
+  - `npm run push:test -w server -- --validar`: o FCM de verdade validou (`validate_only`) as três mensagens que o servidor manda, o alerta novo, a repetição e o designado, e aceitou as três;
+  - o servidor rodando no PC com a chave de verdade e o banco em memória:
+    - o login de teste do seed;
+    - o registro de um token, que respondeu `pushEnabled: true`;
+    - um alerta novo, que o servidor mandou ao FCM de verdade;
+    - o FCM recusou o token falso (sem celular não há token de verdade), e o servidor o apagou sozinho ("1 token(s) inválido(s) apagado(s)").
+- **Emulador Android**: não deu. A virtualização está desligada no firmware (BIOS) deste PC ("Virtualização Habilitada no Firmware: Não", no `systeminfo`), e o emulador precisa dela. Ligar é mudança de BIOS, coisa do Brian, se ele quiser.
 - **Não testado**:
   - o APK e tudo no celular: o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
   - o push a partir da VPS, que ainda não tem a chave;

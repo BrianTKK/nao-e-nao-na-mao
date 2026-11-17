@@ -60,5 +60,5 @@ OUT="$TOOLS/apk/mariana-$VERSION-$REV.apk"
 mkdir -p "$TOOLS/apk"
 cp android/app/build/outputs/apk/release/app-release.apk "$OUT"
 BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-"$BUILD_TOOLS/apksigner.bat" verify --print-certs "$OUT" | grep -E "Signer #1 certificate (DN|SHA-256)" || true
+"$BUILD_TOOLS/apksigner.bat" verify --print-certs "$OUT" | grep -E "certificate (DN|SHA-256)" || true
 echo "APK: $OUT ($(du -h "$OUT" | cut -f1))"
