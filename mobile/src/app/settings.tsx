@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, ScrollView, Share, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/Button';
+import { CardTitle } from '@/components/CardTitle';
+import { FocusInput } from '@/components/FocusInput';
 import { useMotion } from '@/hooks/useMotion';
 import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
@@ -56,12 +58,9 @@ export default function Settings() {
   return (
     <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
       <View style={ui.card}>
-        <Text style={ui.h2} accessibilityRole="header">
-          Como você está vestido hoje?
-        </Text>
+        <CardTitle icon="user">Como você está vestido hoje?</CardTitle>
         <Text style={ui.muted}>Aparece para quem pediu ajuda: "Diego, de camisa preta, está indo até você".</Text>
-        <TextInput
-          style={ui.input}
+        <FocusInput
           value={appearance}
           onChangeText={(t) => {
             setAppearance(t);
@@ -69,10 +68,9 @@ export default function Settings() {
           }}
           maxLength={60}
           placeholder="Ex.: camisa preta"
-          placeholderTextColor={color.textMuted}
           accessibilityLabel="Roupa de hoje"
         />
-        <Button label={saved ? 'Salvo' : 'Salvar'} variant="primary" onPress={save} />
+        <Button label={saved ? 'Salvo' : 'Salvar'} variant="calm" icon={saved ? 'check' : undefined} onPress={save} />
       </View>
 
       <View style={[ui.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }]}>
@@ -97,9 +95,7 @@ export default function Settings() {
       </View>
 
       <View style={ui.card}>
-        <Text style={ui.h2} accessibilityRole="header">
-          Alarme de alerta novo
-        </Text>
+        <CardTitle icon="bell">Alarme de alerta novo</CardTitle>
         <Text style={ui.muted}>
           Alerta novo toca como alarme e repete por 2 minutos até alguém ver. Com o app aberto, o celular vibra sem parar.
           {Platform.OS === 'android'
@@ -113,7 +109,8 @@ export default function Settings() {
         </Text>
         <Button
           label={alarm === 'sent' ? 'Toca em 5 segundos: bloqueie a tela' : 'Testar o alarme'}
-          variant="primary"
+          variant="secondary"
+          icon="bell"
           onPress={async () => setAlarm((await testAlarm().catch(() => false)) ? 'sent' : 'denied')}
         />
         {alarm === 'denied' && (
@@ -121,31 +118,26 @@ export default function Settings() {
             <Text style={ui.body} accessibilityLiveRegion="polite">
               As notificações estão bloqueadas para {ownAndroidBuild ? 'o app' : 'o Expo Go'}.
             </Text>
-            <Button label="Abrir as configurações" onPress={() => Linking.openSettings()} />
+            <Button label="Abrir as configurações" variant="secondary" icon="settings" onPress={() => Linking.openSettings()} />
           </>
         )}
       </View>
 
       {me?.role === 'manager' && (
         <View style={ui.card}>
-          <Text style={ui.h2} accessibilityRole="header">
-            Cardápio do bar
-          </Text>
+          <CardTitle icon="menu-book">Cardápio do bar</CardTitle>
           <Text style={ui.muted}>Fotografe o cardápio de papel ou cole o link do cardápio digital. Aparece no "Ver cardápio" da página de ajuda.</Text>
-          <Button label="Cadastrar o cardápio" onPress={() => router.push('/menu')} />
+          <Button label="Cadastrar o cardápio" variant="secondary" icon="menu-book" onPress={() => router.push('/menu')} />
         </View>
       )}
 
       {me?.role === 'manager' && (
         <View style={ui.card}>
-          <Text style={ui.h2} accessibilityRole="header">
-            Wi-Fi do local
-          </Text>
+          <CardTitle icon="wifi">Wi-Fi do local</CardTitle>
           <Text style={ui.muted}>
             Opcional. Aparece no botão "Wi-Fi do local" da página de ajuda, só para quem abriu um QR code deste bar. Use a rede dos clientes.
           </Text>
-          <TextInput
-            style={ui.input}
+          <FocusInput
             value={ssid}
             onChangeText={(v) => {
               setSsid(v);
@@ -155,11 +147,9 @@ export default function Settings() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="Nome da rede"
-            placeholderTextColor={color.textMuted}
             accessibilityLabel="Nome da rede"
           />
-          <TextInput
-            style={ui.input}
+          <FocusInput
             value={wifiPassword}
             onChangeText={(v) => {
               setWifiPassword(v);
@@ -169,10 +159,9 @@ export default function Settings() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="Senha (em branco para rede aberta)"
-            placeholderTextColor={color.textMuted}
             accessibilityLabel="Senha do Wi-Fi, em branco para rede aberta"
           />
-          <Button label="Salvar Wi-Fi" onPress={saveWifi} />
+          <Button label="Salvar Wi-Fi" variant="calm" icon="wifi" onPress={saveWifi} />
           {wifiStatus && (
             <Text style={ui.body} accessibilityLiveRegion="polite">
               {wifiStatus}
@@ -183,9 +172,7 @@ export default function Settings() {
 
       {me?.role === 'manager' && ownAndroidBuild && (
         <View style={ui.card}>
-          <Text style={ui.h2} accessibilityRole="header">
-            Teste do push
-          </Text>
+          <CardTitle icon="info">Teste do push</CardTitle>
           <Text style={ui.muted}>
             {push.registered ? 'Push ativo neste aparelho.' : push.problem ?? 'Push ainda não registrado neste aparelho.'} O token abaixo serve para mandar um
             alarme de teste direto pelo Firebase, com o app fechado.
@@ -195,9 +182,10 @@ export default function Settings() {
               {push.deviceToken}
             </Text>
           )}
-          {push.deviceToken && <Button label="Compartilhar o token" onPress={() => Share.share({ message: push.deviceToken! }).catch(() => {})} />}
+          {push.deviceToken && <Button label="Compartilhar o token" variant="secondary" icon="copy" onPress={() => Share.share({ message: push.deviceToken! }).catch(() => {})} />}
           <Button
             label="Registrar de novo"
+            variant="secondary"
             onPress={async () => {
               await registerPush().catch(() => false);
               setPush(pushStatus());
@@ -208,6 +196,8 @@ export default function Settings() {
 
       <Button
         label="Sair"
+        variant="secondary"
+        icon="log-out"
         onPress={async () => {
           await signOut();
           router.replace('/login');

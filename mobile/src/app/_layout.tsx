@@ -1,15 +1,46 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
+import { InstrumentSans_400Regular } from '@expo-google-fonts/instrument-sans/400Regular';
+import { InstrumentSans_500Medium } from '@expo-google-fonts/instrument-sans/500Medium';
+import { InstrumentSans_600SemiBold } from '@expo-google-fonts/instrument-sans/600SemiBold';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MotionProvider } from '@/hooks/useMotion';
 import { SessionProvider } from '@/hooks/useSession';
 import { setupNotifications } from '@/hooks/useActiveAlerts';
-import { color, fontSize } from '@/theme/theme';
+import { color, font, fontSize } from '@/theme/theme';
+
+// A tela de abertura fica até as fontes carregarem (ou falharem).
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** Teto de espera pelas fontes: é um alarme, não pode travar na abertura. */
+const FONT_TIMEOUT_MS = 3000;
 
 export default function RootLayout() {
+  // Os nomes aqui são os de `font` em theme.ts. Se falhar, segue com a do sistema.
+  const [fontsLoaded, fontError] = useFonts({
+    Fraunces_600SemiBold,
+    InstrumentSans_400Regular,
+    InstrumentSans_500Medium,
+    InstrumentSans_600SemiBold,
+  });
+  const [timedOut, setTimedOut] = useState(false);
+  const ready = fontsLoaded || !!fontError || timedOut;
+
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), FONT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
   useEffect(() => {
     setupNotifications().catch(() => {});
     if (Platform.OS === 'web') return;
@@ -21,6 +52,8 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
+  if (!ready) return null;
+
   return (
     <SafeAreaProvider>
       <MotionProvider>
@@ -30,7 +63,8 @@ export default function RootLayout() {
             screenOptions={{
               headerStyle: { backgroundColor: color.bg },
               headerTintColor: color.text,
-              headerTitleStyle: { fontSize: fontSize.md, fontWeight: '700' },
+              headerTitleStyle: { fontFamily: font.display, fontSize: fontSize.lg },
+              headerShadowVisible: false,
               contentStyle: { backgroundColor: color.bg },
             }}
           >

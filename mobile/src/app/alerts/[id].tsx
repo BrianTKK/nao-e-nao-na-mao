@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ALERT_OUTCOMES,
   DataError,
   KIND_STAFF_LABEL,
   OUTCOME_LABEL,
@@ -18,9 +17,12 @@ import {
 } from '@nenm/shared';
 import { dataSource } from '@/data/source';
 import { Button } from '@/components/Button';
-import { useMotion } from '@/hooks/useMotion';
+import { Icon, type IconName } from '@/components/Icon';
+import { STATUS_ICON } from '@/components/AlertCard';
+import { OutcomeSheet } from '@/components/OutcomeSheet';
+import { Perforation, TicketNotches, useNotchY } from '@/components/TicketNotches';
 import { useSession } from '@/hooks/useSession';
-import { color, fontSize, motion, radius, space, ui } from '@/theme/theme';
+import { color, font, fontSize, radius, space, ui } from '@/theme/theme';
 
 const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
   already_taken: 'Outra pessoa da equipe já está indo.',
@@ -29,23 +31,53 @@ const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
   network: 'Sem conexão. Tente de novo quando o sinal voltar.',
 };
 
-/** Atender um alerta: ver, dizer "Estou indo" e registrar como terminou. */
+const first = (name: string | null | undefined) => name?.split(' ')[0] ?? null;
+
+/** Quem está cuidando do alerta, com o ícone do estado. */
+function whoLine(a: Alert, mine: boolean, meId: string | null): { icon: IconName; text: string; tone: string } | null {
+  if (a.responderName && !isActive(a.status))
+    return { icon: 'user', text: mine ? 'Atendido por você' : `Atendido por ${first(a.responderName)}`, tone: color.text };
+  if (a.responderName)
+    return {
+      icon: 'walking',
+      text: mine ? 'Você está indo até ela' : `${first(a.responderName)} está indo até ela`,
+      tone: color.status.on_the_way,
+    };
+  if (!isActive(a.status)) return null;
+  if (a.assignedToName) {
+    const by = first(a.assignedByName) ?? 'A gerência';
+    return a.assignedToId === meId
+      ? { icon: 'user', text: `${by} pediu que você vá`, tone: color.alert }
+      : { icon: 'user', text: `${by} mandou ${first(a.assignedToName)}; esperando o "Estou indo"`, tone: color.text };
+  }
+  if (a.status === 'seen') return { icon: 'eye', text: 'Visto; ninguém foi ainda', tone: color.text };
+  return { icon: 'alert', text: 'Ninguém viu ainda', tone: color.alert };
+}
+
+/**
+ * Atender um alerta: ver, dizer "Estou indo" e registrar como terminou.
+ * Em cima, lugar e motivo; no meio, a palavra-código num tíquete; embaixo,
+ * uma barra fixa com a ação principal ao alcance do polegar. "Encerrar…" abre
+ * a folha de desfechos.
+ */
 export default function AlertDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { me } = useSession();
-  const { reduceMotion } = useMotion();
+  const insets = useSafeAreaInsets();
   const [alert, setAlert] = useState<Alert | null | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState<AlertOutcome | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [note, setNote] = useState('');
   const [now, setNow] = useState(Date.now());
+  const [notchY, onPerforationLayout] = useNotchY();
 
   const load = useCallback(async () => setAlert(await dataSource.staff.getAlert(id)), [id]);
 
   useEffect(() => {
     load();
-    // Abrir o alerta conta como "visto": o painel mede quanto tempo isso levou.
+    // Abrir o alerta conta como "visto": o painel mede quanto tempo isso levou,
+    // e o alarme deste alerta para (useActiveAlerts silencia o que deixou de ser novo).
     dataSource.staff.ackAlert(id).catch(() => {});
     const stop = dataSource.staff.watchActiveAlerts(() => load());
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -55,14 +87,24 @@ export default function AlertDetail() {
     };
   }, [id, load]);
 
-  const run = async (key: string, fn: () => Promise<void>) => {
+  const active = alert ? isActive(alert.status) : false;
+
+  // Se o alerta for encerrado por outra pessoa com a folha aberta, a folha fecha.
+  useEffect(() => {
+    if (alert && !active) setSheetOpen(false);
+  }, [alert, active]);
+
+  /** Salva e recarrega. Devolve se deu certo. */
+  const run = async (key: string, fn: () => Promise<void>): Promise<boolean> => {
     setBusy(key);
     setError(null);
     try {
       await fn();
       await load();
+      return true;
     } catch (err) {
       setError((err instanceof DataError && ERROR_TEXT[err.code]) || 'Não foi possível salvar. Tente de novo.');
+      return false;
     } finally {
       setBusy(null);
     }
@@ -73,99 +115,160 @@ export default function AlertDetail() {
     return (
       <View style={[ui.screen, ui.content]}>
         <Text style={ui.body}>Alerta não encontrado.</Text>
-        <Button label="Voltar" onPress={() => router.back()} />
+        <Button label="Voltar" icon="arrow-left" onPress={() => router.back()} />
       </View>
     );
 
-  const mine = alert.responderId === me?.id;
-  const active = isActive(alert.status);
+  const mine = !!me && alert.responderId === me.id;
   const statusColor = color.status[alert.status];
+  const who = whoLine(alert, mine, me?.id ?? null);
+  const canGo = active && alert.status !== 'on_the_way';
+  const canResolve = active && (alert.status === 'on_the_way' ? mine : true);
+  const othersGoing = active && alert.status === 'on_the_way' && !mine;
+
+  const pick = async (o: AlertOutcome) => {
+    const ok = await run(`done:${o}`, () => dataSource.staff.resolveAlert(alert.id, o, note));
+    if (!ok) return;
+    setSheetOpen(false);
+    setNote('');
+    if (Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(`Alerta encerrado: ${OUTCOME_LABEL[o]}.`);
+  };
+
+  const openSheet = () => {
+    setError(null);
+    setSheetOpen(true);
+  };
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
-      <View style={[ui.card, { borderColor: statusColor, borderWidth: 3 }]}>
-        <Text style={[ui.label, { color: statusColor }]} accessibilityLiveRegion="polite">
-          {STATUS_LABEL[alert.status]}
-          {alert.responderName ? ` · ${alert.responderName.split(' ')[0]}` : ''}
-        </Text>
-        <Text style={[ui.h1, { fontSize: fontSize.xxl }]} accessibilityRole="header">
-          {alert.spotLabel}
-        </Text>
-        <Text style={ui.body}>{KIND_STAFF_LABEL[alert.kind]}</Text>
-        <Text style={ui.muted}>Pediu há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
-        <View style={{ marginTop: space.sm, padding: space.sm, borderRadius: radius.md, backgroundColor: color.bg }}>
-          <Text style={ui.muted}>Palavra para se apresentar</Text>
+    <View style={ui.screen}>
+      <ScrollView style={ui.screen} contentContainerStyle={[ui.content, { paddingBottom: space.lg }]}>
+        <View style={{ gap: space.xxs }}>
+          <View style={styles.statusRow} accessibilityLiveRegion="polite">
+            <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>{STATUS_LABEL[alert.status]}</Text>
+            <Text style={[ui.num, styles.time]}>· há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
+          </View>
+          <Text style={[ui.display, styles.place]} accessibilityRole="header">
+            {alert.spotLabel}
+          </Text>
+          <Text style={ui.body}>{KIND_STAFF_LABEL[alert.kind]}</Text>
+        </View>
+
+        <View style={styles.ticket}>
+          <Text style={ui.labelCaps}>Diga esta palavra a ela</Text>
           <Text
-            style={{ color: color.text, fontSize: fontSize.xxl, fontWeight: '700' }}
+            style={[ui.display, styles.word]}
             adjustsFontSizeToFit
             numberOfLines={1}
             accessibilityLabel={`Palavra-código: ${spokenCode(alert.shortCode)}`}
           >
             {displayCode(alert.shortCode)}
           </Text>
-          <Text style={ui.muted}>Diga a palavra a ela: é assim que ela sabe que você é da equipe.</Text>
+          <Perforation onLayout={onPerforationLayout} style={{ marginVertical: space.sm }} />
+          <Text style={ui.muted}>É assim que ela sabe que você é da equipe.</Text>
+          <TicketNotches y={notchY} borderWidth={1} borderColor={color.border} />
         </View>
+
+        {who && (
+          <View style={styles.whoRow}>
+            <Icon name={who.icon} size={22} color={who.tone === color.text ? color.textMuted : who.tone} />
+            <Text style={[ui.body, ui.strong, { flex: 1 }]}>{who.text}</Text>
+          </View>
+        )}
+
+        {othersGoing && <Text style={ui.muted}>Fique por perto se precisar de apoio.</Text>}
+
+        {!active && (
+          <View style={[ui.card, styles.result]}>
+            <Icon name="check-circle" size={24} color={color.status.resolved} />
+            <View style={{ flex: 1, gap: space.xxs }}>
+              <Text style={ui.labelCaps}>Encerrado</Text>
+              <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
+              {alert.note ? <Text style={ui.muted}>{alert.note}</Text> : null}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      <View style={[styles.bar, { paddingBottom: insets.bottom + space.sm }]}>
+        {error && !sheetOpen && (
+          <Text style={ui.error} accessibilityRole="alert">
+            {error}
+          </Text>
+        )}
+        {canGo && (
+          <Button
+            label="Estou indo"
+            variant="primary"
+            size="large"
+            icon="walking"
+            busy={busy === 'go'}
+            onPress={() => run('go', () => dataSource.staff.startResponse(alert.id))}
+          />
+        )}
+        {canResolve && (
+          <Button
+            label="Encerrar…"
+            accessibilityLabel="Encerrar: escolher como terminou"
+            variant={canGo ? 'secondary' : 'calm'}
+            size={canGo ? 'default' : 'large'}
+            icon={canGo ? undefined : 'check'}
+            disabled={busy === 'go'}
+            onPress={openSheet}
+          />
+        )}
+        {(!active || othersGoing) && (
+          <Button
+            label="Voltar aos alertas"
+            icon="arrow-left"
+            variant={active ? 'secondary' : 'calm'}
+            size={active ? 'default' : 'large'}
+            onPress={() => router.back()}
+          />
+        )}
       </View>
 
-      {error && (
-        <Text style={ui.error} accessibilityRole="alert">
-          {error}
-        </Text>
-      )}
-
-      {active && alert.status !== 'on_the_way' && (
-        <Button label="Estou indo" variant="primary" large busy={busy === 'go'} onPress={() => run('go', () => dataSource.staff.startResponse(alert.id))} />
-      )}
-
-      {active && alert.status === 'on_the_way' && !mine && (
-        <Text style={ui.body}>{alert.responderName?.split(' ')[0]} já está indo. Fique por perto se precisar de apoio.</Text>
-      )}
-
-      {active && (alert.status === 'on_the_way' ? mine : true) && (
-        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(motion.duration.base)} style={[ui.card, { gap: space.sm }]}>
-          <Text style={ui.h2} accessibilityRole="header">
-            Como terminou?
-          </Text>
-          <View accessibilityRole="radiogroup" style={{ gap: space.xs }}>
-            {ALERT_OUTCOMES.map((o) => (
-              <Button
-                key={o}
-                label={OUTCOME_LABEL[o]}
-                variant={outcome === o ? 'primary' : 'secondary'}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: outcome === o }}
-                onPress={() => setOutcome(o)}
-              />
-            ))}
-          </View>
-          <Text style={ui.label} nativeID="note-label">
-            Observação (opcional, sem nomes)
-          </Text>
-          <TextInput
-            style={[ui.input, { minHeight: 80, textAlignVertical: 'top', paddingTop: space.xs }]}
-            multiline
-            maxLength={500}
-            value={note}
-            onChangeText={setNote}
-            accessibilityLabelledBy="note-label"
-            accessibilityLabel="Observação"
-          />
-          <Button
-            label="Registrar e encerrar"
-            variant="primary"
-            disabled={!outcome}
-            busy={busy === 'done'}
-            onPress={() => outcome && run('done', () => dataSource.staff.resolveAlert(alert.id, outcome, note))}
-          />
-        </Animated.View>
-      )}
-
-      {!active && (
-        <View style={ui.card}>
-          <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
-          <Button label="Voltar aos alertas" onPress={() => router.back()} />
-        </View>
-      )}
-    </ScrollView>
+      <OutcomeSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onPick={pick}
+        busy={busy?.startsWith('done:') ? (busy.slice(5) as AlertOutcome) : null}
+        error={sheetOpen ? error : null}
+        note={note}
+        onNoteChange={setNote}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
+  statusText: {
+    fontFamily: font.bodySemibold,
+    fontSize: fontSize.xs,
+    letterSpacing: 0.84,
+    textTransform: 'uppercase',
+  },
+  time: { color: color.textMuted, fontSize: fontSize.md },
+  place: { fontSize: fontSize.xxl, lineHeight: Math.round(fontSize.xxl * 1.1), marginTop: space.xxs },
+  ticket: {
+    backgroundColor: color.surface,
+    borderWidth: 1,
+    borderColor: color.border,
+    borderRadius: radius.lg,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: space.xxs,
+  },
+  word: { fontSize: 40, lineHeight: 50 },
+  whoRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  result: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  bar: {
+    borderTopWidth: 1,
+    borderTopColor: color.border,
+    backgroundColor: color.bg,
+    paddingHorizontal: space.md,
+    paddingTop: space.sm,
+    gap: space.xs,
+  },
+});

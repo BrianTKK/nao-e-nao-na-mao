@@ -172,7 +172,7 @@ export function messageData(alert: Alert, why: Why, repeat: boolean): Record<str
     tag: alert.id,
     sound: ALARM_SOUND,
     vibrate: JSON.stringify(ALARM_VIBRATION),
-    color: '#FF7EAD',
+    color: '#FFB840',
   };
 }
 

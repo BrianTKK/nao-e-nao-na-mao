@@ -1,18 +1,42 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
+import type { ConnectionState } from '@nenm/shared';
 import { Button } from '@/components/Button';
 import { AlertCard } from '@/components/AlertCard';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 import { useSession } from '@/hooks/useSession';
-import { showDemo, simulateAlert } from '@/data/source';
+import { dataSource, showDemo, simulateAlert } from '@/data/source';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { space, ui } from '@/theme/theme';
+
+/** "Reconectando…" só aparece se durar: a ligação inicial leva um instante. */
+const CONNECTING_GRACE_MS = 4000;
+
+/**
+ * Mostra o aviso de conexão só quando ela falta. Sem conexão: na hora.
+ * Reconectando: depois de alguns segundos. Conectado: nada (é o normal).
+ */
+function useConnectionTrouble(): boolean {
+  const [state, setState] = useState<ConnectionState>('connecting');
+  const [graceOver, setGraceOver] = useState(false);
+  useEffect(() => dataSource.watchConnection(setState), []);
+  useEffect(() => {
+    setGraceOver(false);
+    if (state !== 'connecting') return;
+    const t = setTimeout(() => setGraceOver(true), CONNECTING_GRACE_MS);
+    return () => clearTimeout(t);
+  }, [state]);
+  return state === 'offline' || (state === 'connecting' && graceOver);
+}
+
+const countText = (n: number) => (n === 1 ? '1 alerta em aberto' : `${n} alertas em aberto`);
 
 /** Alertas abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
 export default function Alerts() {
   const { me } = useSession();
   const alerts = useActiveAlerts(me?.id ?? null);
+  const connectionTrouble = useConnectionTrouble();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -34,15 +58,18 @@ export default function Alerts() {
       <FlatList
         data={alerts ?? []}
         keyExtractor={(a) => a.id}
-        contentContainerStyle={[ui.content, { flexGrow: 1 }]}
+        contentContainerStyle={[ui.content, { flexGrow: 1, paddingBottom: space.xl }]}
         ListHeaderComponent={
-          <View style={{ gap: space.xxs }}>
-            <ConnectionBanner />
-            <Text style={ui.muted} accessibilityRole="text">
-              {me ? `${me.fullName.split(' ')[0]} · ${me.appearance ? `hoje de ${me.appearance}` : 'roupa do dia não informada'}` : ''}
-            </Text>
+          <View style={{ gap: space.xs }}>
+            {connectionTrouble && <ConnectionBanner />}
+            {me ? (
+              <Text style={ui.muted}>
+                <Text style={ui.strong}>{me.fullName.split(' ')[0]}</Text>
+                {` · ${me.appearance ? `hoje de ${me.appearance}` : 'roupa do dia não informada'}`}
+              </Text>
+            ) : null}
             <Text style={ui.h2} accessibilityRole="header" accessibilityLiveRegion="polite">
-              {alerts === null ? 'Carregando…' : alerts.length === 0 ? 'Nenhum alerta agora' : `${alerts.length} alerta(s) em aberto`}
+              {alerts === null ? 'Carregando…' : alerts.length === 0 ? 'Nenhum alerta agora' : countText(alerts.length)}
             </Text>
           </View>
         }
@@ -56,10 +83,11 @@ export default function Alerts() {
         }
         ListFooterComponent={
           showDemo ? (
-            <View style={[ui.card, { marginTop: space.lg }]}>
-              <Text style={ui.label}>Demonstração</Text>
+            <View style={{ marginTop: space.xl, gap: space.xs }}>
+              <View style={ui.rule} />
+              <Text style={[ui.labelCaps, { marginTop: space.sm }]}>Demonstração</Text>
               <Text style={ui.muted}>Cria um alerta como se alguém tivesse lido o QR code do banheiro feminino.</Text>
-              <Button label="Simular um alerta" onPress={() => simulateAlert().catch(() => {})} />
+              <Button label="Simular um alerta" icon="plus" style={{ alignSelf: 'flex-start' }} onPress={() => simulateAlert().catch(() => {})} />
             </View>
           ) : undefined
         }

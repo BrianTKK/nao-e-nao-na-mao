@@ -1,66 +1,121 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { color, fontSize, motion, radius, space, touchTarget } from '@/theme/theme';
+import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { color, font, fontSize, radius, space, touchTarget } from '@/theme/theme';
 import { useMotion } from '@/hooks/useMotion';
+import { Icon, type IconName } from '@/components/Icon';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+/**
+ * - primary: latão cheio, a ação principal (uma por tela);
+ * - calm: sálvia cheia, ação tranquila;
+ * - secondary: contorno de controle (padrão);
+ * - danger: contorno e texto perigo, sem preenchimento;
+ * - ghost: só texto sublinhado (ação terciária, cabeçalho).
+ */
+export type ButtonVariant = 'primary' | 'calm' | 'secondary' | 'danger' | 'ghost';
+export type ButtonSize = 'default' | 'large';
 
-type Variant = 'primary' | 'secondary' | 'ghost';
+export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
+  label: string;
+  variant?: ButtonVariant;
+  /** 'default' = 48 px; 'large' = 64 px. */
+  size?: ButtonSize;
+  /** Atalho antigo para size="large". */
+  large?: boolean;
+  /** Ícone à esquerda do texto (decorativo: o nome vem do label). */
+  icon?: IconName;
+  /** Mostra "Aguarde…", desabilita e avisa o leitor de tela. */
+  busy?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
 
-/** Botão com área de toque de 48 px e retorno visual ao toque (encolhe um pouco). */
+const FG: Record<ButtonVariant, string> = {
+  primary: color.onAlert,
+  calm: color.onAccent,
+  secondary: color.text,
+  danger: color.danger,
+  ghost: color.text,
+};
+
+/** Botão de 48 px (64 no large), raio 6, com retorno discreto ao toque. */
 export function Button({
   label,
   variant = 'secondary',
-  busy = false,
+  size,
   large = false,
+  icon,
+  busy = false,
+  style,
   ...props
-}: PressableProps & { label: string; variant?: Variant; busy?: boolean; large?: boolean }) {
+}: ButtonProps) {
   const { reduceMotion } = useMotion();
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const disabled = props.disabled || busy;
+  const isLarge = size ? size === 'large' : large;
+  const disabled = !!props.disabled || busy;
+  const fg = FG[variant];
 
   return (
-    <AnimatedPressable
+    <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled, busy }}
       hitSlop={8}
       {...props}
+      accessibilityState={{ ...props.accessibilityState, disabled, busy }}
       disabled={disabled}
-      onPressIn={(e) => {
-        if (!reduceMotion) scale.value = withTiming(0.96, { duration: motion.duration.fast });
-        props.onPressIn?.(e);
-      }}
-      onPressOut={(e) => {
-        scale.value = withTiming(1, { duration: reduceMotion ? 0 : motion.duration.fast });
-        props.onPressOut?.(e);
-      }}
-      style={[styles.base, styles[variant], large && styles.large, disabled && styles.disabled, style]}
+      style={({ pressed }) => [
+        styles.base,
+        styles[variant],
+        isLarge && styles.large,
+        pressed && pressedStyle[variant],
+        pressed && !reduceMotion && styles.pressScale,
+        disabled && styles.disabled,
+        style,
+      ]}
     >
-      <Text style={[styles.text, variant === 'primary' && styles.textPrimary, large && styles.textLarge]}>
-        {busy ? 'Aguarde…' : label}
-      </Text>
-    </AnimatedPressable>
+      <View style={styles.row}>
+        {icon && !busy ? <Icon name={icon} size={isLarge ? 24 : 20} color={fg} /> : null}
+        <Text
+          style={[styles.text, { color: fg }, variant === 'ghost' && styles.textGhost, isLarge && styles.textLarge]}
+        >
+          {busy ? 'Aguarde…' : label}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
     minHeight: touchTarget,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderRadius: radius.md,
-    borderWidth: 2,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primary: { backgroundColor: color.accent, borderColor: color.accent },
-  secondary: { backgroundColor: color.surface, borderColor: color.borderStrong },
-  ghost: { backgroundColor: 'transparent', borderColor: 'transparent' },
-  large: { minHeight: 64 },
-  disabled: { opacity: 0.6 },
-  text: { color: color.text, fontSize: fontSize.md, fontWeight: '700', textAlign: 'center' },
-  textPrimary: { color: color.onAccent },
-  textLarge: { fontSize: fontSize.lg },
+  primary: { backgroundColor: color.alert, borderColor: color.alert },
+  calm: { backgroundColor: color.accent, borderColor: color.accent },
+  secondary: { backgroundColor: 'transparent', borderColor: color.borderStrong },
+  danger: { backgroundColor: 'transparent', borderColor: color.danger },
+  ghost: { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: space.xs },
+  large: { minHeight: 64, paddingHorizontal: space.lg },
+  pressScale: { transform: [{ scale: 0.98 }] },
+  disabled: { opacity: 0.55 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs },
+  text: {
+    fontFamily: font.bodySemibold,
+    fontSize: fontSize.sm,
+    lineHeight: Math.round(fontSize.sm * 1.25),
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  textGhost: { fontFamily: font.bodyMedium, textDecorationLine: 'underline' },
+  textLarge: { fontSize: fontSize.md, lineHeight: Math.round(fontSize.md * 1.25) },
+});
+
+/** Fundo ao tocar: um degrau acima no contorno; o cheio escurece um pouco. */
+const pressedStyle = StyleSheet.create({
+  primary: { opacity: 0.88 },
+  calm: { opacity: 0.88 },
+  secondary: { backgroundColor: color.surfaceRaised },
+  danger: { backgroundColor: 'rgba(255, 143, 128, 0.12)' },
+  ghost: { opacity: 0.7 },
 });

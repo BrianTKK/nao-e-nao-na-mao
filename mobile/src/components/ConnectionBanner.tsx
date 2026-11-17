@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ConnectionState } from '@nenm/shared';
 import { dataSource } from '@/data/source';
-import { color, fontSize, radius, space } from '@/theme/theme';
+import { Icon } from '@/components/Icon';
+import { color, font, fontSize, radius, space } from '@/theme/theme';
 
 const TEXT: Record<ConnectionState, string> = {
   online: 'Conectado: os alertas chegam na hora',
@@ -12,23 +13,27 @@ const TEXT: Record<ConnectionState, string> = {
 
 /**
  * Estado da ligação em tempo real, sempre visível no topo da lista: quem está
- * de plantão precisa saber se o celular vai mesmo avisar.
+ * de plantão precisa saber se o celular vai mesmo avisar. Discreto quando está
+ * tudo certo (sálvia e apoio); só a falta de conexão usa o perigo. O estado
+ * nunca depende só da cor: ponto cheio, anel e ícone de alerta, mais o texto.
  */
 export function ConnectionBanner() {
   const [state, setState] = useState<ConnectionState>('connecting');
   useEffect(() => dataSource.watchConnection(setState), []);
-  const tone = state === 'online' ? color.status.resolved : state === 'connecting' ? color.status.open : color.danger;
+  const offline = state === 'offline';
   return (
     <View
-      style={[styles.banner, { borderColor: tone }]}
+      style={[styles.banner, offline && { borderColor: color.danger }]}
       accessibilityRole="text"
       accessibilityLiveRegion="polite"
       accessibilityLabel={TEXT[state]}
     >
-      <Text style={[styles.dot, { color: tone }]} aria-hidden>
-        {state === 'online' ? '●' : state === 'connecting' ? '◌' : '×'}
-      </Text>
-      <Text style={styles.text}>{TEXT[state]}</Text>
+      <View style={styles.mark} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        {state === 'online' && <View style={[styles.dot, { backgroundColor: color.accent }]} />}
+        {state === 'connecting' && <View style={[styles.dot, { borderColor: color.textMuted, borderWidth: 2 }]} />}
+        {offline && <Icon name="alert-circle" size={16} color={color.danger} />}
+      </View>
+      <Text style={[styles.text, offline && { color: color.danger, fontFamily: font.bodyMedium }]}>{TEXT[state]}</Text>
     </View>
   );
 }
@@ -38,12 +43,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: color.border,
     borderRadius: radius.pill,
     paddingHorizontal: space.sm,
     paddingVertical: space.xxs,
     alignSelf: 'flex-start',
   },
-  dot: { fontSize: fontSize.sm, fontWeight: '700' },
-  text: { color: color.text, fontSize: fontSize.xs },
+  mark: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 10, height: 10, borderRadius: radius.pill },
+  text: { color: color.textMuted, fontFamily: font.body, fontSize: fontSize.xs },
 });

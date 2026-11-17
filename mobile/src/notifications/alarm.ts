@@ -74,7 +74,7 @@ export async function setupNotifications(): Promise<void> {
       vibrationPattern: VIBRATION,
       enableVibrate: true,
       enableLights: true,
-      lightColor: '#FF7EAD',
+      lightColor: '#FFB840',
       bypassDnd: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert as Confirm, Image, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert as Confirm, Image, ScrollView, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { DataError, MENU_LIMITS, type VenueMenu } from '@nenm/shared';
 import { Button } from '@/components/Button';
+import { CardTitle } from '@/components/CardTitle';
+import { FocusInput } from '@/components/FocusInput';
 import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
-import { color, space, ui } from '@/theme/theme';
+import { color, radius, space, ui } from '@/theme/theme';
 
 /**
  * Cardápio do bar pelo app: a gerência fotografa o cardápio de papel (ou
@@ -117,42 +119,36 @@ export default function MenuScreen() {
       </Text>
 
       <View style={ui.card}>
-        <Text style={ui.h2} accessibilityRole="header">
-          Fotos do cardápio
-        </Text>
+        <CardTitle icon="menu-book">Fotos do cardápio</CardTitle>
         <Text style={ui.muted}>
           {menu ? `${menu.files.length} de ${MENU_LIMITS.maxFiles} fotos.` : 'Carregando…'} O PDF entra pelo painel web.
         </Text>
-        <Button label="Fotografar o cardápio" variant="primary" disabled={!menu || busy || full} onPress={takePhoto} />
-        <Button label="Escolher da galeria" disabled={!menu || busy || full} onPress={pickPhotos} />
+        <Button label="Fotografar o cardápio" variant="primary" icon="plus" disabled={!menu || busy || full} onPress={takePhoto} />
+        <Button label="Escolher da galeria" variant="secondary" disabled={!menu || busy || full} onPress={pickPhotos} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
           {menu?.files.map((f, i) => (
             <View key={f.id} style={{ width: 104, gap: space.xs }}>
-              <Image source={{ uri: f.url }} style={{ width: 104, height: 138, borderRadius: 6, backgroundColor: '#fff' }} accessibilityLabel={`Página ${i + 1} do cardápio`} />
-              <Button label="Remover" onPress={() => remove(f.id, i + 1)} accessibilityLabel={`Remover a página ${i + 1} do cardápio`} />
+              <Image source={{ uri: f.url }} style={{ width: 104, height: 138, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, backgroundColor: color.paper }} accessibilityLabel={`Página ${i + 1} do cardápio`} />
+              <Button label="Remover" variant="danger" onPress={() => remove(f.id, i + 1)} accessibilityLabel={`Remover a página ${i + 1} do cardápio`} />
             </View>
           ))}
         </View>
       </View>
 
       <View style={ui.card}>
-        <Text style={ui.h2} accessibilityRole="header">
-          Link do cardápio digital
-        </Text>
+        <CardTitle>Link do cardápio digital</CardTitle>
         <Text style={ui.muted}>Se o bar já usa um cardápio digital. Abre em outra aba, e a página de ajuda continua aberta.</Text>
-        <TextInput
-          style={ui.input}
+        <FocusInput
           value={url}
           onChangeText={setUrl}
           placeholder="https://"
-          placeholderTextColor={color.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
           maxLength={500}
           accessibilityLabel="Link do cardápio digital"
         />
-        <Button label="Salvar link" onPress={saveUrl} disabled={!menu} />
+        <Button label="Salvar link" variant="calm" onPress={saveUrl} disabled={!menu} />
       </View>
 
       {status && (
