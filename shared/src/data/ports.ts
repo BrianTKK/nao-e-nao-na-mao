@@ -76,6 +76,10 @@ export interface StaffApi {
   startResponse(id: string): Promise<void>;
   resolveAlert(id: string, outcome: AlertOutcome, note?: string): Promise<void>;
   setMyAppearance(appearance: string): Promise<void>;
+  /** Push remoto (app próprio no Android): registra o token do Firebase deste aparelho para quem entrou. */
+  registerPushToken(token: string, platform: 'android'): Promise<void>;
+  /** Tira o token deste aparelho (ao sair). */
+  removePushToken(token: string): Promise<void>;
 }
 
 /** Painel da gerência (web): com login de gerente. */

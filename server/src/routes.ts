@@ -115,6 +115,36 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }:
     res.json(await q.getStaffMember(db, req.actor!.id));
   });
 
+  // ------------------------------------------------------------------ push remoto (app próprio, Android)
+
+  // Token do Firebase do aparelho. O app registra ao entrar (e a cada abertura) e remove ao sair.
+  const pushToken = z.string().regex(/^[A-Za-z0-9_:-]{20,4096}$/);
+
+  r.put('/me/push-token', auth.requireStaff, async (req, res) => {
+    const body = z.object({ token: pushToken, platform: z.literal('android') }).strict().parse(req.body);
+    await db.tx(async (t) => {
+      // O token é do aparelho: se outra pessoa entrou nele, passa para ela.
+      await t.query(
+        `insert into push_tokens (user_id, token, platform) values ($1, $2, $3)
+         on conflict (token) do update set user_id = excluded.user_id, platform = excluded.platform, updated_at = now()`,
+        [req.actor!.id, body.token, body.platform],
+      );
+      // No máximo 5 aparelhos por pessoa: os mais antigos saem.
+      await t.query(
+        `delete from push_tokens where user_id = $1 and id not in (
+           select id from push_tokens where user_id = $1 order by updated_at desc limit 5)`,
+        [req.actor!.id],
+      );
+    });
+    res.status(204).end();
+  });
+
+  r.delete('/me/push-token', auth.requireStaff, async (req, res) => {
+    const body = z.object({ token: pushToken }).strict().parse(req.body);
+    await db.query('delete from push_tokens where token = $1 and user_id = $2', [body.token, req.actor!.id]);
+    res.status(204).end();
+  });
+
   // ------------------------------------------------------------------ equipe (app)
 
   r.get('/staff/alerts/active', auth.requireStaff, async (req, res) => {

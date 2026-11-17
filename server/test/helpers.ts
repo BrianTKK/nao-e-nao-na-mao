@@ -23,7 +23,7 @@ export interface TestServer {
 }
 
 /** Servidor de verdade numa porta livre, com o Postgres embutido em memória, o bar de demonstração e um segundo bar. */
-export async function startTestServer(limits?: StartOptions['limits']): Promise<TestServer> {
+export async function startTestServer(limits?: StartOptions['limits'], push: StartOptions['push'] = { sender: null }): Promise<TestServer> {
   const config = loadConfig({ NODE_ENV: 'test', PGLITE_DIR: 'memory', WEB_DIST: '/nao-existe', JWT_SECRET: 'x'.repeat(40) });
   const db = createDb(config);
   await migrate(db, config.repoRoot);
@@ -39,7 +39,7 @@ export async function startTestServer(limits?: StartOptions['limits']): Promise<
     insert into staff (id, venue_id, full_name, role) values ('${rows[0].id}', '${VENUE_B}', 'Outra Pessoa', 'manager');
   `);
 
-  const server = buildServer({ config, db, limits });
+  const server = buildServer({ config, db, limits, push });
   await new Promise<void>((r) => server.httpServer.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}`;
   const sockets: Socket[] = [];

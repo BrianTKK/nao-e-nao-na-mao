@@ -18,6 +18,10 @@ services:
       TRUST_PROXY: "1"
     ports:
       - "127.0.0.1:${APP_PORT:?defina APP_PORT no .env}:3000"
+    volumes:
+      # Chave da conta de serviço do Firebase (push remoto), fora do repositório e
+      # da pasta do deploy, só leitura. Sem o arquivo, o push fica desligado. Ver docs/DEPLOY.md.
+      - ${FCM_SECRETS_DIR:-/etc/naoenao}:/run/secrets/naoenao:ro
     depends_on:
       db:
         condition: service_healthy

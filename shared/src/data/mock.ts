@@ -419,6 +419,9 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         me().appearance = appearance.trim() || null;
         commit();
       },
+      // A demonstração não tem servidor de push: o alarme dela é só o toque local.
+      async registerPushToken() {},
+      async removePushToken() {},
     },
 
     manager: {

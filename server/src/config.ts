@@ -29,6 +29,11 @@ const schema = z.object({
     .transform((v) => v === '1'),
   /** Atrás do Nginx: confia no primeiro proxy para ler o IP real (limite por IP). */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /**
+   * Arquivo JSON da conta de serviço do Firebase, para o push remoto (FCM v1).
+   * Fica fora do repositório (na VPS, ao lado do .env). Sem ele, o push fica desligado.
+   */
+  FCM_SERVICE_ACCOUNT_FILE: z.string().min(1).optional(),
 });
 
 export type Config = z.infer<typeof schema> & { jwtSecret: string; corsOrigins: string[]; repoRoot: string };

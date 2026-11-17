@@ -286,6 +286,12 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       async setMyAppearance(appearance) {
         await request('/me/appearance', { method: 'PUT', auth: true, body: { appearance } });
       },
+      async registerPushToken(token, platform) {
+        await request('/me/push-token', { method: 'PUT', auth: true, body: { token, platform } });
+      },
+      async removePushToken(token) {
+        await request('/me/push-token', { method: 'DELETE', auth: true, body: { token } });
+      },
     },
 
     manager: {

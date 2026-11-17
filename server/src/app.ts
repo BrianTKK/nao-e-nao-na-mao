@@ -11,6 +11,7 @@ import { createAuth } from './auth';
 import { createRoutes, type RouteDeps } from './routes';
 import { createRealtime } from './realtime';
 import { errorHandler } from './errors';
+import { createPush, senderFromConfig, type PushSender } from './push';
 
 const HOST = /^[a-z0-9.-]+(:\d{1,5})?$/i;
 
@@ -25,6 +26,8 @@ export interface StartOptions {
   config: Config;
   db: Db;
   limits?: Partial<RouteDeps['limits']>;
+  /** Push remoto: sem isto, liga pela conta de serviço do FCM_SERVICE_ACCOUNT_FILE (ou fica desligado). */
+  push?: { sender: PushSender | null; repeatAtMs?: number[] };
 }
 
 /**
@@ -32,7 +35,7 @@ export interface StartOptions {
  * compilada no resto, na mesma origem (a página do QR em /q/<código> e o
  * painel em /painel).
  */
-export function buildServer({ config, db, limits }: StartOptions) {
+export function buildServer({ config, db, limits, push: pushOptions }: StartOptions) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY);
@@ -67,6 +70,7 @@ export function buildServer({ config, db, limits }: StartOptions) {
   const httpServer = createServer(app);
   const auth = createAuth(config, db);
   const realtime = createRealtime(httpServer, config, db, auth);
+  const push = createPush({ db, sender: pushOptions ? pushOptions.sender : senderFromConfig(config.FCM_SERVICE_ACCOUNT_FILE), repeatAtMs: pushOptions?.repeatAtMs });
 
   app.get('/api/health', async (_req, res) => {
     await db.query('select 1');
@@ -80,6 +84,7 @@ export function buildServer({ config, db, limits }: StartOptions) {
       auth,
       alertChanged: (id) => {
         realtime.alertChanged(id).catch((err) => console.error('tempo real:', err));
+        push.alertChanged(id).catch((err) => console.error('push:', (err as Error).message));
       },
       disconnectUser: realtime.disconnectUser,
       limits: { alertsPerMinutePerIp: 6, loginsPer5MinPerIp: 10, ...limits },
@@ -104,6 +109,11 @@ export function buildServer({ config, db, limits }: StartOptions) {
   return {
     httpServer,
     io: realtime.io,
-    close: () => new Promise<void>((resolve) => realtime.io.close(() => resolve())),
+    push,
+    close: () =>
+      new Promise<void>((resolve) => {
+        push.close();
+        realtime.io.close(() => resolve());
+      }),
   };
 }
