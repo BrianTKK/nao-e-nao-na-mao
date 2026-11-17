@@ -14,6 +14,7 @@ import type {
   SpotKind,
   StaffMember,
   Venue,
+  VenueMenu,
 } from '../domain';
 
 export type Unsubscribe = () => void;
@@ -35,6 +36,8 @@ export type DataErrorCode =
   | 'staff_not_found'
   | 'email_taken'
   | 'cannot_change_self'
+  | 'menu_full'
+  | 'invalid_image'
   | 'network'
   | 'unknown';
 
@@ -89,6 +92,12 @@ export interface ManagerApi {
   assignAlert(id: string, staffId: string): Promise<void>;
   createStaff(input: NewStaffInput): Promise<StaffMember>;
   updateStaff(id: string, patch: StaffPatch): Promise<StaffMember>;
+  /** Cardápio do próprio local: fotos e o link do cardápio digital, os dois opcionais. */
+  getMenu(): Promise<VenueMenu>;
+  setMenuUrl(url: string | null): Promise<VenueMenu>;
+  /** Uma imagem já reduzida (JPEG, PNG ou WebP), em base64 sem o prefixo data:. */
+  addMenuFile(input: { contentType: string; base64: string }): Promise<VenueMenu>;
+  removeMenuFile(id: string): Promise<VenueMenu>;
 }
 
 export interface NewStaffInput {

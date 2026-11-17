@@ -4,7 +4,7 @@
  * A mesma no app (React Native) e na web.
  */
 import { io, type Socket } from 'socket.io-client';
-import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue } from '../domain';
+import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue, VenueMenu } from '../domain';
 import { DataError, type ConnectionState, type DataErrorCode, type DataSource, type NewStaffInput, type StaffPatch, type Unsubscribe } from './ports';
 
 /** Onde guardar o token de login (localStorage na web, AsyncStorage no app). */
@@ -35,10 +35,17 @@ const KNOWN_ERRORS: DataErrorCode[] = [
   'staff_not_found',
   'email_taken',
   'cannot_change_self',
+  'menu_full',
+  'invalid_image',
 ];
 
 export function createApiDataSource(options: ApiOptions): DataSource {
   const base = options.baseUrl.replace(/\/$/, '');
+  /** O servidor devolve o endereço das fotos relativo (/api/menu-files/...): o app precisa dele completo. */
+  const withBase = (menu: VenueMenu): VenueMenu => ({
+    url: menu.url,
+    files: menu.files.map((f) => ({ ...f, url: f.url.startsWith('/') ? `${base}${f.url}` : f.url })),
+  });
   const pollMs = options.pollMs ?? 3000;
   let token: string | null = null;
   let tokenLoaded = false;
@@ -157,7 +164,8 @@ export function createApiDataSource(options: ApiOptions): DataSource {
     public: {
       async getSpot(code) {
         try {
-          return await request<PublicSpot>(`/spots/${encodeURIComponent(code)}`);
+          const spot = await request<PublicSpot>(`/spots/${encodeURIComponent(code)}`);
+          return { ...spot, menu: withBase(spot.menu) };
         } catch (err) {
           if (err instanceof DataError && (err.code === 'spot_not_found' || err.code === 'unknown')) return null;
           throw err;
@@ -299,6 +307,11 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       },
       createStaff: (input: NewStaffInput) => request<StaffMember>('/manager/staff', { auth: true, body: input }),
       updateStaff: (id: string, patch: StaffPatch) => request<StaffMember>(`/manager/staff/${id}`, { method: 'PATCH', auth: true, body: patch }),
+      getMenu: async () => withBase(await request<VenueMenu>('/manager/menu', { auth: true })),
+      setMenuUrl: async (url: string | null) => withBase(await request<VenueMenu>('/manager/menu/url', { method: 'PUT', auth: true, body: { url } })),
+      addMenuFile: async (input: { contentType: string; base64: string }) =>
+        withBase(await request<VenueMenu>('/manager/menu/files', { auth: true, body: input })),
+      removeMenuFile: async (id: string) => withBase(await request<VenueMenu>(`/manager/menu/files/${id}`, { method: 'DELETE', auth: true })),
     },
   };
 }

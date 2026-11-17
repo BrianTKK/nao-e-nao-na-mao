@@ -1,4 +1,4 @@
-import type { Alert, PublicAlert, PublicSpot, Spot, StaffMember, Venue } from '@nenm/shared';
+import type { Alert, PublicAlert, PublicSpot, Spot, StaffMember, Venue, VenueMenu } from '@nenm/shared';
 import type { Queryable } from './db';
 
 /** Consultas de leitura. Toda consulta da equipe recebe o bar de quem está logado. */
@@ -141,14 +141,28 @@ export async function getPublicAlertByHash(db: Queryable, tokenHash: string): Pr
 }
 
 export async function getPublicSpot(db: Queryable, code: string): Promise<PublicSpot | null> {
-  const { rows } = await db.query<{ code: string; label: string; venue_name: string; help_phrase: string }>(
-    `select s.code, s.label, v.name as venue_name, v.help_phrase
+  const { rows } = await db.query<{ code: string; label: string; venue_id: string; venue_name: string; help_phrase: string }>(
+    `select s.code, s.label, v.id as venue_id, v.name as venue_name, v.help_phrase
      from spots s join venues v on v.id = s.venue_id
      where s.code = $1 and s.active`,
     [code.toUpperCase()],
   );
   const r = rows[0];
-  return r ? { code: r.code, label: r.label, venueName: r.venue_name, helpPhrase: r.help_phrase } : null;
+  if (!r) return null;
+  return { code: r.code, label: r.label, venueName: r.venue_name, helpPhrase: r.help_phrase, menu: await getMenu(db, r.venue_id) };
+}
+
+/** Cardápio do próprio local: o link e a lista das fotos, sem os bytes (que saem por /menu-files/:id). */
+export async function getMenu(db: Queryable, venueId: string): Promise<VenueMenu> {
+  const venue = await db.query<{ menu_url: string | null }>('select menu_url from venues where id = $1', [venueId]);
+  const files = await db.query<{ id: string; content_type: string; size: number }>(
+    'select id, content_type, size from menu_files where venue_id = $1 order by position, created_at',
+    [venueId],
+  );
+  return {
+    url: venue.rows[0]?.menu_url ?? null,
+    files: files.rows.map((f) => ({ id: f.id, url: `/api/menu-files/${f.id}`, contentType: f.content_type, size: f.size })),
+  };
 }
 
 interface StaffRow {

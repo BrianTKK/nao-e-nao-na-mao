@@ -81,12 +81,43 @@ export interface Alert {
   note: string | null;
 }
 
+/** Uma foto do cardápio do local (ou uma página do PDF, já convertida em imagem). */
+export interface MenuFile {
+  id: string;
+  /** Endereço para mostrar a imagem (absoluto no app; relativo à própria origem na web). */
+  url: string;
+  contentType: string;
+  size: number;
+}
+
+/**
+ * Cardápio do próprio local, cadastrado pela gerência. As duas formas são
+ * opcionais: sem nenhuma, a página de ajuda fica sem disfarce.
+ */
+export interface VenueMenu {
+  /** Link do cardápio digital que o local já usa (abre à parte). */
+  url: string | null;
+  files: MenuFile[];
+}
+
+export const MENU_LIMITS = {
+  maxFiles: 10,
+  /** Tamanho máximo de cada imagem, já reduzida. */
+  maxBytes: 3 * 1024 * 1024,
+  /** Lado maior da imagem depois de reduzida no painel ou no app. */
+  maxSide: 1600,
+  contentTypes: ['image/jpeg', 'image/png', 'image/webp'] as const,
+};
+
+export const hasMenu = (m: VenueMenu | null | undefined): boolean => !!m && (m.files.length > 0 || !!m.url);
+
 /** O que a página do QR code mostra de um local, sem login. */
 export interface PublicSpot {
   code: string;
   label: string;
   venueName: string;
   helpPhrase: string;
+  menu: VenueMenu;
 }
 
 /** O que a mulher vê do próprio pedido, pelo token. */

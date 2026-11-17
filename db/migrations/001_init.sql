@@ -22,8 +22,8 @@ create table venues (
   -- Código combinado do bar para pedir ajuda no balcão (usado quando a
   -- página fica sem conexão).
   help_phrase text not null,
-  -- Cardápio do antigo disfarce "Ver cardápio", retirado em 16/11/2026.
-  -- A coluna fica, sem uso: apagar só se o Brian confirmar que o disfarce não volta.
+  -- Cardápio inventado do antigo disfarce; a migração 005 apaga a coluna e
+  -- passa a guardar o cardápio do próprio local.
   menu jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );

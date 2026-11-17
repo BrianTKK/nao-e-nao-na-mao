@@ -213,3 +213,9 @@
   .spot-card .muted { color: #333; }
   .spot-print-hint { display: block; font-weight: 700; }
 }
+
+/* Cardápio */
+.panel-intro { max-width: 70ch; }
+.menu-grid { list-style: none; padding: 0; margin: var(--s-md) 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s-sm); }
+.menu-thumb { display: grid; gap: var(--s-xs); }
+.menu-thumb img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: top; border-radius: var(--r-sm, 6px); background: #fff; }

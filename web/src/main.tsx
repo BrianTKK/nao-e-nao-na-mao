@@ -10,6 +10,7 @@ import { Overview } from './pages/panel/Overview';
 import { History } from './pages/panel/History';
 import { Staff } from './pages/panel/Staff';
 import { Spots } from './pages/panel/Spots';
+import { Menu } from './pages/panel/Menu';
 import { PrintSpots } from './pages/panel/PrintSpots';
 import { Report } from './pages/panel/Report';
 import { NotFound } from './pages/NotFound';
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="pedidos" element={<Navigate to="/painel/alertas" replace />} />
           <Route path="equipe" element={<Staff />} />
           <Route path="qr-codes" element={<Spots />} />
+          <Route path="cardapio" element={<Menu />} />
           <Route path="qr-codes/imprimir" element={<PrintSpots />} />
           <Route path="relatorio" element={<Report />} />
         </Route>

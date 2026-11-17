@@ -16,6 +16,8 @@ import { dataSource } from '../../data/source';
 import { session, useDocumentTitle, useOnline } from '../../hooks/hooks';
 import { StatusSteps } from './StatusSteps';
 import { CounterCard } from './CounterCard';
+import { MenuView } from './MenuView';
+import { coverFor } from './cover';
 import './help.css';
 
 type Phase =
@@ -31,6 +33,8 @@ const tokenKey = (code: string) => `nenm.alert.${code.toUpperCase()}`;
 /**
  * Página que o QR code do banheiro ou da mesa abre. Sem login, sem instalar.
  * - O título da aba é só o nome do bar (neutro): não diz "ajuda".
+ * - "Ver cardápio" (só se o local cadastrou o cardápio dele) mostra o cardápio
+ *   do próprio local, para quem estiver olhando; ver cover.ts.
  * - Sem conexão, a página vira um cartão para mostrar no balcão.
  */
 export function HelpPage() {
@@ -39,6 +43,7 @@ export function HelpPage() {
   const [spot, setSpot] = useState<PublicSpot | null>(null);
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
   const [alert, setAlert] = useState<PublicAlert | null>(null);
+  const [hidden, setHidden] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useDocumentTitle(spot ? spot.venueName : 'Carregando…');
@@ -76,8 +81,21 @@ export function HelpPage() {
 
   // Leva o foco ao título a cada troca de etapa (leitor de tela acompanha).
   useEffect(() => {
-    headingRef.current?.focus();
-  }, [phase.name]);
+    if (!hidden) headingRef.current?.focus();
+  }, [phase.name, hidden]);
+
+  const cover = spot ? coverFor(spot) : null;
+  const canHide = cover?.kind === 'menu-images';
+
+  // Esc mostra o cardápio na hora (só quando ele está cadastrado em fotos).
+  useEffect(() => {
+    if (!canHide) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHidden(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canHide]);
 
   const send = useCallback(
     async (kind: AlertKind) => {
@@ -111,10 +129,25 @@ export function HelpPage() {
     setPhase({ name: 'choose' });
   }, [code]);
 
+  if (hidden && spot && cover?.kind === 'menu-images') {
+    return <MenuView venueName={spot.venueName} files={cover.files} url={cover.url} onBack={() => setHidden(false)} />;
+  }
+
   return (
     <div className="help">
       <header className="help-header">
         <span className="help-venue">{spot?.venueName ?? ' '}</span>
+        {cover?.kind === 'menu-images' && (
+          <button type="button" className="btn help-hide" onClick={() => setHidden(true)} aria-label="Ver cardápio: mostra o cardápio do local no lugar desta tela">
+            Ver cardápio
+          </button>
+        )}
+        {cover?.kind === 'menu-link' && (
+          // Abre em outra aba: o cardápio digital quase nunca aceita ser mostrado dentro desta página.
+          <a className="btn help-hide" href={cover.url} target="_blank" rel="noopener noreferrer" aria-label="Ver cardápio: abre o cardápio digital do local em outra aba; esta página continua aberta">
+            Ver cardápio
+          </a>
+        )}
       </header>
 
       <main className="help-main" aria-busy={phase.name === 'loading' || phase.name === 'sending'}>

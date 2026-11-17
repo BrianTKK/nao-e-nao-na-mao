@@ -59,6 +59,8 @@ export function buildServer({ config, db, limits }: StartOptions) {
   // Só o app no Expo web, em desenvolvimento, chama de outra origem. O app no
   // celular não envia Origin, e a web está na mesma origem.
   app.use('/api', cors({ origin: config.corsOrigins, credentials: false, allowedHeaders: ['content-type', 'authorization', 'x-alert-token'] }));
+  // A foto do cardápio chega em base64 (até 3 MB, cerca de 4 MB em base64); o resto da API fica em 10 kB.
+  app.use('/api/manager/menu/files', express.json({ limit: '4500kb' }));
   app.use('/api', express.json({ limit: '10kb' }));
   app.use('/api', rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
 

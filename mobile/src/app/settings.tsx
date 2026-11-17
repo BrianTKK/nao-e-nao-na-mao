@@ -90,6 +90,16 @@ export default function Settings() {
         )}
       </View>
 
+      {me?.role === 'manager' && (
+        <View style={ui.card}>
+          <Text style={ui.h2} accessibilityRole="header">
+            Cardápio do bar
+          </Text>
+          <Text style={ui.muted}>Fotografe o cardápio de papel ou cole o link do cardápio digital. Aparece no "Ver cardápio" da página de ajuda.</Text>
+          <Button label="Cadastrar o cardápio" onPress={() => router.push('/menu')} />
+        </View>
+      )}
+
       <Button
         label="Sair"
         onPress={async () => {

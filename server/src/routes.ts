@@ -3,7 +3,7 @@ import { Router, type Request } from 'express';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
-import { ALERT_KINDS, ALERT_OUTCOMES, SPOT_KIND_LABEL, type SpotKind } from '@nenm/shared';
+import { ALERT_KINDS, ALERT_OUTCOMES, MENU_LIMITS, SPOT_KIND_LABEL, type SpotKind } from '@nenm/shared';
 import type { Db } from './db';
 import type { Auth } from './auth';
 import { HttpError } from './errors';
@@ -45,6 +45,24 @@ const limiter = (limit: number, windowMs: number) =>
   });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * Confere pelos primeiros bytes que o arquivo é mesmo a imagem que diz ser
+ * (não basta o tipo declarado: ele vem de quem envia).
+ */
+export function sniffImage(bytes: Buffer): (typeof MENU_LIMITS.contentTypes)[number] | null {
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length > 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+  if (bytes.length > 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+const menuUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url()
+  .refine((u) => u.startsWith('https://') && !/\s/.test(u), 'https_only');
 
 export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }: RouteDeps): Router {
   const r = Router();
@@ -236,6 +254,74 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }:
     ]);
     if (!rows[0]) throw new HttpError(404, 'spot_not_found');
     res.status(204).end();
+  });
+
+  // ------------------------------------------------------------------ cardápio do local
+
+  r.get('/manager/menu', auth.requireManager, async (req, res) => {
+    res.json(await q.getMenu(db, req.actor!.venueId));
+  });
+
+  r.put('/manager/menu/url', auth.requireManager, async (req, res) => {
+    const body = z.object({ url: z.union([menuUrl, z.null(), z.literal('')]) }).strict().parse(req.body);
+    await db.query('update venues set menu_url = $1 where id = $2', [body.url || null, req.actor!.venueId]);
+    res.json(await q.getMenu(db, req.actor!.venueId));
+  });
+
+  // A imagem chega em base64 já reduzida pelo painel ou pelo app (o PDF vira imagens no painel).
+  r.post('/manager/menu/files', auth.requireManager, async (req, res) => {
+    const maxBase64 = Math.ceil((MENU_LIMITS.maxBytes * 4) / 3) + 4;
+    const body = z
+      .object({
+        contentType: z.enum(MENU_LIMITS.contentTypes),
+        base64: z.string().max(maxBase64).regex(/^[A-Za-z0-9+/]+={0,2}$/),
+      })
+      .strict()
+      .parse(req.body);
+    const bytes = Buffer.from(body.base64, 'base64');
+    if (bytes.length === 0 || bytes.length > MENU_LIMITS.maxBytes || sniffImage(bytes) !== body.contentType) {
+      throw new HttpError(400, 'invalid_image');
+    }
+    const venueId = req.actor!.venueId;
+    await db.tx(async (t) => {
+      // Trava a linha do bar: duas fotos enviadas juntas não passam do limite.
+      await t.query('select id from venues where id = $1 for update', [venueId]);
+      const { rows } = await t.query<{ n: number; next: number }>(
+        'select count(*)::int as n, coalesce(max(position), 0)::int + 1 as next from menu_files where venue_id = $1',
+        [venueId],
+      );
+      if (rows[0].n >= MENU_LIMITS.maxFiles) throw new HttpError(409, 'menu_full');
+      await t.query('insert into menu_files (venue_id, content_type, data, size, position) values ($1, $2, $3, $4, $5)', [
+        venueId,
+        body.contentType,
+        bytes,
+        bytes.length,
+        rows[0].next,
+      ]);
+    });
+    res.status(201).json(await q.getMenu(db, venueId));
+  });
+
+  r.delete('/manager/menu/files/:id', auth.requireManager, async (req, res) => {
+    const { rows } = await db.query('delete from menu_files where id = $1 and venue_id = $2 returning id', [
+      uuid.parse(req.params.id),
+      req.actor!.venueId,
+    ]);
+    if (!rows[0]) throw new HttpError(404, 'not_found');
+    res.json(await q.getMenu(db, req.actor!.venueId));
+  });
+
+  // Público: a página de ajuda mostra as fotos do cardápio. O id é aleatório e o
+  // conteúdo nunca muda (trocar = apagar e enviar outra), então pode ficar em cache.
+  r.get('/menu-files/:id', async (req, res) => {
+    const id = uuid.safeParse(req.params.id);
+    if (!id.success) throw new HttpError(404, 'not_found');
+    const { rows } = await db.query<{ content_type: string; data: Uint8Array }>('select content_type, data from menu_files where id = $1', [id.data]);
+    if (!rows[0]) throw new HttpError(404, 'not_found');
+    res.setHeader('Content-Type', rows[0].content_type);
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.setHeader('Content-Disposition', 'inline');
+    res.end(Buffer.from(rows[0].data));
   });
 
   return r;

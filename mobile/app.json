@@ -30,6 +30,14 @@
         {
           "color": "#FF7EAD"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Para escolher as fotos do cardápio do bar.",
+          "cameraPermission": "Para fotografar o cardápio do bar.",
+          "microphonePermission": false
+        }
       ]
     ],
     "scheme": "naoenao",

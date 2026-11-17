@@ -10,6 +10,7 @@
 import {
   ACTIVE_STATUSES,
   ALERT_KINDS,
+  MENU_LIMITS,
   isActive,
   type Alert,
   type AlertKind,
@@ -17,6 +18,7 @@ import {
   type PublicAlert,
   type Spot,
   type StaffMember,
+  type VenueMenu,
 } from '../domain';
 import { DEMO_PASSWORD, DEMO_SPOTS, DEMO_USERS, DEMO_VENUE, type DemoUser } from './demo';
 import { DataError, type DataSource, type Unsubscribe } from './ports';
@@ -47,6 +49,8 @@ interface State {
   spots: Spot[];
   staff: DemoUser[];
   sessionId: string | null;
+  /** Cardápio do bar de demonstração (as fotos ficam como data: URL). */
+  menu?: VenueMenu;
 }
 
 const STORAGE_KEY = 'nenm.mock.v1';
@@ -180,6 +184,10 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
   let state = load();
 
   const emit = () => listeners.forEach((l) => l());
+  const menuOf = (): VenueMenu => state.menu ?? { url: null, files: [] };
+  const managerOnly = () => {
+    if (me().role !== 'manager') throw new DataError('not_manager');
+  };
   const commit = () => {
     options.storage?.setItem(STORAGE_KEY, JSON.stringify(state));
     options.channel?.postMessage('changed');
@@ -294,6 +302,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
           label: spot.label,
           venueName: DEMO_VENUE.name,
           helpPhrase: DEMO_VENUE.helpPhrase,
+          menu: menuOf(),
         };
       },
       createAlert,
@@ -509,6 +518,40 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         if (!spot || user.role !== 'manager') throw new DataError('not_staff');
         spot.active = active;
         commit();
+      },
+      async getMenu() {
+        await wait();
+        managerOnly();
+        return menuOf();
+      },
+      async setMenuUrl(url) {
+        await wait();
+        managerOnly();
+        if (url !== null && !/^https:\/\/\S+$/.test(url)) throw new DataError('unknown', 'invalid_url');
+        state.menu = { ...menuOf(), url };
+        commit();
+        return menuOf();
+      },
+      async addMenuFile({ contentType, base64 }) {
+        await wait();
+        managerOnly();
+        const menu = menuOf();
+        if (menu.files.length >= MENU_LIMITS.maxFiles) throw new DataError('menu_full');
+        if (!(MENU_LIMITS.contentTypes as readonly string[]).includes(contentType)) throw new DataError('invalid_image');
+        const size = Math.floor((base64.length * 3) / 4);
+        if (size > MENU_LIMITS.maxBytes) throw new DataError('invalid_image');
+        const id = `menu-${randomToken().slice(0, 12)}`;
+        state.menu = { ...menu, files: [...menu.files, { id, url: `data:${contentType};base64,${base64}`, contentType, size }] };
+        commit();
+        return menuOf();
+      },
+      async removeMenuFile(id) {
+        await wait();
+        managerOnly();
+        const menu = menuOf();
+        state.menu = { ...menu, files: menu.files.filter((f) => f.id !== id) };
+        commit();
+        return menuOf();
       },
     },
 
