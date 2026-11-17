@@ -63,6 +63,7 @@ Pedido da Central (17/11/2026), depois do teste do Brian em 16/11 no Android pel
   - com o push ativo, o app não agenda as repetições locais, porque o servidor já repete.
 - **Ao abrir o app**, ele tira da bandeja os avisos de alertas que alguém já viu. O push não apaga sozinho o aviso dos outros celulares.
 - **A palavra-código nunca vai na mensagem.** Há um teste que confere isso.
+- **Ícone e cor da notificação** (desde o visual novo, 17/11/2026, `versionCode` 2): o ícone pequeno é a silhueta do símbolo B2 (`mobile/assets/notification-icon.png`, 96x96, branco com transparência, porque o Android pinta de branco o que não é transparente), e a cor é o latão `#FFB840` (plugin `expo-notifications` no `app.json`, `lightColor` do canal e `color` da mensagem do servidor). Antes era rosa (`#FF7EAD`). A cor da mensagem do servidor só muda na VPS com o próximo deploy.
 - **Som próprio**: `mobile/assets/sounds/mariana_alarme.wav`, de 2,9 s, com dois tons alternados.
   - Foi sintetizado no projeto, sem amostra de terceiros, por `mobile/scripts/make-alarm-sound.py`.
   - Entra no APK pelo plugin `expo-notifications` (`sounds`).

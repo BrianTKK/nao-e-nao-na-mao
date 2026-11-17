@@ -93,7 +93,7 @@ export function TryApp() {
         <h2 id="apk">App para Android: o alarme chega com o app fechado</h2>
         <p>
           No Expo Go, o alarme só chega com o app aberto. O app próprio da Mariana para Android recebe o alerta pelo Firebase, mesmo com o app
-          fechado e a tela bloqueada, e toca como alarme. O arquivo tem cerca de 45 MB.
+          fechado e a tela bloqueada, e toca como alarme. O arquivo tem cerca de 50 MB.
         </p>
         <p>
           <a className="btn" href={APK_URL} download>
