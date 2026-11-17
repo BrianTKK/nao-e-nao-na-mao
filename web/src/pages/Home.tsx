@@ -5,14 +5,21 @@ import './home.css';
 
 /** Página inicial do projeto: o que é e por onde testar. */
 export function Home() {
-  useDocumentTitle('Não é Não na Mão · alerta discreto no bar');
+  useDocumentTitle('Mariana · alerta discreto no bar');
   const restroom = DEMO_SPOTS[0];
   return (
     <main className="home">
       <p className="home-kicker">FIAP · Global Solution CitizenTech</p>
-      <h1>Não é Não na Mão</h1>
+      <h1>Mariana</h1>
       <p className="home-lead">
         Um QR code no banheiro ou na mesa do bar. A mulher pede ajuda sem instalar nada, e o celular da equipe vibra na hora com o local.
+      </p>
+      <p className="muted">
+        O nome lembra Mariana Ferrer e a{' '}
+        <a href="https://legis.senado.leg.br/norma/35190605" target="_blank" rel="noreferrer">
+          Lei 14.245/2021
+        </a>
+        , que leva o nome dela e protege a dignidade de vítimas de violência sexual no processo.
       </p>
 
       <ol className="home-steps">

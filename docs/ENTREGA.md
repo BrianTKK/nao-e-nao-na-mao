@@ -1,4 +1,6 @@
-# Checklist da entrega (FIAP · Global Solution CitizenTech)
+# Checklist da entrega · Mariana (FIAP · Global Solution CitizenTech)
+
+O projeto se chamava **Não é Não na Mão** até 16/11/2026.
 
 Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ falta.
 

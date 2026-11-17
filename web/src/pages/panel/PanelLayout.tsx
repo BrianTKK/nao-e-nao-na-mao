@@ -11,7 +11,7 @@ export interface PanelContext {
 
 /** Painel da gerência: login, navegação e as páginas filhas. */
 export function PanelLayout() {
-  useDocumentTitle('Painel do bar · Não é Não na Mão');
+  useDocumentTitle('Painel do bar · Mariana');
   const [me, setMe] = useState<StaffMember | null | undefined>(undefined);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function PanelLayout() {
       </a>
       <header className="panel-header">
         <div>
-          <p className="panel-brand">Não é Não na Mão</p>
+          <p className="panel-brand">Mariana</p>
           <p className="muted panel-who">
             {me.fullName} · {me.role === 'manager' ? 'Gerência' : 'Equipe'}
           </p>

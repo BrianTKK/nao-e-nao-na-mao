@@ -12,7 +12,7 @@ if (config.SEED_DEMO && (await seedDemo(db, config.repoRoot))) console.log('Bar 
 
 const { httpServer, close } = buildServer({ config, db });
 httpServer.listen(config.PORT, () => {
-  console.log(`Não é Não na Mão: http://localhost:${config.PORT} (banco: ${db.engine})`);
+  console.log(`Mariana: http://localhost:${config.PORT} (banco: ${db.engine})`);
 });
 
 const shutdown = () => {

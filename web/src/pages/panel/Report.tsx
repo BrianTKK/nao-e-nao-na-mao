@@ -29,7 +29,7 @@ const day = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00`).to
  */
 export function Report() {
   const [month, setMonth] = useState(monthInput());
-  useDocumentTitle(`Relatório ${month} · Não é Não na Mão`);
+  useDocumentTitle(`Relatório ${month} · Mariana`);
   // Alertas guardados com o mês a que pertencem: trocar o mês mostra "Carregando…" sem apagar no efeito.
   const [loaded, setLoaded] = useState<{ month: string; alerts: Alert[] } | null>(null);
   const alerts = loaded?.month === month ? loaded.alerts : null;
@@ -85,7 +85,7 @@ export function Report() {
             {venue.neighborhood ? ` · ${venue.neighborhood}` : ''} · {venue.city}
           </p>
         )}
-        <p className="muted">Gerado em {generatedAt} pelo sistema Não é Não na Mão. Nenhum dado pessoal de quem pediu ajuda é guardado.</p>
+        <p className="muted">Gerado em {generatedAt} pelo sistema Mariana. Nenhum dado pessoal de quem pediu ajuda é guardado.</p>
       </header>
 
       {!alerts || !stats ? (

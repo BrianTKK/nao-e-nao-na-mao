@@ -12,7 +12,7 @@ import './print.css';
  * só os cartazes (dois por folha A4).
  */
 export function PrintSpots() {
-  useDocumentTitle('QR codes para imprimir · Não é Não na Mão');
+  useDocumentTitle('QR codes para imprimir · Mariana');
   const [spots, setSpots] = useState<Spot[] | null>(null);
   const [venue, setVenue] = useState<Venue | null>(null);
   useEffect(() => {

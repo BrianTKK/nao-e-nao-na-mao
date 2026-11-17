@@ -12,11 +12,11 @@ const EXPO_URL = import.meta.env.VITE_EXPO_URL ?? 'exps://expo-naoenao.obrian.me
  * próprio celular, sem depender do PC de ninguém. O QR é gerado aqui mesmo.
  */
 export function TryApp() {
-  useDocumentTitle('Testar o app no celular · Não é Não na Mão');
+  useDocumentTitle('Testar o app no celular · Mariana');
   const restroom = DEMO_SPOTS[0];
   return (
     <main className="home try">
-      <p className="home-kicker">Não é Não na Mão · demonstração</p>
+      <p className="home-kicker">Mariana · demonstração</p>
       <h1>Testar o app da equipe no celular</h1>
       <p className="home-lead">O app é de quem trabalha no bar: recebe o alerta e avisa que está indo.</p>
 

@@ -1,4 +1,4 @@
--- Não é Não na Mão: esquema inicial (Postgres 17).
+-- Mariana (antes Não é Não na Mão): esquema inicial (Postgres 17).
 --
 -- Quem controla o acesso é a API (server/): ela autentica a equipe, sabe o
 -- bar de cada pessoa e só consulta o que pertence a ele. O banco guarda as

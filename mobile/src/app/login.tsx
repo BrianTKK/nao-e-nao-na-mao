@@ -40,7 +40,7 @@ export default function Login() {
     <SafeAreaView style={ui.screen}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[ui.content, { paddingTop: space.xxl }]} keyboardShouldPersistTaps="handled">
-          <Text style={ui.muted}>Não é Não na Mão</Text>
+          <Text style={ui.muted}>Mariana</Text>
           <Text style={ui.h1} accessibilityRole="header">
             App da equipe
           </Text>

@@ -1,8 +1,12 @@
-# Não é Não na Mão
+# Mariana
+
+> Antes chamado **Não é Não na Mão** (renomeado em 16/11/2026). O endereço e o repositório ainda levam o nome antigo.
 
 Pedido de ajuda discreto no bar. A mulher lê um QR code no banheiro ou na mesa e pede ajuda **sem instalar nada**. O celular da equipe vibra na hora, com o local. Quem toca em "Estou indo" aparece para ela: "Diego, de camisa preta, está indo até você". O bar fica com o registro que o protocolo Não se Cale (Lei estadual 17.621/2023, SP) e a Lei federal 14.786/2023 pedem.
 
 Projeto da Global Solution CitizenTech (FIAP, Web Design).
+
+**Por que Mariana.** O nome lembra Mariana Ferrer. Em 2018, ela denunciou ter sido estuprada numa casa noturna de Florianópolis. Em 2020, o vídeo da audiência em que foi humilhada pela defesa gerou indignação no país e levou à [Lei 14.245/2021](https://legis.senado.leg.br/norma/35190605), a Lei Mariana Ferrer, que pune atos contra a dignidade de vítimas e testemunhas no processo. O sistema não usa a imagem dela nem o sobrenome na tela.
 
 > **Estado: fatia F2.** No ar em **https://naoenao.obrian.me** (a F1; a F2 sobe no próximo deploy). O laço real funciona: a página do QR cria o pedido, o app da equipe recebe em tempo real e toca em "Estou indo", e a página da mulher e o quadro da gerência mudam juntos. O painel da gerência faz quatro coisas: direciona ou assume um pedido, cadastra e desativa a equipe, imprime os QR codes e gera o relatório do mês para o Procon. O README completo (integrantes e vídeo) fica para a F4. O estado de cada requisito está em [`docs/ENTREGA.md`](docs/ENTREGA.md).
 

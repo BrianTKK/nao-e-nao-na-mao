@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "API, WebSocket e web compilada do Não é Não na Mão, na mesma origem.",
+  "description": "API, WebSocket e web compilada do Mariana, na mesma origem.",
   "scripts": {
     "dev": "tsx watch --clear-screen=false --env-file-if-exists=.env src/index.ts",
     "build": "node build.mjs",
