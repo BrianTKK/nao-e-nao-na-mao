@@ -129,7 +129,8 @@
 
 /* ----------------------------------------------------- Acompanhamento */
 
-.help-live:empty { display: none; }
+/* Vazia, a região continua na árvore de acessibilidade (sem display:none), para "a caminho" ser anunciado. */
+.help-live:empty { margin: 0; min-height: 0; }
 .help-onway {
   font-size: var(--fs-lg);
   font-weight: 600;

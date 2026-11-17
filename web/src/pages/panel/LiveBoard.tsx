@@ -33,6 +33,9 @@ export function LiveBoard({ alerts, staff, me, now }: { alerts: Alert[]; staff: 
   const crew = staff.filter((s) => s.active && s.id !== me.id);
   const boardRef = useRef<HTMLDivElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
+  // O cartão do controle focado é guardado no foco: depois que o React tira o
+  // controle do DOM, closest() sobre o nó solto já não acha o cartão.
+  const lastCardId = useRef<string | null>(null);
   const [said, setSaid] = useState('');
 
   // Uma ação pode tirar da tela o controle que estava com o foco ("Vi o alerta"
@@ -41,10 +44,11 @@ export function LiveBoard({ alerts, staff, me, now }: { alerts: Alert[]; staff: 
   useLayoutEffect(() => {
     const last = lastFocused.current;
     if (!last || last.isConnected) return;
+    const cardId = lastCardId.current;
     lastFocused.current = null;
+    lastCardId.current = null;
     const active = document.activeElement;
     if (active && active !== document.body) return;
-    const cardId = last.closest<HTMLElement>('[data-alert-id]')?.dataset.alertId;
     const heading = cardId ? document.getElementById(`alert-${cardId}`) : null;
     (heading?.isConnected ? heading : boardRef.current)?.focus();
   });
@@ -55,11 +59,17 @@ export function LiveBoard({ alerts, staff, me, now }: { alerts: Alert[]; staff: 
       className="live-board"
       tabIndex={-1}
       onFocus={(e) => {
-        if (e.target !== boardRef.current) lastFocused.current = e.target as HTMLElement;
+        if (e.target === boardRef.current) return;
+        const target = e.target as HTMLElement;
+        lastFocused.current = target;
+        lastCardId.current = target.closest<HTMLElement>('[data-alert-id]')?.dataset.alertId ?? null;
       }}
       onBlur={(e) => {
         // Clique fora, num ponto sem controle: não há foco para devolver depois.
-        if (!e.relatedTarget && e.target.isConnected) lastFocused.current = null;
+        if (!e.relatedTarget && e.target.isConnected) {
+          lastFocused.current = null;
+          lastCardId.current = null;
+        }
       }}
     >
       <div className="visually-hidden" aria-live="polite">
@@ -191,8 +201,8 @@ function LiveItem({
             type="button"
             className="btn btn-primary"
             aria-busy={busy === 'go' || undefined}
-            aria-label={`Estou indo ao ${place}: vou pessoalmente`}
-            onClick={() => run('go', () => dataSource.staff.startResponse(a.id), `Você está indo ao ${place}. Ela já vê seu nome.`)}
+            aria-label={`Estou indo (${place}): vou pessoalmente`}
+            onClick={() => run('go', () => dataSource.staff.startResponse(a.id), `Você está indo: ${place}. Ela já vê seu nome.`)}
           >
             <Icon name="walking" size={20} />
             {busy === 'go' ? 'Salvando…' : 'Estou indo'}
@@ -203,8 +213,8 @@ function LiveItem({
             type="button"
             className="btn"
             aria-busy={busy === 'ack' || undefined}
-            aria-label={`Vi o alerta do ${place}`}
-            onClick={() => run('ack', () => dataSource.staff.ackAlert(a.id), `Alerta do ${place} marcado como visto.`)}
+            aria-label={`Vi o alerta (${place})`}
+            onClick={() => run('ack', () => dataSource.staff.ackAlert(a.id), `Alerta (${place}) marcado como visto.`)}
           >
             <Icon name="eye" size={20} />
             {busy === 'ack' ? 'Salvando…' : 'Vi o alerta'}
@@ -213,8 +223,8 @@ function LiveItem({
         {waiting && crewItems.length > 0 && (
           <ActionMenu
             label={busy === 'assign' ? 'Mandando…' : 'Mandar alguém'}
-            buttonName={`Mandar alguém ao ${place}`}
-            menuName={`Quem mandar ao ${place}`}
+            buttonName={`Mandar alguém (${place})`}
+            menuName={`Quem mandar (${place})`}
             items={crewItems}
             onPick={(item) => run('assign', () => dataSource.manager.assignAlert(a.id, item.value), `${item.label} foi chamado no app.`)}
           />
@@ -222,12 +232,12 @@ function LiveItem({
         <ActionMenu
           className={a.status === 'on_the_way' ? 'btn-calm' : undefined}
           label={busy === 'done' ? 'Salvando…' : 'Encerrar'}
-          buttonName={`Encerrar o alerta do ${place}`}
-          menuName={`Como terminou o alerta do ${place}`}
+          buttonName={`Encerrar o alerta (${place})`}
+          menuName={`Como terminou o alerta (${place})`}
           align="end"
           items={outcomeItems}
           onPick={(item) =>
-            run('done', () => dataSource.staff.resolveAlert(a.id, item.value as AlertOutcome), `Alerta do ${place} encerrado: ${item.label}.`)
+            run('done', () => dataSource.staff.resolveAlert(a.id, item.value as AlertOutcome), `Alerta (${place}) encerrado: ${item.label}.`)
           }
         />
       </div>
