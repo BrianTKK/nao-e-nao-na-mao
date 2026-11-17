@@ -43,7 +43,8 @@
           "cameraPermission": "Para fotografar o cardápio do bar.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ],
     "scheme": "naoenao",
     "backgroundColor": "#141118",
