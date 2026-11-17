@@ -62,3 +62,12 @@ cp android/app/build/outputs/apk/release/app-release.apk "$OUT"
 BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
 "$BUILD_TOOLS/apksigner.bat" verify --print-certs "$OUT" | grep -E "certificate (DN|SHA-256)" || true
 echo "APK: $OUT ($(du -h "$OUT" | cut -f1))"
+
+# O C: tem pouco espaço: o build deixa ~7 GB nele (android/ e as pastas android/build e
+# .cxx das bibliotecas em node_modules). Tudo isso se recria no próximo build, que fica mais
+# lento (o nativo compila de novo). MARIANA_KEEP_BUILD=1 mantém.
+if [ "${MARIANA_KEEP_BUILD:-0}" != "1" ]; then
+  find ../node_modules node_modules -maxdepth 4 -type d \( -path "*/android/build" -o -path "*/android/.cxx" \) -prune -exec rm -rf {} + 2>/dev/null || true
+  rm -rf android
+  echo "Limpeza: saída do build apagada do C: (MARIANA_KEEP_BUILD=1 mantém)."
+fi

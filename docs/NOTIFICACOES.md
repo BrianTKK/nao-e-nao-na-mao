@@ -91,6 +91,7 @@ bash mobile/scripts/build-apk.sh
   - `CMAKE_OBJECT_PATH_MAX=250` faz o CMake encurtar com um hash;
   - `MARIANA_CXX_DIR` (`D:\Android\cxx`) tira o build nativo de dentro do projeto.
 - O primeiro build leva uns 25 min, porque baixa o Gradle, as dependências, o SDK 37 e o CMake e compila o código nativo. Os seguintes usam o cache em `D:\Android\gradle`.
+- **Espaço no C:**: o build deixa uns 7 GB no C: (`mobile/android/` e as pastas `android/build` e `.cxx` das bibliotecas em `node_modules`). Por isso o script apaga tudo no fim; o próximo build compila o nativo de novo (uns 10 min a mais). `MARIANA_KEEP_BUILD=1` mantém.
 - Para instalar, mandar o APK para o celular e abrir, permitindo "instalar apps desconhecidos". Depois:
   - entrar com a conta;
   - aceitar as notificações;
