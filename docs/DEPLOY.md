@@ -30,6 +30,8 @@ O Nginx fica na frente, com HTTPS e o upgrade de WebSocket.
    ln -s /etc/nginx/sites-available/naoenao.obrian.me /etc/nginx/sites-enabled/
    nginx -t && systemctl reload nginx
    certbot --nginx -d naoenao.obrian.me
+
+   **Site que já está no ar** (cardápio do local, 16/11): o Certbot já reescreveu o arquivo com o bloco 443, então não copie o arquivo de novo. Acrescente no bloco `server` da porta 443 o `location = /api/manager/menu/files { client_max_body_size 5m; ... }` de `deploy/nginx-naoenao.obrian.me.conf`, com a mesma `APP_PORT`, e rode `nginx -t && systemctl reload nginx`. Sem isso, o envio da foto do cardápio volta 413, porque o resto do site corta em 64 kB.
    ```
 5. **Reinício diário do bar de demonstração**:
    ```bash
