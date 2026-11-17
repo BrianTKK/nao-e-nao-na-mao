@@ -13,7 +13,7 @@ O app roda no **Expo Go (SDK 58)**. Por isso ele só faz o que o Expo Go deixa f
 | Passar pelo "Não perturbe" (`bypassDnd`) | ✅ só se a pessoa permitir, no canal "Alertas (alarme)" das notificações do Expo Go | não | idem |
 | Nível "time sensitive" (`interruptionLevel`) | não se aplica | 🟡 pedido; o iOS só respeita com o direito no app, então no Expo Go provavelmente vira notificação comum com som | idem |
 | **Repete como despertador**: mais 5 toques agendados no sistema (20, 40, 60, 90 e 120 s), cancelados assim que alguém vê o alerta | ✅ | ✅ | idem |
-| Vibração contínua com o app aberto enquanto houver alerta que ninguém viu | ✅ | 🟡 o iOS vibra uma vez por chamada | idem |
+| Vibração contínua com o app aberto enquanto houver alerta que ninguém viu | ✅ | 🟡 o iOS ignora as durações do padrão (pulsos fixos de cerca de 0,4 s) | idem |
 | Tocar na notificação abre o alerta | ✅ | ✅ | `mobile/src/app/_layout.tsx` |
 | Botão "Testar o alarme" nos Ajustes | ✅ | ✅ | `mobile/src/app/settings.tsx` |
 | **Painel web**: bipe a cada 2,5 s enquanto houver alerta que ninguém viu, aviso do navegador e anúncio para leitor de tela | ✅ | ✅ | `web/src/pages/panel/useWebAlarm.ts` |
