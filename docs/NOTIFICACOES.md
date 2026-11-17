@@ -92,7 +92,7 @@ bash mobile/scripts/build-apk.sh
   - `MARIANA_CXX_DIR` (`D:\Android\cxx`) tira o build nativo de dentro do projeto.
 - O primeiro build leva uns 25 min, porque baixa o Gradle, as dependências, o SDK 37 e o CMake e compila o código nativo. Os seguintes usam o cache em `D:\Android\gradle`.
 - **Espaço no C:**: o build deixa uns 7 GB no C: (`mobile/android/` e as pastas `android/build` e `.cxx` das bibliotecas em `node_modules`). Por isso o script apaga tudo no fim; o próximo build compila o nativo de novo (uns 10 min a mais). `MARIANA_KEEP_BUILD=1` mantém.
-- Para instalar, mandar o APK para o celular e abrir, permitindo "instalar apps desconhecidos". Depois:
+- Para instalar, baixar em https://naoenao.obrian.me/download/mariana.apk (ou pelo botão da página `/testar`) e abrir, permitindo "instalar apps desconhecidos". Depois:
   - entrar com a conta;
   - aceitar as notificações;
   - nos ajustes do canal "Alertas (alarme)", permitir passar pelo "Não perturbe".
@@ -156,9 +156,14 @@ Sugestão da Central (17/11/2026). Prova a entrega do Firebase sem depender da V
     - um alerta novo, que o servidor mandou ao FCM de verdade;
     - o FCM recusou o token falso (sem celular não há token de verdade), e o servidor o apagou sozinho ("1 token(s) inválido(s) apagado(s)").
 - **Emulador Android**: não deu. A virtualização está desligada no firmware (BIOS) deste PC ("Virtualização Habilitada no Firmware: Não", no `systeminfo`), e o emulador precisa dela. Ligar é mudança de BIOS, coisa do Brian, se ele quiser.
+- **Publicado na VPS** (17/11/2026, pela Central, com o ok do Brian: "Sim, publicar"):
+  - deploy de `31ad9bf`, com a migração 007 aplicada;
+  - a chave da conta de serviço em `/etc/naoenao`, com dono `root:naoenao-segredos` e modo 640, e o `FCM_SERVICE_ACCOUNT_FILE` no `.env`;
+  - o log do app diz "Push remoto ligado (FCM, projeto mariana-c86f0)";
+  - o APK pode ser baixado em https://naoenao.obrian.me/download/mariana.apk (ver `docs/DEPLOY.md`, "APK para baixar") e pelo botão da página `/testar`.
 - **Não testado**:
-  - o APK e tudo no celular: o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
-  - o push a partir da VPS, que ainda não tem a chave;
+  - o APK e tudo no celular: instalar pelo link, o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
+  - o push saindo da VPS até um celular: o servidor no ar está com o push ligado, mas nenhum alerta chegou ainda a um aparelho de verdade;
   - celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria): neles, o push pode atrasar se o app não estiver liberado da otimização de bateria.
 
 ## O que exige build próprio (fora do APK atual, nenhuma conta criada)

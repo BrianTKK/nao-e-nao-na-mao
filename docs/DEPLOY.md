@@ -138,6 +138,35 @@ DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
 
 O grupo `10001` (`naoenao-segredos`) não tem ninguém na VPS: só o contêiner do app o recebe (`group_add` no `docker-compose.yml`), e o usuário `node` lê o arquivo por ele. Com o gid `1000` (o do `node`), qualquer usuário da VPS com esse gid também leria a chave. Se o `getent group 10001` mostrar um grupo que já existe e tem gente, escolher outro número e trocar nos dois lugares. No log do app deve aparecer `Push remoto ligado (FCM, projeto ...)`. O servidor nunca escreve a chave no log: se o arquivo estiver errado, ele diz só o motivo ("não é um JSON válido", nomes dos campos que faltam).
 
+## APK para baixar
+
+O app próprio para Android (push com o app fechado, ver `docs/NOTIFICACOES.md`) fica em **https://naoenao.obrian.me/download/mariana.apk**. A página `/testar` tem o botão "Baixar o app para Android". Publicado pela Central em 17/11/2026, com o ok do Brian ("Link na VPS").
+
+- **Onde fica**: `/var/www/naoenao-files/`, fora da pasta do deploy. O `deploy.sh` não envia nem apaga nada ali. Hoje está lá o `mariana-1.0.0-31d70b9.apk`.
+- **Quem serve**: o Nginx, direto do disco, sem passar pelo app. O bloco vai no `server` da porta 443 (o modelo está em `deploy/nginx-naoenao.obrian.me.conf`):
+
+  ```nginx
+  location = /download/mariana.apk {
+      alias /var/www/naoenao-files/mariana-1.0.0-31d70b9.apk;
+      types { }
+      default_type application/vnd.android.package-archive;
+      add_header Content-Disposition 'attachment; filename="mariana.apk"' always;
+      add_header Cache-Control 'no-cache' always;
+  }
+  ```
+
+  O `no-cache` faz o navegador conferir a versão a cada download, então a troca do arquivo vale na hora.
+- **Publicar uma versão nova** (o link não muda):
+  1. No PC, gerar o APK com `bash mobile/scripts/build-apk.sh`, que grava em `D:\Android\apk\mariana-<versão>-<commit>.apk`. Antes, aumentar `expo.android.versionCode` no `mobile/app.json`: o Android só instala por cima com um código maior, e a assinatura tem de ser a mesma chave.
+  2. Subir o arquivo para a mesma pasta, sem apagar o anterior, que serve para voltar atrás:
+
+     ```bash
+     scp /d/Android/apk/mariana-<versão>-<commit>.apk root@<ip-da-vps>:/var/www/naoenao-files/
+     ```
+
+  3. Na VPS, trocar o `alias` para o arquivo novo e rodar `nginx -t && systemctl reload nginx`.
+  4. Conferir a soma: `sha256sum` do arquivo no PC e no download (`curl -s https://naoenao.obrian.me/download/mariana.apk | sha256sum`).
+
 ## Bar de demonstração
 
 O bar "Bar Esquina da Vila" e as contas de `db/test-users.json` existem para a avaliação.

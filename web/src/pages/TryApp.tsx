@@ -6,6 +6,8 @@ import './home.css';
 
 /** Endereço que o Expo Go abre (o Metro na VPS, atrás de expo-naoenao.obrian.me). */
 const EXPO_URL = import.meta.env.VITE_EXPO_URL ?? 'exps://expo-naoenao.obrian.me';
+/** APK do app próprio (Android), servido pelo Nginx da VPS na mesma origem (ver docs/DEPLOY.md, "APK para baixar"). */
+const APK_URL = '/download/mariana.apk';
 
 /**
  * Página pública para o grupo e para quem avalia testarem o app da equipe no
@@ -75,6 +77,28 @@ export function TryApp() {
           <li>Teste com os dados móveis, se o Wi-Fi bloquear o endereço.</li>
           <li>Se aparecer erro de carregamento, espere 1 minuto e tente de novo: o servidor pode estar reiniciando.</li>
         </ul>
+      </section>
+
+      <section aria-labelledby="apk" className="try-help">
+        <h2 id="apk">App para Android: o alarme chega com o app fechado</h2>
+        <p>
+          No Expo Go, o alarme só chega com o app aberto. O app próprio da Mariana para Android recebe o alerta pelo Firebase, mesmo com o app
+          fechado e a tela bloqueada, e toca como alarme. O arquivo tem cerca de 45 MB.
+        </p>
+        <p>
+          <a className="btn btn-primary" href={APK_URL} download>
+            Baixar o app para Android
+          </a>
+        </p>
+        <ol className="try-steps">
+          <li>Abra o arquivo baixado. Se o Android pedir, permita instalar apps deste navegador ("fontes desconhecidas").</li>
+          <li>Entre com a conta de teste e aceite as notificações.</li>
+          <li>
+            Em Ajustes do celular → Apps → Mariana · Equipe → Notificações → "Alertas (alarme)", permita passar pelo "Não perturbe". Se o celular
+            economiza bateria (Xiaomi, Samsung e outros), tire o app da otimização de bateria.
+          </li>
+        </ol>
+        <p className="muted">No iPhone, continue pelo Expo Go: o app próprio para iPhone exige a conta paga da Apple.</p>
       </section>
 
       <section aria-labelledby="outras" className="try-help">
