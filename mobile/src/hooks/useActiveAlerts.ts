@@ -1,74 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Vibration } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
-import { KIND_STAFF_LABEL, displayCode, type Alert } from '@nenm/shared';
+import { AppState } from 'react-native';
+import type { Alert } from '@nenm/shared';
 import { dataSource } from '@/data/source';
+import { ring, setContinuousVibration, silence } from '@/notifications/alarm';
 
-// O bar é barulhento: o alerta chega por vibração forte e texto, não por som.
-const VIBRATION = [0, 500, 200, 500, 200, 500];
+export { setupNotifications } from '@/notifications/alarm';
 
 /**
- * Alertas abertos do bar, ao vivo. Quando chega um alerta novo, o celular
- * vibra e mostra uma notificação local (com o app aberto ou em segundo plano
- * recente). O push remoto, que acorda o celular com o app fechado, precisa de
- * um development build: no Expo Go do Android ele não existe desde a SDK 53.
+ * Alertas abertos do bar, ao vivo, com o alarme (ver notifications/alarm.ts).
+ * Toca enquanto o alerta estiver "novo" (ninguém viu) ou, se a gerência me
+ * mandou, até eu tocar em "Estou indo". Para sozinho quando isso muda.
+ *
+ * Só toca com o app aberto ou em segundo plano recente: com o app fechado, o
+ * aviso precisaria de push remoto, que o Expo Go do Android não tem.
  */
 export function useActiveAlerts(meId: string | null): Alert[] | null {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
-  const known = useRef<Set<string> | null>(null);
-  const assignedToMe = useRef<Set<string>>(new Set());
+  const first = useRef(true);
+  const ringing = useRef<Map<string, 'new' | 'assigned'>>(new Map());
 
   useEffect(() => {
     if (!meId) return;
-    return dataSource.staff.watchActiveAlerts((list) => {
+    first.current = true;
+    const stop = dataSource.staff.watchActiveAlerts((list) => {
       setAlerts(list);
-      const fresh = known.current ? list.filter((a) => a.status === 'open' && !known.current!.has(a.id)) : [];
-      known.current = new Set(list.map((a) => a.id));
-      // A gerência direcionou um alerta para mim: avisa de novo, mesmo que eu já tenha visto.
-      const mine = list.filter((a) => a.assignedToId === meId && !a.responderId && !assignedToMe.current.has(a.id));
-      mine.forEach((a) => assignedToMe.current.add(a.id));
-      if (mine.length > 0) announce(mine[mine.length - 1], true);
-      else if (fresh.length > 0) announce(fresh[fresh.length - 1]);
+      const now = new Map<string, 'new' | 'assigned'>();
+      for (const a of list) {
+        if (a.assignedToId === meId && !a.responderId) now.set(a.id, 'assigned');
+        else if (a.status === 'open') now.set(a.id, 'new');
+      }
+      // Na primeira lista (abrir o app) não toca o que já estava aberto antes: só vibra.
+      for (const [id, why] of now) {
+        if (ringing.current.get(id) === why) continue;
+        const alert = list.find((a) => a.id === id)!;
+        if (!first.current || why === 'assigned') ring(alert, why === 'assigned').catch(() => {});
+      }
+      for (const id of ringing.current.keys()) if (!now.has(id)) silence(id).catch(() => {});
+      ringing.current = now;
+      first.current = false;
+      setContinuousVibration(now.size > 0 && AppState.currentState === 'active');
     });
+    // Ao voltar para o app com alerta tocando, a vibração contínua recomeça; ao sair, para.
+    const sub = AppState.addEventListener('change', (state) => setContinuousVibration(state === 'active' && ringing.current.size > 0));
+    return () => {
+      stop();
+      sub.remove();
+      setContinuousVibration(false);
+      for (const id of ringing.current.keys()) silence(id).catch(() => {});
+      ringing.current = new Map();
+    };
   }, [meId]);
 
   return alerts;
-}
-
-function announce(alert: Alert, assigned = false) {
-  if (Platform.OS === 'web') return;
-  Vibration.vibrate(VIBRATION);
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-  Notifications.scheduleNotificationAsync({
-    content: {
-      title: assigned
-        ? `${alert.assignedByName?.split(' ')[0] ?? 'A gerência'} pediu que você vá: ${alert.spotLabel}`
-        : `Alerta · ${alert.spotLabel}`,
-      body: `${KIND_STAFF_LABEL[alert.kind]}. Palavra ${displayCode(alert.shortCode)}.`,
-      data: { alertId: alert.id },
-    },
-    trigger: null,
-  }).catch(() => {});
-}
-
-export async function setupNotifications(): Promise<void> {
-  if (Platform.OS === 'web') return;
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  });
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('alerts', {
-      name: 'Alertas',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: VIBRATION,
-      enableVibrate: true,
-    });
-  }
-  await Notifications.requestPermissionsAsync().catch(() => undefined);
 }

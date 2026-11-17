@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router';
 import { DEMO_PASSWORD, DataError, type StaffMember } from '@nenm/shared';
 import { dataSource, showDemo } from '../../data/source';
 import { useDocumentTitle } from '../../hooks/hooks';
+import { useWebAlarm } from './useWebAlarm';
 import './panel.css';
 
 export interface PanelContext {
@@ -25,6 +26,11 @@ export function PanelLayout() {
 
   if (me === undefined) return <p className="panel-loading">Carregando…</p>;
   if (me === null) return <Login onSignedIn={setMe} />;
+  return <Panel me={me} signOut={signOut} />;
+}
+
+function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
+  const alarm = useWebAlarm(me.role === 'manager');
 
   return (
     <div className="panel">
@@ -38,10 +44,29 @@ export function PanelLayout() {
             {me.fullName} · {me.role === 'manager' ? 'Gerência' : 'Equipe'}
           </p>
         </div>
-        <button type="button" className="btn" onClick={signOut}>
-          Sair
-        </button>
+        <div className="panel-header-actions">
+          {me.role === 'manager' && (
+            <button
+              type="button"
+              className={`btn panel-alarm${alarm.enabled ? ' panel-alarm-on' : ''}${alarm.ringingCount > 0 && alarm.enabled ? ' panel-alarm-ringing' : ''}`}
+              aria-pressed={alarm.enabled}
+              onClick={alarm.toggle}
+              title="Bipe repetido e aviso do navegador enquanto houver alerta que ninguém viu"
+            >
+              {alarm.enabled ? (alarm.needsTap ? 'Alarme: toque na página para liberar o som' : 'Alarme ligado') : 'Ligar o alarme'}
+            </button>
+          )}
+          <button type="button" className="btn" onClick={signOut}>
+            Sair
+          </button>
+        </div>
       </header>
+      {alarm.enabled && alarm.notifications === 'denied' && (
+        <p className="panel-alarm-note muted">O navegador bloqueou os avisos deste site: o bipe toca só com a aba aberta.</p>
+      )}
+      <div className="visually-hidden" aria-live="assertive">
+        {alarm.announcement}
+      </div>
       <nav className="panel-nav" aria-label="Seções do painel">
         <NavLink to="/painel" end>
           Visão geral

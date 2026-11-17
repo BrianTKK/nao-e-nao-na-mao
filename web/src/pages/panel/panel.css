@@ -11,6 +11,12 @@
 }
 .panel-brand { font-weight: 700; margin: 0; }
 .panel-who { margin: 0; font-size: var(--fs-sm); }
+.panel-header-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); justify-content: flex-end; }
+.panel-alarm-on { border-color: var(--c-accent); }
+.panel-alarm-ringing { animation: panel-alarm-pulse 1.2s ease-in-out infinite; }
+@keyframes panel-alarm-pulse { 50% { background: var(--c-accent); color: var(--c-bg); } }
+@media (prefers-reduced-motion: reduce) { .panel-alarm-ringing { animation: none; background: var(--c-accent); color: var(--c-bg); } }
+.panel-alarm-note { margin: 0; padding: 0 var(--s-xl); font-size: var(--fs-sm); }
 
 .panel-nav {
   display: flex;

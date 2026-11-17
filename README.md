@@ -136,7 +136,7 @@ npm run typecheck    # TypeScript em todas as pastas
 
 ## Notificação com o celular no bolso
 
-- **No MVP**: o app recebe o pedido em tempo real enquanto está aberto, com vibração forte, notificação local e o cartão pulsando.
+- **No MVP (Expo Go)**: alerta novo toca como **alarme**. No Android, o canal tem prioridade máxima e o som toca no volume de alarme. O toque repete por 2 minutos até alguém ver, com vibração contínua com o app aberto e o cartão pulsando. O painel web também bipa e mostra o aviso do navegador. Detalhes, custos do que falta e o que foi testado em [`docs/NOTIFICACOES.md`](docs/NOTIFICACOES.md).
 - **Push remoto**: é o que acorda o celular com o app fechado. Ele **não funciona no Expo Go do Android desde a SDK 53** (documentação do `expo-notifications`) e exige um development build (`eas build --profile development`). Fica como o próximo passo do produto.
 
 ## Deploy

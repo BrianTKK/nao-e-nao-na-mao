@@ -93,7 +93,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Quem é desativado perde o tempo real na hora | ✅ | Sala `user:<id>`; o servidor derruba os sockets ao desativar. Testado |
 | Discrição (título da aba só com o nome do bar; o disfarce de cardápio saiu em 16/11 a pedido do Brian) | ✅ | Testado no navegador. Falta teste com usuárias |
 | Sem sinal: cartão para o balcão | 🟡 | Feito; falta o teste com o modo avião (F3) |
-| Celular no bolso | 🟡 | Vibração, notificação local e alerta visual escritos. O push remoto exige development build (Expo Go no Android sem push desde a SDK 53, conferido na documentação): vai como próximo passo no README e no PDF |
+| Celular no bolso | 🟡 | Alarme no Expo Go: canal de prioridade máxima com som de alarme no Android, repetição por 2 min até alguém ver, vibração contínua e "Testar o alarme" nos Ajustes. O painel web também bipa. Compila para Android; **não testado num celular**. O push remoto (app fechado) exige build próprio: ver [`NOTIFICACOES.md`](NOTIFICACOES.md) |
 | WebSocket com reconexão; a página da mulher consulta a cada 3 s se cair | ✅ | Socket.IO com reconexão; a queda é testada derrubando o WebSocket pelo servidor |
 | Conta de demonstração inofensiva | ✅ | As contas só agem no bar de demonstração. O cron diário volta o bar ao seed, e o teste confere que o outro bar fica intacto. A Central pergunta ao Brian se a senha pode ficar pública |
 
