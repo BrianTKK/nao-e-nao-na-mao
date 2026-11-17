@@ -168,11 +168,13 @@
 .help-code .help-word {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(2.5rem, 12vw, 3.5rem);
+  /* A 195 px (390 com zoom de 200%) a palavra encolhe para caber inteira; a 390 ou mais, nada muda. */
+  font-size: clamp(1.5rem, 12vw, 3.5rem);
   line-height: 1.1;
   letter-spacing: 0.01em;
   margin: var(--s-xs) 0 var(--s-md);
-  overflow-wrap: anywhere;
+  /* Só parte a palavra se ela não couber de jeito nenhum. */
+  overflow-wrap: break-word;
 }
 /* Picote com os dois entalhes da comanda, presos à própria linha (seguem o texto que quebra). */
 .help-code-perforation {

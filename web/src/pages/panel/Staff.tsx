@@ -54,7 +54,7 @@ export function Staff() {
               </p>
               <dl>
                 <dt>E-mail</dt>
-                <dd>{s.email ?? '—'}</dd>
+                <dd className="staff-email">{s.email ?? '—'}</dd>
                 <dt>Curso Não se Cale</dt>
                 <dd>{date(s.trainedAt)}</dd>
                 <dt>Roupa de hoje</dt>
