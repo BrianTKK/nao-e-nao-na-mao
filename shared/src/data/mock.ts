@@ -19,6 +19,7 @@ import {
   type Spot,
   type StaffMember,
   type VenueMenu,
+  type VenueWifi,
 } from '../domain';
 import { DEMO_PASSWORD, DEMO_SPOTS, DEMO_USERS, DEMO_VENUE, type DemoUser } from './demo';
 import { DataError, type DataSource, type Unsubscribe } from './ports';
@@ -51,6 +52,7 @@ interface State {
   sessionId: string | null;
   /** Cardápio do bar de demonstração (as fotos ficam como data: URL). */
   menu?: VenueMenu;
+  wifi?: VenueWifi | null;
 }
 
 const STORAGE_KEY = 'nenm.mock.v1';
@@ -303,6 +305,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
           venueName: DEMO_VENUE.name,
           helpPhrase: DEMO_VENUE.helpPhrase,
           menu: menuOf(),
+          wifi: state.wifi ?? null,
         };
       },
       createAlert,
@@ -544,6 +547,18 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         state.menu = { ...menu, files: [...menu.files, { id, url: `data:${contentType};base64,${base64}`, contentType, size }] };
         commit();
         return menuOf();
+      },
+      async getWifi() {
+        await wait();
+        managerOnly();
+        return state.wifi ?? null;
+      },
+      async setWifi(wifi) {
+        await wait();
+        managerOnly();
+        state.wifi = wifi && wifi.ssid.trim() ? { ssid: wifi.ssid.trim(), password: wifi.password || null } : null;
+        commit();
+        return state.wifi;
       },
       async removeMenuFile(id) {
         await wait();

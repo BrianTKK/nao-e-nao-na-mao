@@ -3,7 +3,7 @@ import { Router, type Request } from 'express';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
-import { ALERT_KINDS, ALERT_OUTCOMES, MENU_LIMITS, SPOT_KIND_LABEL, type SpotKind } from '@nenm/shared';
+import { ALERT_KINDS, ALERT_OUTCOMES, MENU_LIMITS, SPOT_KIND_LABEL, WIFI_LIMITS, type SpotKind } from '@nenm/shared';
 import type { Db } from './db';
 import type { Auth } from './auth';
 import { HttpError } from './errors';
@@ -309,6 +309,35 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }:
     ]);
     if (!rows[0]) throw new HttpError(404, 'not_found');
     res.json(await q.getMenu(db, req.actor!.venueId));
+  });
+
+  // ------------------------------------------------------------------ Wi-Fi do local
+  // A senha é do bar (aparece na página do QR dele); nunca vai para log nem notificação.
+
+  r.get('/manager/wifi', auth.requireManager, async (req, res) => {
+    res.json(await q.getWifi(db, req.actor!.venueId));
+  });
+
+  r.put('/manager/wifi', auth.requireManager, async (req, res) => {
+    const noControl = (v: string) => !/[\u0000-\u001f\u007f]/.test(v);
+    const body = z
+      .object({
+        wifi: z
+          .object({
+            ssid: z.string().trim().min(1).max(WIFI_LIMITS.maxSsid).refine(noControl),
+            password: z.union([z.string().min(1).max(WIFI_LIMITS.maxPassword).refine(noControl), z.literal(''), z.null()]),
+          })
+          .strict()
+          .nullable(),
+      })
+      .strict()
+      .parse(req.body);
+    await db.query('update venues set wifi_ssid = $1, wifi_password = $2 where id = $3', [
+      body.wifi?.ssid ?? null,
+      body.wifi?.password || null,
+      req.actor!.venueId,
+    ]);
+    res.json(await q.getWifi(db, req.actor!.venueId));
   });
 
   // Público: a página de ajuda mostra as fotos do cardápio. O id é aleatório e o

@@ -74,7 +74,7 @@ function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
         <NavLink to="/painel/alertas">Alertas</NavLink>
         <NavLink to="/painel/equipe">Equipe</NavLink>
         <NavLink to="/painel/qr-codes">QR codes</NavLink>
-        <NavLink to="/painel/cardapio">Cardápio</NavLink>
+        <NavLink to="/painel/cardapio">Cardápio e Wi-Fi</NavLink>
         <NavLink to="/painel/relatorio">Relatório do mês</NavLink>
       </nav>
       <main id="conteudo" className="panel-main" tabIndex={-1}>

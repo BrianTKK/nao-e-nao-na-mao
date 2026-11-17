@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { DataError, MENU_LIMITS, type Spot, type VenueMenu } from '@nenm/shared';
+import { DataError, MENU_LIMITS, WIFI_LIMITS, type Spot, type VenueMenu } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { toMenuImages } from './menuImages';
 
@@ -20,6 +20,9 @@ export function Menu() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ssid, setSsid] = useState('');
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [wifiSaved, setWifiSaved] = useState(false);
 
   useEffect(() => {
     dataSource.manager.getMenu().then((m) => {
@@ -27,7 +30,32 @@ export function Menu() {
       setUrl(m.url ?? '');
     });
     dataSource.manager.listSpots().then((s) => setSpots(s.filter((x) => x.active)));
+    dataSource.manager.getWifi().then((w) => {
+      setSsid(w?.ssid ?? '');
+      setWifiPassword(w?.password ?? '');
+      setWifiSaved(!!w);
+    });
   }, []);
+
+  const saveWifi = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const w = await dataSource.manager.setWifi(ssid.trim() ? { ssid: ssid.trim(), password: wifiPassword || null } : null);
+      setWifiSaved(!!w);
+      setStatus(w ? 'Wi-Fi salvo.' : 'Wi-Fi removido.');
+    } catch {
+      setError(`Não foi possível salvar o Wi-Fi. O nome da rede vai até ${WIFI_LIMITS.maxSsid} caracteres e a senha até ${WIFI_LIMITS.maxPassword}.`);
+    }
+  };
+
+  const removeWifi = async () => {
+    await dataSource.manager.setWifi(null);
+    setSsid('');
+    setWifiPassword('');
+    setWifiSaved(false);
+    setStatus('Wi-Fi removido.');
+  };
 
   const upload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -84,11 +112,11 @@ export function Menu() {
 
   return (
     <>
-      <h1>Cardápio</h1>
+      <h1>Cardápio e Wi-Fi</h1>
       <p className="muted panel-intro">
-        Opcional. Se o local tem cardápio, cadastre aqui: a página de ajuda ganha o botão "Ver cardápio", que troca a tela pelo cardápio do local
-        para quem estiver olhando por cima do ombro. Use o cardápio de verdade: quem conhece o bar percebe um cardápio diferente. Sem cardápio
-        cadastrado, a página fica sem esse botão.
+        Os dois são opcionais. Cada um que o local cadastrar vira um botão na página de ajuda ("Ver cardápio" e "Wi-Fi do local"), que troca a
+        tela para quem estiver olhando por cima do ombro. Use o cardápio e o Wi-Fi de verdade: quem conhece o bar percebe um diferente. Sem
+        nenhum dos dois, a página fica sem esses botões.
       </p>
       {!menu && <p className="muted">Carregando…</p>}
       {menu && (
@@ -137,6 +165,39 @@ export function Menu() {
             <button type="submit" className="btn btn-primary">
               Salvar link
             </button>
+          </form>
+
+          <form className="card panel-section" aria-labelledby="wifi-title" onSubmit={saveWifi} noValidate>
+            <h2 id="wifi-title">Wi-Fi do local</h2>
+            <p className="muted">
+              A página de ajuda mostra a rede e a senha, como quem pediu a senha do Wi-Fi. Só aparece para quem abriu um QR code deste bar. Use a
+              rede dos clientes, nunca a do caixa ou do escritório.
+            </p>
+            <div className="field">
+              <label htmlFor="wifi-ssid">Nome da rede</label>
+              <input id="wifi-ssid" value={ssid} maxLength={WIFI_LIMITS.maxSsid} autoComplete="off" onChange={(e) => setSsid(e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="wifi-password">Senha (em branco para rede aberta)</label>
+              <input
+                id="wifi-password"
+                value={wifiPassword}
+                maxLength={WIFI_LIMITS.maxPassword}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => setWifiPassword(e.target.value)}
+              />
+            </div>
+            <div className="menu-actions">
+              <button type="submit" className="btn btn-primary">
+                Salvar Wi-Fi
+              </button>
+              {wifiSaved && (
+                <button type="button" className="btn" onClick={removeWifi}>
+                  Remover Wi-Fi
+                </button>
+              )}
+            </div>
           </form>
 
           {preview && (

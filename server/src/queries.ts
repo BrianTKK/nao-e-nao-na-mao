@@ -1,4 +1,4 @@
-import type { Alert, PublicAlert, PublicSpot, Spot, StaffMember, Venue, VenueMenu } from '@nenm/shared';
+import type { Alert, PublicAlert, PublicSpot, Spot, StaffMember, Venue, VenueMenu, VenueWifi } from '@nenm/shared';
 import type { Queryable } from './db';
 
 /** Consultas de leitura. Toda consulta da equipe recebe o bar de quem está logado. */
@@ -141,15 +141,39 @@ export async function getPublicAlertByHash(db: Queryable, tokenHash: string): Pr
 }
 
 export async function getPublicSpot(db: Queryable, code: string): Promise<PublicSpot | null> {
-  const { rows } = await db.query<{ code: string; label: string; venue_id: string; venue_name: string; help_phrase: string }>(
-    `select s.code, s.label, v.id as venue_id, v.name as venue_name, v.help_phrase
+  const { rows } = await db.query<{
+    code: string;
+    label: string;
+    venue_id: string;
+    venue_name: string;
+    help_phrase: string;
+    wifi_ssid: string | null;
+    wifi_password: string | null;
+  }>(
+    `select s.code, s.label, v.id as venue_id, v.name as venue_name, v.help_phrase, v.wifi_ssid, v.wifi_password
      from spots s join venues v on v.id = s.venue_id
      where s.code = $1 and s.active`,
     [code.toUpperCase()],
   );
   const r = rows[0];
   if (!r) return null;
-  return { code: r.code, label: r.label, venueName: r.venue_name, helpPhrase: r.help_phrase, menu: await getMenu(db, r.venue_id) };
+  return {
+    code: r.code,
+    label: r.label,
+    venueName: r.venue_name,
+    helpPhrase: r.help_phrase,
+    menu: await getMenu(db, r.venue_id),
+    wifi: r.wifi_ssid ? { ssid: r.wifi_ssid, password: r.wifi_password } : null,
+  };
+}
+
+export async function getWifi(db: Queryable, venueId: string): Promise<VenueWifi | null> {
+  const { rows } = await db.query<{ wifi_ssid: string | null; wifi_password: string | null }>(
+    'select wifi_ssid, wifi_password from venues where id = $1',
+    [venueId],
+  );
+  const r = rows[0];
+  return r?.wifi_ssid ? { ssid: r.wifi_ssid, password: r.wifi_password } : null;
 }
 
 /** Cardápio do próprio local: o link e a lista das fotos, sem os bytes (que saem por /menu-files/:id). */

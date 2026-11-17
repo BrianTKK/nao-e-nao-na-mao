@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { useMotion } from '@/hooks/useMotion';
 import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
+import { WIFI_LIMITS } from '@nenm/shared';
 import { testAlarm } from '@/notifications/alarm';
 import { color, space, ui } from '@/theme/theme';
 
@@ -14,6 +15,29 @@ export default function Settings() {
   const [appearance, setAppearance] = useState(me?.appearance ?? '');
   const [saved, setSaved] = useState(false);
   const [alarm, setAlarm] = useState<'idle' | 'sent' | 'denied'>('idle');
+  const [ssid, setSsid] = useState('');
+  const [wifiPassword, setWifiPassword] = useState('');
+  const [wifiStatus, setWifiStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (me?.role !== 'manager') return;
+    dataSource.manager
+      .getWifi()
+      .then((w) => {
+        setSsid(w?.ssid ?? '');
+        setWifiPassword(w?.password ?? '');
+      })
+      .catch(() => {});
+  }, [me?.role]);
+
+  const saveWifi = async () => {
+    try {
+      const w = await dataSource.manager.setWifi(ssid.trim() ? { ssid: ssid.trim(), password: wifiPassword || null } : null);
+      setWifiStatus(w ? 'Wi-Fi salvo.' : 'Wi-Fi removido.');
+    } catch {
+      setWifiStatus('Não foi possível salvar o Wi-Fi.');
+    }
+  };
 
   const save = async () => {
     await dataSource.staff.setMyAppearance(appearance);
@@ -97,6 +121,51 @@ export default function Settings() {
           </Text>
           <Text style={ui.muted}>Fotografe o cardápio de papel ou cole o link do cardápio digital. Aparece no "Ver cardápio" da página de ajuda.</Text>
           <Button label="Cadastrar o cardápio" onPress={() => router.push('/menu')} />
+        </View>
+      )}
+
+      {me?.role === 'manager' && (
+        <View style={ui.card}>
+          <Text style={ui.h2} accessibilityRole="header">
+            Wi-Fi do local
+          </Text>
+          <Text style={ui.muted}>
+            Opcional. Aparece no botão "Wi-Fi do local" da página de ajuda, só para quem abriu um QR code deste bar. Use a rede dos clientes.
+          </Text>
+          <TextInput
+            style={ui.input}
+            value={ssid}
+            onChangeText={(v) => {
+              setSsid(v);
+              setWifiStatus(null);
+            }}
+            maxLength={WIFI_LIMITS.maxSsid}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="Nome da rede"
+            placeholderTextColor={color.textMuted}
+            accessibilityLabel="Nome da rede"
+          />
+          <TextInput
+            style={ui.input}
+            value={wifiPassword}
+            onChangeText={(v) => {
+              setWifiPassword(v);
+              setWifiStatus(null);
+            }}
+            maxLength={WIFI_LIMITS.maxPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="Senha (em branco para rede aberta)"
+            placeholderTextColor={color.textMuted}
+            accessibilityLabel="Senha do Wi-Fi, em branco para rede aberta"
+          />
+          <Button label="Salvar Wi-Fi" onPress={saveWifi} />
+          {wifiStatus && (
+            <Text style={ui.body} accessibilityLiveRegion="polite">
+              {wifiStatus}
+            </Text>
+          )}
         </View>
       )}
 

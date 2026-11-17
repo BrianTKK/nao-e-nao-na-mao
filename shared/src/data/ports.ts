@@ -15,6 +15,7 @@ import type {
   StaffMember,
   Venue,
   VenueMenu,
+  VenueWifi,
 } from '../domain';
 
 export type Unsubscribe = () => void;
@@ -98,6 +99,9 @@ export interface ManagerApi {
   /** Uma imagem já reduzida (JPEG, PNG ou WebP), em base64 sem o prefixo data:. */
   addMenuFile(input: { contentType: string; base64: string }): Promise<VenueMenu>;
   removeMenuFile(id: string): Promise<VenueMenu>;
+  /** Wi-Fi do local (opcional): null apaga. */
+  getWifi(): Promise<VenueWifi | null>;
+  setWifi(wifi: VenueWifi | null): Promise<VenueWifi | null>;
 }
 
 export interface NewStaffInput {

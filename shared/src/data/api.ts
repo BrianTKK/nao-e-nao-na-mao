@@ -4,7 +4,7 @@
  * A mesma no app (React Native) e na web.
  */
 import { io, type Socket } from 'socket.io-client';
-import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue, VenueMenu } from '../domain';
+import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue, VenueMenu, VenueWifi } from '../domain';
 import { DataError, type ConnectionState, type DataErrorCode, type DataSource, type NewStaffInput, type StaffPatch, type Unsubscribe } from './ports';
 
 /** Onde guardar o token de login (localStorage na web, AsyncStorage no app). */
@@ -311,6 +311,8 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       setMenuUrl: async (url: string | null) => withBase(await request<VenueMenu>('/manager/menu/url', { method: 'PUT', auth: true, body: { url } })),
       addMenuFile: async (input: { contentType: string; base64: string }) =>
         withBase(await request<VenueMenu>('/manager/menu/files', { auth: true, body: input })),
+      getWifi: () => request<VenueWifi | null>('/manager/wifi', { auth: true }),
+      setWifi: (wifi: VenueWifi | null) => request<VenueWifi | null>('/manager/wifi', { method: 'PUT', auth: true, body: { wifi } }),
       removeMenuFile: async (id: string) => withBase(await request<VenueMenu>(`/manager/menu/files/${id}`, { method: 'DELETE', auth: true })),
     },
   };

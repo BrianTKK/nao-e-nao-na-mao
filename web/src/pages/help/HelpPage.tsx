@@ -17,7 +17,8 @@ import { session, useDocumentTitle, useOnline } from '../../hooks/hooks';
 import { StatusSteps } from './StatusSteps';
 import { CounterCard } from './CounterCard';
 import { MenuView } from './MenuView';
-import { coverFor } from './cover';
+import { WifiView } from './WifiView';
+import { coversFor, firstInPage, type InPageCover } from './cover';
 import './help.css';
 
 type Phase =
@@ -33,8 +34,9 @@ const tokenKey = (code: string) => `nenm.alert.${code.toUpperCase()}`;
 /**
  * Página que o QR code do banheiro ou da mesa abre. Sem login, sem instalar.
  * - O título da aba é só o nome do bar (neutro): não diz "ajuda".
- * - "Ver cardápio" (só se o local cadastrou o cardápio dele) mostra o cardápio
- *   do próprio local, para quem estiver olhando; ver cover.ts.
+ * - "Ver cardápio" e "Wi-Fi do local" (só se o local cadastrou) trocam a tela
+ *   pelo cardápio ou pelo Wi-Fi do próprio local, para quem estiver olhando;
+ *   ver cover.ts.
  * - Sem conexão, a página vira um cartão para mostrar no balcão.
  */
 export function HelpPage() {
@@ -43,7 +45,8 @@ export function HelpPage() {
   const [spot, setSpot] = useState<PublicSpot | null>(null);
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
   const [alert, setAlert] = useState<PublicAlert | null>(null);
-  const [hidden, setHidden] = useState(false);
+  const [shown, setShown] = useState<InPageCover['kind'] | null>(null);
+  const hidden = shown !== null;
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useDocumentTitle(spot ? spot.venueName : 'Carregando…');
@@ -84,18 +87,18 @@ export function HelpPage() {
     if (!hidden) headingRef.current?.focus();
   }, [phase.name, hidden]);
 
-  const cover = spot ? coverFor(spot) : null;
-  const canHide = cover?.kind === 'menu-images';
+  const covers = spot ? coversFor(spot) : [];
+  const escCover = firstInPage(covers)?.kind ?? null;
 
-  // Esc mostra o cardápio na hora (só quando ele está cadastrado em fotos).
+  // Esc troca a tela na hora pelo primeiro disfarce que fica dentro da página.
   useEffect(() => {
-    if (!canHide) return;
+    if (!escCover) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setHidden(true);
+      if (e.key === 'Escape') setShown(escCover);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [canHide]);
+  }, [escCover]);
 
   const send = useCallback(
     async (kind: AlertKind) => {
@@ -129,24 +132,50 @@ export function HelpPage() {
     setPhase({ name: 'choose' });
   }, [code]);
 
-  if (hidden && spot && cover?.kind === 'menu-images') {
-    return <MenuView venueName={spot.venueName} files={cover.files} url={cover.url} onBack={() => setHidden(false)} />;
+  const showing = hidden ? covers.find((c) => c.kind === shown) : undefined;
+  if (spot && showing?.kind === 'menu-images') {
+    return <MenuView venueName={spot.venueName} files={showing.files} url={showing.url} onBack={() => setShown(null)} />;
+  }
+  if (spot && showing?.kind === 'wifi') {
+    return <WifiView venueName={spot.venueName} ssid={showing.ssid} password={showing.password} onBack={() => setShown(null)} />;
   }
 
   return (
     <div className="help">
       <header className="help-header">
         <span className="help-venue">{spot?.venueName ?? ' '}</span>
-        {cover?.kind === 'menu-images' && (
-          <button type="button" className="btn help-hide" onClick={() => setHidden(true)} aria-label="Ver cardápio: mostra o cardápio do local no lugar desta tela">
-            Ver cardápio
-          </button>
-        )}
-        {cover?.kind === 'menu-link' && (
-          // Abre em outra aba: o cardápio digital quase nunca aceita ser mostrado dentro desta página.
-          <a className="btn help-hide" href={cover.url} target="_blank" rel="noopener noreferrer" aria-label="Ver cardápio: abre o cardápio digital do local em outra aba; esta página continua aberta">
-            Ver cardápio
-          </a>
+        {covers.length > 0 && (
+          <span className="help-covers">
+            {covers.map((c) =>
+              c.kind === 'menu-link' ? (
+                // Abre em outra aba: o cardápio digital quase nunca aceita ser mostrado dentro desta página.
+                <a
+                  key={c.kind}
+                  className="btn help-hide"
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Ver cardápio: abre o cardápio digital do local em outra aba; esta página continua aberta"
+                >
+                  Ver cardápio
+                </a>
+              ) : (
+                <button
+                  key={c.kind}
+                  type="button"
+                  className="btn help-hide"
+                  onClick={() => setShown(c.kind)}
+                  aria-label={
+                    c.kind === 'wifi'
+                      ? 'Wi-Fi do local: mostra a rede e a senha no lugar desta tela'
+                      : 'Ver cardápio: mostra o cardápio do local no lugar desta tela'
+                  }
+                >
+                  {c.kind === 'wifi' ? 'Wi-Fi do local' : 'Ver cardápio'}
+                </button>
+              ),
+            )}
+          </span>
         )}
       </header>
 

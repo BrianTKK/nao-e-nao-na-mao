@@ -109,6 +109,14 @@ export const MENU_LIMITS = {
   contentTypes: ['image/jpeg', 'image/png', 'image/webp'] as const,
 };
 
+/** Wi-Fi do local, cadastrado pela gerência (opcional). Senha nula = rede aberta. */
+export interface VenueWifi {
+  ssid: string;
+  password: string | null;
+}
+
+export const WIFI_LIMITS = { maxSsid: 32, maxPassword: 63 };
+
 export const hasMenu = (m: VenueMenu | null | undefined): boolean => !!m && (m.files.length > 0 || !!m.url);
 
 /** O que a página do QR code mostra de um local, sem login. */
@@ -118,6 +126,7 @@ export interface PublicSpot {
   venueName: string;
   helpPhrase: string;
   menu: VenueMenu;
+  wifi: VenueWifi | null;
 }
 
 /** O que a mulher vê do próprio pedido, pelo token. */
