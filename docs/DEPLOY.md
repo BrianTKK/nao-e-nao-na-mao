@@ -117,8 +117,26 @@ O `tar` só acrescenta e substitui. Antes desta correção, um arquivo apagado n
 | `CORS_ORIGINS` | Normalmente vazio |
 | `EXPO_PORT` | Porta local do Metro (serviço `expo`); o Nginx de `expo-naoenao` aponta para ela |
 | `SHOW_DEMO` | `1` mostra o botão "preencher com a conta de teste" no painel e no app (a senha aparece na tela); `0` esconde. Mudar exige rebuild de `app` e `expo` |
+| `FCM_SERVICE_ACCOUNT_FILE` | Push remoto do alarme (app próprio no Android). Caminho, **dentro do contêiner**, do JSON da conta de serviço do Firebase: `/run/secrets/naoenao/fcm-service-account.json`. Sem ela, o push fica desligado e o log diz "Push remoto desligado" |
+| `FCM_SECRETS_DIR` | Pasta da VPS montada só leitura em `/run/secrets/naoenao` (padrão `/etc/naoenao`) |
 
 O `DATABASE_URL` e o `TRUST_PROXY=1` já estão no `docker-compose.yml`.
+
+### Chave do Firebase (push remoto)
+
+A chave da conta de serviço é uma credencial: **nunca no git, no cofre nem na pasta do deploy** (o `deploy.sh` envia a pasta inteira do repositório). No PC, ela fica em `D:\segredos\mariana\fcm-service-account.json`. Para ligar o push na VPS (passo da Central):
+
+```bash
+# do PC (Git Bash), uma vez:
+ssh root@<ip-da-vps> 'install -d -m 750 -o root -g 1000 /etc/naoenao'
+scp /d/segredos/mariana/fcm-service-account.json root@<ip-da-vps>:/etc/naoenao/
+ssh root@<ip-da-vps> 'chown root:1000 /etc/naoenao/fcm-service-account.json && chmod 640 /etc/naoenao/fcm-service-account.json'
+# no .env da VPS:
+#   FCM_SERVICE_ACCOUNT_FILE=/run/secrets/naoenao/fcm-service-account.json
+DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
+```
+
+O grupo `1000` é o usuário `node` do contêiner, que precisa ler o arquivo. No log do app deve aparecer `Push remoto ligado (FCM, projeto ...)`. O servidor nunca escreve a chave no log: se o arquivo estiver errado, ele diz só o motivo ("não é um JSON válido", nomes dos campos que faltam).
 
 ## Bar de demonstração
 

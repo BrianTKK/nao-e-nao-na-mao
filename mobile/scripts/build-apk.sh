@@ -39,11 +39,12 @@ else
 fi
 
 # O prebuild reescreve os scripts do package.json; o do repositório volta igual depois.
-TMP="$(mktemp -d)"
-trap 'cp "$TMP/package.json" package.json; rm -rf "$TMP"' EXIT
-cp package.json "$TMP/package.json"
+# (Não usar TMP como nome: no Windows ele é a pasta temporária do Java e do Kotlin.)
+SAVED="$(mktemp -d)"
+trap 'cp "$SAVED/package.json" package.json; rm -rf "$SAVED"' EXIT
+cp package.json "$SAVED/package.json"
 npx expo prebuild --platform android --no-install --clean
-cp "$TMP/package.json" package.json
+cp "$SAVED/package.json" package.json
 
 (cd android && ./gradlew assembleRelease --no-daemon)
 

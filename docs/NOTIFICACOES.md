@@ -2,7 +2,10 @@
 
 Pedido do Brian (16/11/2026): "Habilitar notificações no app android e IOS, de preferencia aquelas notificações semelhantes a alarme".
 
-O app roda no **Expo Go (SDK 58)**. Por isso ele só faz o que o Expo Go deixa fazer. O resto exige um build próprio do app.
+O app roda de dois jeitos:
+
+- no **Expo Go (SDK 58)**, que só faz o que o Expo Go deixa fazer: o alarme chega com o app aberto ou em segundo plano recente;
+- desde 17/11/2026, no **app próprio do Android (APK)**, com **push remoto pelo Firebase (FCM)**: o alarme chega com o app minimizado ou fechado. Ver a seção "App próprio (APK) com push remoto".
 
 ## O que já funciona no Expo Go (implementado)
 
@@ -22,12 +25,96 @@ A palavra-código **não vai na notificação**, porque ela aparece na tela bloq
 
 **Limite que continua**: o alerta chega por WebSocket. Com o app fechado (ou o iPhone suspenso em segundo plano), nada chega, porque acordar o celular fechado precisa de **push remoto**, e o Expo Go do Android não tem push desde a SDK 53 (o próprio `expo-notifications` lança erro, em `warnOfExpoGoPushUsage.ts`). As repetições já agendadas tocam mesmo com o app fechado, mas o primeiro aviso só chega com o app aberto ou em segundo plano recente.
 
-## O que exige build próprio (não feito, nenhuma conta criada)
+## App próprio (APK) com push remoto
+
+Pedido da Central (17/11/2026), depois do teste do Brian em 16/11 no Android pelo Expo Go: com o app aberto, o celular vibrava; minimizado, nenhum aviso chegava.
+
+### Como funciona
+
+- **Envio direto ao FCM HTTP v1**, da VPS, sem o serviço de push da Expo e sem conta Expo (`server/src/push.ts`). O servidor assina um JWT com a conta de serviço do Firebase, troca por um token de acesso OAuth (vale 1 h e é reaproveitado) e chama `projects/<projeto>/messages:send`.
+- **Quem recebe**:
+  - alerta novo: toda a equipe ativa do bar;
+  - alerta designado pela gerência: só a pessoa escolhida, até ela tocar em "Estou indo".
+- **Repetição no servidor**: 20, 40, 60, 90 e 120 s depois do primeiro aviso. Antes de cada repetição o servidor confere no banco, e o "Vi o alerta" (ou o "Estou indo", no designado) cancela.
+- **Token inválido** (`UNREGISTERED` ou 404 do FCM) é apagado do banco. Erro passageiro (500, rede) não apaga.
+- **Tokens**: tabela `push_tokens` (migração 007). O app registra o token ao entrar e a cada abertura com login (`PUT /api/me/push-token`) e remove ao sair (`DELETE /api/me/push-token`). O token é do aparelho: se outra pessoa entrar no mesmo celular, ele passa para ela. No máximo 5 aparelhos por pessoa. Quem é desativada pela gerência deixa de receber na hora.
+- **A mensagem é só de dados** (sem o bloco `notification`), com `android.priority: high` e `ttl: 120s`. Os campos são os que o `expo-notifications` 58.1.9 lê (`NotificationData.kt` e `FirebaseMessagingDelegate.kt`, conferidos no código):
+  - `title` e `message`;
+  - `body`, um JSON com o `alertId`, para abrir o alerta ao tocar;
+  - `channelId`: `alerts-alarm-v2`;
+  - `tag`: o id do alerta. Vira o identificador da notificação, e a repetição substitui a anterior em vez de empilhar;
+  - `sound`, `vibrate` e `color`.
+
+  Com o bloco `notification`, o Android mostraria o aviso sozinho com o app em segundo plano, e o JavaScript não teria como evitar o aviso em dobro com o app aberto.
+- **Sem aviso em dobro**:
+  - com o app aberto, o `expo-notifications` não mostra a mensagem só de dados, e o aviso vem do próprio app, pelo WebSocket, como antes;
+  - o primeiro aviso local usa o id do alerta como identificador, o mesmo `tag` do push, então um substitui o outro;
+  - com o push ativo, o app não agenda as repetições locais, porque o servidor já repete.
+- **Ao abrir o app**, ele tira da bandeja os avisos de alertas que alguém já viu. O push não apaga sozinho o aviso dos outros celulares.
+- **A palavra-código nunca vai na mensagem.** Há um teste que confere isso.
+- **Som próprio**: `mobile/assets/sounds/mariana_alarme.wav`, de 2,9 s, com dois tons alternados.
+  - Foi sintetizado no projeto, sem amostra de terceiros, por `mobile/scripts/make-alarm-sound.py`.
+  - Entra no APK pelo plugin `expo-notifications` (`sounds`).
+  - O canal do app próprio é novo (`alerts-alarm-v2`), porque o Android não deixa mudar o som de um canal que já existe. **Se o som mudar, o canal precisa de outro id** (`shared/src/alarm.ts`).
+  - O Expo Go continua no canal `alerts-alarm`, com o som padrão.
+- **iOS**: fora desta fatia. O push no iPhone exige APNs, com a conta Apple Developer paga.
+
+### Variáveis e onde ficam as chaves
+
+| O quê | Onde | Observação |
+| --- | --- | --- |
+| Conta de serviço do Firebase (chave privada) | PC: `D:\segredos\mariana\fcm-service-account.json`. VPS: `/etc/naoenao/fcm-service-account.json`, montada só leitura no contêiner | `FCM_SERVICE_ACCOUNT_FILE=/run/secrets/naoenao/fcm-service-account.json` no `.env` da VPS (ver `docs/DEPLOY.md`). Sem ela, o push fica desligado, com um aviso no log |
+| `google-services.json` (configuração do app no Firebase, pacote `me.obrian.mariana`) | PC: `D:\segredos\mariana\google-services.json` | O `build-apk.sh` copia para `mobile/` (fora do git) antes do build. Sem ele, o APK sai sem push |
+| Chave de assinatura do APK | PC: `D:\segredos\mariana\mariana-release.keystore`, com as senhas em `mariana-release.properties` ao lado | Gerada no PC em 17/11/2026 (RSA 4096, alias `mariana`). **Sem ela, não dá para atualizar o app já instalado por cima**: o Android exige a mesma assinatura. Vale ter uma cópia fora do PC, num lugar seguro e nunca no git |
+
+### Gerar o APK no PC
+
+```bash
+bash mobile/scripts/build-apk.sh
+```
+
+- As ferramentas ficam no D:, porque o C: tem pouco espaço: JDK 17 (Temurin, da Adoptium) em `D:\Android\jdk-17`, Android SDK em `D:\Android\sdk` e o cache do Gradle em `D:\Android\gradle`.
+- A pasta `mobile/android/` é gerada pelo `expo prebuild` e fica fora do git. A assinatura release entra pelo plugin `mobile/plugins/withReleaseSigning.js`, que lê o `.properties` apontado por `MARIANA_KEYSTORE_PROPERTIES`.
+- O APK sai em `D:\Android\apk\mariana-<versão>-<commit>.apk`.
+- Para instalar, mandar o APK para o celular e abrir, permitindo "instalar apps desconhecidos". Depois:
+  - entrar com a conta;
+  - aceitar as notificações;
+  - nos ajustes do canal "Alertas (alarme)", permitir passar pelo "Não perturbe".
+
+### Testado e não testado (17/11/2026)
+
+- **Testado no PC**:
+  - 11 testes novos do servidor com o FCM simulado (`server/test/push.test.ts`):
+    - registro e remoção do token, e o token que passa a outra pessoa;
+    - a equipe do bar recebe e o outro bar não;
+    - canal, `tag` e `alertId` na mensagem, e a palavra-código fora dela;
+    - a repetição, o "vi" que cancela e a parada depois da última repetição;
+    - o designado, que recebe até o "Estou indo";
+    - o token `UNREGISTERED` apagado e o erro passageiro mantido;
+    - a pessoa desativada, que deixa de receber;
+    - o OAuth (JWT RS256 conferido com a chave pública) e o token de acesso reaproveitado;
+    - sem a conta de serviço, o push desliga sem a chave no log;
+  - todos os testes do repositório e o typecheck dos quatro pacotes passam;
+  - **com o Google de verdade**, usando a conta de serviço de `D:\segredos\mariana`:
+    - o OAuth devolveu o token de acesso (200);
+    - um envio `validate_only` a um token falso foi aceito na autenticação e recusado só pelo token (400 `INVALID_ARGUMENT`). A API do FCM está ligada e a conta tem permissão;
+  - o `google-services.json` é do mesmo projeto (`mariana-c86f0`) e do pacote `me.obrian.mariana`;
+  - o bundle Android compila (`expo export`);
+  - o `expo prebuild` gera o `android/` com o som em `res/raw`, o `google-services.json` e a assinatura release;
+  - o Gradle 9.4.1 baixou e configurou o projeto.
+- **Parou na licença**: o build pediu o NDK 27.1.12297006 e parou em "License for package NDK ... not accepted". Aceitar a licença do Android SDK (`sdkmanager --licenses`) é um ok do Brian. O APK ainda não foi gerado.
+- **Não testado**:
+  - o APK e tudo no celular: o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
+  - o push a partir da VPS, que ainda não tem a chave;
+  - celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria): neles, o push pode atrasar se o app não estiver liberado da otimização de bateria.
+
+## O que exige build próprio (fora do APK atual, nenhuma conta criada)
 
 | O quê | Para quê | Custo e o que pede |
 | --- | --- | --- |
-| **Push remoto** (FCM no Android, APNs no iOS, pelo serviço de push da Expo) | Acordar o celular com o app fechado | Development build ou build de loja pelo EAS. O serviço de push da Expo é grátis; o EAS Build tem plano grátis com cota mensal de builds (conferir os números atuais em expo.dev/pricing). No servidor: guardar o token de push de cada pessoa e enviar a cada alerta. Estimativa: meio dia de código, mais o build |
-| Som de alarme próprio (arquivo de som) | Um toque reconhecível, diferente das outras notificações | Build próprio (o som entra pelo plugin `expo-notifications`, `sounds`). Sem custo extra além do build |
+| ~~Push remoto no Android~~ | Feito em 17/11/2026 (FCM direto, APK gerado no PC) | Ver "App próprio (APK) com push remoto" |
+| ~~Som de alarme próprio~~ | Feito em 17/11/2026 | idem |
+| Push remoto no iOS (APNs) | Acordar o iPhone com o app fechado | Conta Apple Developer (US$ 99 por ano) e build pelo Xcode ou EAS |
 | Tela cheia por cima da tela bloqueada (`USE_FULL_SCREEN_INTENT`) | Comportamento de despertador de verdade no Android | Build próprio. Desde o Android 14, a Play Store só libera essa permissão para apps de alarme e chamada; fora da loja (APK direto), funciona |
 | **Critical Alerts** no iOS | Tocar com o iPhone no silencioso e no "Não perturbe" | Conta Apple Developer (US$ 99 por ano) e um pedido de autorização à Apple, que só aprova casos de saúde, segurança pública e parecidos. Não há garantia de aprovação |
 | Time Sensitive de verdade no iOS | Furar o "Foco" do iPhone | Conta Apple Developer (US$ 99 por ano) e build próprio, com o direito `time-sensitive` no app (sem pedido especial à Apple) |
