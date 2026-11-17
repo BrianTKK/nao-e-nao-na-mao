@@ -1,5 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { displayCode, pickCodeWord } from '@nenm/shared';
+import { EmergencyLinks } from './EmergencyLinks';
 
 const localCode = () => displayCode(pickCodeWord([]));
 
@@ -12,6 +13,8 @@ const REASON_TEXT = {
 /**
  * Plano B quando o pedido não sai (sem sinal, limite de pedidos ou erro):
  * um cartão grande para mostrar no balcão, com o código combinado do bar.
+ * O cartão é "papel" (claro, com a Folha), para ser lido de longe por quem
+ * está do outro lado do balcão.
  */
 export function CounterCard({
   headingRef,
@@ -35,25 +38,19 @@ export function CounterCard({
       </h1>
       <div className="counter-card">
         <p className="counter-big">PEDIDO DE AJUDA</p>
-        {spotLabel && <p>Local: {spotLabel}</p>}
-        <p>
-          Palavra-código: <strong>{code}</strong>
+        {spotLabel && <p className="counter-line">Local: {spotLabel}</p>}
+        <hr className="perforation" />
+        <p className="counter-line">
+          Palavra-código: <strong className="counter-word">{code}</strong>
         </p>
-        {helpPhrase && <p className="muted">Ou use o código combinado do bar: {helpPhrase}.</p>}
+        {helpPhrase && <p className="counter-muted">Ou use o código combinado do bar: {helpPhrase}.</p>}
       </div>
       {onRetry && (
-        <button type="button" className="btn" onClick={onRetry}>
+        <button type="button" className="btn btn-block help-retry" onClick={onRetry}>
           Tentar enviar de novo
         </button>
       )}
-      <nav className="help-emergency" aria-label="Telefones de emergência">
-        <a className="btn" href="tel:190">
-          Ligar 190 · Polícia
-        </a>
-        <a className="btn" href="tel:180">
-          Ligar 180 · Central da Mulher
-        </a>
-      </nav>
+      <EmergencyLinks prompt={false} />
     </section>
   );
 }

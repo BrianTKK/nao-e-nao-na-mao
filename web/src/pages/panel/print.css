@@ -4,23 +4,32 @@
 .print-toolbar { margin-bottom: var(--s-lg); display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-sm); }
 .print-toolbar h1, .print-toolbar p { width: 100%; }
 
-/* Cartazes */
+/*
+ * Cartazes: Papel #EEEBE1 com o logo positivo (Folha #2E5E48), como a placa do
+ * quadro de identidade. O QR é escuro sobre claro (preto sobre branco, 21:1);
+ * a legenda usa #4A5A50 (6,1:1 sobre o Papel). Cores fixas de propósito: o
+ * cartaz é papel impresso e não segue o tema escuro da tela.
+ */
 .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-md); }
 .poster {
-  background: #fff;
-  color: #000;
-  border: 3px solid #000;
+  background: var(--c-paper, #eeebe1);
+  color: #0e1512;
+  border: 2px solid var(--c-leaf, #2e5e48);
   border-radius: var(--r-md);
   padding: var(--s-lg);
   display: grid;
   justify-items: center;
   text-align: center;
   gap: var(--s-xs);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
-.poster-title { font-size: 2rem; font-weight: 700; margin: 0; }
-.poster-sub { font-size: 1.1rem; margin: 0; max-width: 28ch; }
-.poster-spot { font-size: 1.4rem; font-weight: 700; margin: var(--s-xs) 0 0; }
-.poster-foot { font-size: 0.85rem; margin: 0; }
+.poster-logo { margin-bottom: var(--s-xs); }
+.poster-title { font-family: var(--font-display); font-size: 2.25rem; line-height: 1.1; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.poster-sub { font-size: 1.1rem; margin: 0; max-width: 28ch; color: var(--c-paperMuted, #4a5a50); }
+.poster-spot { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; margin: var(--s-xs) 0 0; color: #0e1512; }
+.poster-picote { width: 100%; border: 0; border-top: 2px dashed #9aa79d; margin: var(--s-xs) 0 0; }
+.poster-foot { font-size: 0.9rem; margin: 0; color: var(--c-paperMuted, #4a5a50); }
 
 /* Relatório */
 .report-header { margin-bottom: var(--s-lg); }
@@ -40,7 +49,12 @@
   .panel-main { padding: 0 !important; max-width: none !important; }
   .print-page { padding: 0; max-width: none; }
   .poster-grid { grid-template-columns: 1fr; gap: 0; }
-  .poster { break-inside: avoid; height: 128mm; align-content: center; margin-bottom: 8mm; }
+  /* Dois por folha: a área útil da A4 rende ~126 mm por cartaz com a folga de 8 mm (testado: 127 mm já joga o terceiro para a página seguinte). */
+  .poster { break-inside: avoid; height: 124mm; padding: var(--s-md) var(--s-lg); align-content: center; margin-bottom: 8mm; }
+  .poster { gap: var(--s-xxs); }
+  .poster-title { font-size: 2rem; }
+  /* Sem a margem do último, 3 folhas de 2 cartazes não ganham uma quarta, em branco. */
+  .poster:last-child { margin-bottom: 0; }
   .report, .report * { color: #000 !important; }
   .report-table th, .report-table td { border-bottom: 1px solid #999; }
   .report-break { break-before: page; }

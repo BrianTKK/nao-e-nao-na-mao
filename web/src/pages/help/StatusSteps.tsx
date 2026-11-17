@@ -1,4 +1,5 @@
 import type { PublicAlert } from '@nenm/shared';
+import { Icon } from '../../components/Icon';
 
 const STEPS = [
   { key: 'sent', label: 'Pedido enviado' },
@@ -18,9 +19,10 @@ const time = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null;
 
 /**
- * Linha do tempo do pedido. Avança devagar e sem piscar (motion discreto de
- * propósito: a tela não pode chamar a atenção de quem estiver por perto).
- * Cada etapa tem texto e marcador, não só cor.
+ * Linha do tempo do pedido, vertical. Cada etapa tem forma e texto, não só cor:
+ * feito = check, atual = ponto cheio sálvia (o "carimbo"), futuro = círculo
+ * vazio. O único movimento da página é o carimbo do passo atual ao avançar
+ * (a tela não pode chamar a atenção de quem estiver por perto).
  */
 export function StatusSteps({ alert }: { alert: PublicAlert }) {
   if (alert.status === 'cancelled') return null;
@@ -30,16 +32,19 @@ export function StatusSteps({ alert }: { alert: PublicAlert }) {
     <ol className="steps" aria-label="Andamento do pedido">
       {STEPS.map((step, i) => {
         const state = i < current ? 'done' : i === current ? 'current' : 'todo';
+        const at = times[i] && i <= current ? time(times[i]) : null;
         return (
           <li key={step.key} className={`step step-${state}`} aria-current={state === 'current' ? 'step' : undefined}>
-            <span className="step-dot" aria-hidden="true">
-              {state === 'done' ? '✓' : ''}
+            <span className="step-mark" aria-hidden="true">
+              {state === 'done' && <Icon name="check" size={18} />}
+              {state === 'current' && <span className="step-stamp" />}
             </span>
             <span className="step-label">
               {step.label}
               {state === 'done' && <span className="visually-hidden"> (concluído)</span>}
+              {state === 'todo' && <span className="visually-hidden"> (ainda não)</span>}
             </span>
-            {times[i] && i <= current && <span className="step-time">{time(times[i])}</span>}
+            {at && <span className="step-time tabular">{at}</span>}
           </li>
         );
       })}

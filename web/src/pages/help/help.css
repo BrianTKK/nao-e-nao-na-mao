@@ -1,137 +1,346 @@
+/*
+ * Página de ajuda (/q/:code), direção "Comanda" (17/11/2026).
+ * Calma e parada: nenhuma cor viva nos pedidos (sálvia só no ícone), nada de
+ * latão, nenhum movimento além do carimbo do passo atual. Texto mínimo 16 px,
+ * 18 px no corpo. Tudo em rem, para acompanhar o zoom de texto.
+ */
+
 .help {
   max-width: 560px;
   margin: 0 auto;
-  padding: 0 var(--s-md) var(--s-xl);
+  padding: 0 var(--s-md) var(--s-xxl);
+  font-size: var(--fs-md);
+  line-height: 1.5;
 }
+
+/* Sem movimento de toque nem transições na página de ajuda e nos disfarces. */
+:is(.help, .menu, .wifi) .btn { transition: none; }
+:is(.help, .menu, .wifi) .btn:active { transform: none; }
+
+/* ----------------------------------------------------------------- Topo */
 
 .help-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-sm);
-  padding: var(--s-sm) 0;
+  gap: var(--s-xs) var(--s-sm);
+  padding: var(--s-md) 0 var(--s-xs);
 }
-.help-venue { color: var(--c-textMuted); font-size: var(--fs-sm); }
+.help-venue {
+  color: var(--c-textMuted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
 .help-covers { display: flex; flex-wrap: wrap; gap: var(--s-xs); justify-content: flex-end; }
-.help-hide { padding: var(--s-xs) var(--s-md); font-weight: 500; text-decoration: none; }
+.help-hide {
+  padding: var(--s-xxs) var(--s-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--c-textMuted);
+  border-color: var(--c-border);
+}
+.help-hide:hover { color: var(--c-text); }
 
-.help-main h1 { margin-top: var(--s-md); }
-.help-main h1:focus { outline: none; }
-.help-main h1:focus-visible { outline: 3px solid var(--c-focus); }
+/* --------------------------------------------------------------- Título */
 
-.help-spot { color: var(--c-text); }
+.help-main h1 {
+  font-size: calc(var(--fs-xl) + 0.25rem); /* 32 px */
+  margin: var(--s-lg) 0 var(--s-md);
+  overflow-wrap: break-word;
+}
 
+.help-lede { color: var(--c-textMuted); margin: 0 0 var(--s-lg); }
+.help-spot { color: var(--c-text); font-weight: 600; }
+
+/* --------------------------------------------------------------- Pedidos */
+
+/* As três opções com o mesmo peso: contorno, superfície, ícone sálvia. */
 .help-options {
   display: grid;
   gap: var(--s-sm);
-  margin: var(--s-lg) 0;
+  margin: 0 0 var(--s-xl);
 }
 .help-option {
-  min-height: 64px;
-  font-size: var(--fs-md);
+  width: 100%;
+  min-height: 72px;
   justify-content: flex-start;
+  gap: var(--s-md);
+  padding: var(--s-sm) 0 var(--s-sm) var(--s-md);
+  background: var(--c-surface);
+  border-color: var(--c-borderStrong);
+  font-size: var(--fs-md);
+  font-weight: 500;
   text-align: left;
 }
+.help-option:hover { background: var(--c-surfaceRaised); }
+.help-option-icon { color: var(--c-accent); }
+.help-option-label { flex: 1; min-width: 0; overflow-wrap: break-word; }
+/* Picote vertical antes da seta, como o canhoto da comanda. */
+.help-option-chevron {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s-md);
+  border-left: 1.5px dashed var(--c-border);
+  color: var(--c-textMuted);
+}
+/* Enquanto envia: as outras ficam apagadas, a escolhida continua legível. */
+.help-option[aria-busy='true'] { opacity: 1; }
+
+/* ------------------------------------------------------------ 190 e 180 */
 
 .help-emergency {
-  display: grid;
-  gap: var(--s-xs);
   margin-top: var(--s-xl);
   padding-top: var(--s-lg);
   border-top: 1px solid var(--c-border);
 }
-.help-emergency p { margin: 0; }
+.help-emergency-prompt { color: var(--c-textMuted); font-size: var(--fs-sm); margin: 0 0 var(--s-xs); }
+.help-emergency-grid {
+  display: grid;
+  /* Lado a lado; no zoom de texto grande (9rem cresce junto), empilham. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--s-xs);
+}
+.help-call {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: var(--s-xs) var(--s-sm);
+  border: 1.5px solid var(--c-borderStrong);
+  border-radius: var(--r-sm);
+  color: var(--c-text);
+  line-height: 1.25;
+  text-decoration: none;
+}
+.help-call:hover { background: var(--c-surfaceRaised); }
+.help-call-number {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.help-call-icon { color: var(--c-textMuted); }
+.help-call-name { font-size: var(--fs-sm); color: var(--c-textMuted); overflow-wrap: break-word; }
 
+/* ----------------------------------------------------- Acompanhamento */
+
+.help-live:empty { display: none; }
 .help-onway {
   font-size: var(--fs-lg);
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.3;
   color: var(--c-status-on_the_way);
-  animation: fade-in var(--d-slow) var(--ease-standard);
+  margin: 0 0 var(--s-lg);
 }
-
 .help-called { color: var(--c-status-seen); }
 
-.help-code { margin-top: var(--s-lg); }
-.help-code strong { font-size: var(--fs-xl); margin-right: var(--s-xs); }
+/* Palavra-código: o centro da tela, um tíquete com o picote. */
+.help-code {
+  margin: 0 0 var(--s-lg);
+  padding: var(--s-lg) var(--s-md) var(--s-md);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  text-align: center;
+}
+.help-code p { margin: 0; }
+.help-code-label { color: var(--c-textMuted); font-size: var(--fs-sm); }
+.help-code .help-word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.5rem, 12vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  margin: var(--s-xs) 0 var(--s-md);
+  overflow-wrap: anywhere;
+}
+/* Picote com os dois entalhes da comanda, presos à própria linha (seguem o texto que quebra). */
+.help-code-perforation {
+  position: relative;
+  margin: 0 calc(var(--s-md) * -1) var(--s-md);
+  border-top: 2px dashed var(--c-border);
+}
+.help-code-perforation::before,
+.help-code-perforation::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+}
+.help-code-perforation::before { left: -10px; clip-path: inset(0 0 0 50%); }
+.help-code-perforation::after { right: -10px; clip-path: inset(0 50% 0 0); }
+.help-code-note { color: var(--c-textMuted); text-wrap: balance; }
 
-.help-actions { margin-top: var(--s-md); }
-
-/* Linha do tempo: avança devagar, sem piscar. */
+/* Linha do tempo vertical: check (feito), ponto sálvia (agora), círculo (depois). */
 .steps {
   list-style: none;
-  margin: var(--s-lg) 0 0;
+  margin: 0 0 var(--s-lg);
   padding: 0;
-  display: grid;
-  gap: var(--s-sm);
 }
 .step {
+  position: relative;
   display: grid;
-  grid-template-columns: 32px 1fr auto;
+  grid-template-columns: 28px 1fr auto;
   align-items: center;
-  gap: var(--s-sm);
+  column-gap: var(--s-sm);
+  min-height: 28px;
+  padding-bottom: var(--s-md);
   color: var(--c-textMuted);
 }
-.step-dot {
+.step:last-child { padding-bottom: 0; }
+/* O fio que liga um marcador ao próximo. */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  bottom: 2px;
+  border-left: 2px solid var(--c-border);
+}
+.step-done:not(:last-child)::before { border-left-color: var(--c-accent); }
+.step-mark {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: 2px solid var(--c-borderStrong);
   display: grid;
   place-items: center;
-  font-size: var(--fs-xs);
-  transition:
-    background-color var(--d-slow) var(--ease-standard),
-    border-color var(--d-slow) var(--ease-standard);
+  align-self: start;
 }
 .step-done { color: var(--c-text); }
-.step-done .step-dot {
-  background: var(--c-status-resolved);
-  border-color: var(--c-status-resolved);
-  color: var(--c-onAccent);
+.step-done .step-mark { border-color: var(--c-accent); color: var(--c-accent); }
+.step-current { color: var(--c-text); font-weight: 600; }
+.step-current .step-mark { border-color: var(--c-accent); }
+.step-stamp {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  animation: step-stamp var(--d-base) var(--ease-standard) both;
 }
-.step-current { color: var(--c-text); font-weight: 700; }
-.step-current .step-dot { border-color: var(--c-status-on_the_way); border-width: 4px; }
-.step-time { font-size: var(--fs-xs); color: var(--c-textMuted); font-weight: 400; }
+.step-label { overflow-wrap: break-word; min-width: 0; }
+.step-time { font-size: var(--fs-sm); color: var(--c-textMuted); font-weight: 400; }
 
-/* Cartão para o balcão */
+/* O carimbo: o ponto cai no lugar, uma vez, ao avançar. */
+@keyframes step-stamp {
+  from { transform: scale(1.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-stamp { animation: none; }
+}
+
+.help-actions { margin: var(--s-lg) 0 0; }
+
+/* Cancelar: segundo passo na própria tela. Só o "Sim, cancelar" é cheio. */
+.help-confirm {
+  padding: var(--s-md);
+  border: 1.5px solid var(--c-danger);
+  border-radius: var(--r-md);
+}
+.help-confirm-title { font-weight: 600; margin: 0; }
+.help-confirm-note { color: var(--c-textMuted); margin: 0 0 var(--s-md); }
+.help-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: var(--s-xs);
+}
+.help-confirm-yes {
+  background: var(--c-danger);
+  border-color: var(--c-danger);
+  color: var(--c-bg);
+}
+.help-confirm-yes:hover { background: var(--c-danger); filter: brightness(1.06); }
+
+/* ------------------------------------------------- Cartão para o balcão */
+
+.counter { margin-top: var(--s-md); }
+.counter h1 { margin-top: var(--s-xs); }
 .counter-card {
-  background: var(--c-text);
+  --perforation: var(--c-paperMuted);
+  background: var(--c-paper);
   color: var(--c-bg);
   border-radius: var(--r-lg);
   padding: var(--s-lg);
   margin: var(--s-lg) 0;
 }
-.counter-card .muted { color: #4a4152; }
-.counter-big { font-size: var(--fs-xxl); font-weight: 700; line-height: 1.1; }
-.counter-card strong { font-size: var(--fs-xl); letter-spacing: 0.1em; }
-
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+.counter-card p { margin: 0 0 var(--s-xs); }
+.counter-big {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-xxl);
+  line-height: 1.1;
+  color: var(--c-leaf);
+  overflow-wrap: break-word;
 }
+.counter-line { font-size: var(--fs-md); }
+.counter-word {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+.counter-muted { color: var(--c-paperMuted); font-size: var(--fs-sm); }
+.help-retry { margin-bottom: var(--s-xs); }
 
-/* Cardápio do próprio local (disfarce) */
-.menu { max-width: 720px; margin: 0 auto; padding: var(--s-md) 0 calc(var(--s-xxl) * 2); }
-.menu-title { font-size: var(--fs-md); padding: 0 var(--s-md); margin: 0 0 var(--s-sm); }
-.menu-title:focus { outline: none; }
+/* --------------------------------------------- Disfarces: cardápio e Wi-Fi */
+
+.menu {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-md) 0 calc(var(--s-xxl) * 2);
+  font-size: var(--fs-md);
+}
+.menu-title { font-size: var(--fs-lg); padding: 0 var(--s-md); margin: 0 0 var(--s-sm); overflow-wrap: break-word; }
 .menu-pages { display: grid; gap: var(--s-xs); }
-.menu-pages img { display: block; width: 100%; height: auto; background: #fff; }
+.menu-pages img { display: block; width: 100%; height: auto; background: var(--c-paper); }
 .menu-more { padding: 0 var(--s-md); }
+
+/* "Voltar" fixo no canto, pequeno, com fundo próprio para ficar legível sobre o cardápio. */
 .menu-back {
   position: fixed;
   right: var(--s-md);
   bottom: calc(var(--s-md) + env(safe-area-inset-bottom, 0px));
-  padding: var(--s-xs) var(--s-md);
+  z-index: 2;
+  padding: var(--s-xxs) var(--s-md);
   font-size: var(--fs-sm);
-  opacity: 0.85;
+  background: var(--c-bg);
+  border-color: var(--c-borderStrong);
 }
+.menu-back:hover { background: var(--c-surfaceRaised); }
 
-/* Wi-Fi do local (disfarce) */
-.wifi { max-width: 560px; margin: 0 auto; padding: var(--s-md) var(--s-md) calc(var(--s-xxl) * 2); }
+.wifi {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s-md) var(--s-md) calc(var(--s-xxl) * 2);
+  font-size: var(--fs-md);
+}
 .wifi .menu-title { padding: 0; }
-.wifi-card { margin: var(--s-lg) 0; display: grid; gap: var(--s-md); padding: var(--s-lg); border: 1px solid var(--c-border); border-radius: var(--r-lg, 12px); background: var(--c-surface, transparent); }
+.wifi-card {
+  margin: var(--s-lg) 0;
+  display: grid;
+  gap: var(--s-md);
+  padding: var(--s-lg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+}
 .wifi-card dt { color: var(--c-textMuted); font-size: var(--fs-sm); }
 .wifi-card dd { margin: 0; }
-.wifi-value { font-size: var(--fs-xl); font-weight: 700; overflow-wrap: anywhere; user-select: all; }
-.wifi-copy { width: 100%; }
-.wifi-hint { margin-top: var(--s-sm); }
+.wifi-value {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.wifi-hint { margin-top: var(--s-sm); font-size: var(--fs-sm); }

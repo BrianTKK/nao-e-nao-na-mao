@@ -15,6 +15,8 @@ import {
 } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { useDocumentTitle } from '../../hooks/hooks';
+import { Icon } from '../../components/Icon';
+import { BarList, StatGrid } from './Stats';
 import './print.css';
 
 const monthInput = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -64,14 +66,16 @@ export function Report() {
   return (
     <div className="print-page report">
       <div className="no-print print-toolbar">
-        <div className="field" style={{ maxWidth: 240 }}>
+        <div className="field report-month">
           <label htmlFor="report-month">Mês</label>
           <input id="report-month" type="month" value={month} max={monthInput()} onChange={(e) => e.target.value && setMonth(e.target.value)} />
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+        <button type="button" className="btn btn-calm" onClick={() => window.print()}>
+          <Icon name="printer" size={20} />
           Imprimir ou salvar em PDF
-        </button>{' '}
+        </button>
         <Link className="btn" to="/painel">
+          <Icon name="arrow-left" size={20} />
           Voltar ao painel
         </Link>
       </div>
@@ -94,110 +98,76 @@ export function Report() {
         <>
           <section aria-labelledby="r-numeros">
             <h2 id="r-numeros">Resumo</h2>
-            <table className="report-table">
-              <tbody>
-                <tr>
-                  <th scope="row">Alertas (acionamentos)</th>
-                  <td>{stats.total}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Atendidos até o fim</th>
-                  <td>
-                    {stats.resolved} {stats.total ? `(${Math.round((stats.resolved / stats.total) * 100)}%)` : ''}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Cancelados por quem pediu</th>
-                  <td>{stats.cancelled}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Tempo até a equipe ver (mediana)</th>
-                  <td>{stats.medianSeenSeconds === null ? '—' : formatDuration(stats.medianSeenSeconds, true)}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Tempo até alguém ir (mediana)</th>
-                  <td>{stats.medianResponseSeconds === null ? '—' : formatDuration(stats.medianResponseSeconds, true)}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Tempo até alguém ir (9 em cada 10 alertas, até)</th>
-                  <td>{p90 === null ? '—' : formatDuration(p90, true)}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Equipe ativa com o curso Não se Cale</th>
-                  <td>
-                    {trained.length} de {activeStaff.length}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <StatGrid
+              stats={[
+                { label: 'Alertas (acionamentos)', value: stats.total },
+                {
+                  label: 'Atendidos até o fim',
+                  value: stats.total ? `${Math.round((stats.resolved / stats.total) * 100)}%` : '—',
+                  note: `${stats.resolved} de ${stats.total}`,
+                },
+                {
+                  label: 'Tempo até alguém ir (mediana)',
+                  value: stats.medianResponseSeconds === null ? '—' : formatDuration(stats.medianResponseSeconds, true),
+                },
+                { label: 'Equipe ativa com o curso Não se Cale', value: `${trained.length} de ${activeStaff.length}` },
+                {
+                  label: 'Tempo até a equipe ver (mediana)',
+                  value: stats.medianSeenSeconds === null ? '—' : formatDuration(stats.medianSeenSeconds, true),
+                },
+                { label: 'Tempo até alguém ir (9 em cada 10 alertas, até)', value: p90 === null ? '—' : formatDuration(p90, true) },
+                { label: 'Cancelados por quem pediu', value: stats.cancelled },
+              ]}
+            />
           </section>
 
           <div className="report-cols">
             <section aria-labelledby="r-tipo">
               <h2 id="r-tipo">Por tipo de alerta</h2>
-              <table className="report-table">
-                <tbody>
-                  {(Object.entries(byKind) as [AlertKind, number][]).map(([k, n]) => (
-                    <tr key={k}>
-                      <th scope="row">{KIND_STAFF_LABEL[k]}</th>
-                      <td>{n}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <BarList tone="alert" rows={(Object.entries(byKind) as [AlertKind, number][]).sort((x, z) => z[1] - x[1]).map(([k, n]) => ({ label: KIND_STAFF_LABEL[k], value: n }))} />
             </section>
             <section aria-labelledby="r-local">
               <h2 id="r-local">Por local</h2>
-              <table className="report-table">
-                <tbody>
-                  {Object.entries(stats.bySpot)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([label, n]) => (
-                      <tr key={label}>
-                        <th scope="row">{label}</th>
-                        <td>{n}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <BarList
+                tone="alert"
+                rows={Object.entries(stats.bySpot)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([label, n]) => ({ label, value: n }))}
+              />
             </section>
             <section aria-labelledby="r-desfecho">
               <h2 id="r-desfecho">Desfechos</h2>
-              <table className="report-table">
-                <tbody>
-                  {Object.entries(stats.byOutcome)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([o, n]) => (
-                      <tr key={o}>
-                        <th scope="row">{OUTCOME_LABEL[o as keyof typeof OUTCOME_LABEL]}</th>
-                        <td>{n}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <BarList
+                tone="calm"
+                rows={Object.entries(stats.byOutcome)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([o, n]) => ({ label: OUTCOME_LABEL[o as keyof typeof OUTCOME_LABEL], value: n }))}
+              />
             </section>
           </div>
 
           <section aria-labelledby="r-equipe">
             <h2 id="r-equipe">Equipe capacitada</h2>
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th scope="col">Nome</th>
-                  <th scope="col">Função</th>
-                  <th scope="col">Curso Não se Cale</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeStaff.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.fullName}</td>
-                    <td>{s.jobTitle ?? (s.role === 'manager' ? 'Gerência' : 'Equipe')}</td>
-                    <td>{day(s.trainedAt)}</td>
+            <div className="report-scroll">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Função</th>
+                    <th scope="col">Curso Não se Cale</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {activeStaff.map((s) => (
+                    <tr key={s.id}>
+                      <td>{s.fullName}</td>
+                      <td>{s.jobTitle ?? (s.role === 'manager' ? 'Gerência' : 'Equipe')}</td>
+                      <td>{day(s.trainedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section aria-labelledby="r-lista" className="report-break">
@@ -205,33 +175,35 @@ export function Report() {
             {alerts.length === 0 ? (
               <p>Nenhum alerta no mês.</p>
             ) : (
-              <table className="report-table report-list">
-                <thead>
-                  <tr>
-                    <th scope="col">Quando</th>
-                    <th scope="col">Local</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Até alguém ir</th>
-                    <th scope="col">Quem atendeu</th>
-                    <th scope="col">Desfecho</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {alerts.map((a) => {
-                    const r = responseSeconds(a);
-                    return (
-                      <tr key={a.id}>
-                        <td>{dateTime(a.createdAt)}</td>
-                        <td>{a.spotLabel}</td>
-                        <td>{KIND_STAFF_LABEL[a.kind]}</td>
-                        <td>{r === null ? '—' : formatDuration(r, true)}</td>
-                        <td>{a.responderName ?? '—'}</td>
-                        <td>{a.outcome ? OUTCOME_LABEL[a.outcome] : STATUS_LABEL[a.status]}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="report-scroll">
+                <table className="report-table report-list">
+                  <thead>
+                    <tr>
+                      <th scope="col">Quando</th>
+                      <th scope="col">Local</th>
+                      <th scope="col">Tipo</th>
+                      <th scope="col">Até alguém ir</th>
+                      <th scope="col">Quem atendeu</th>
+                      <th scope="col">Desfecho</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alerts.map((a) => {
+                      const r = responseSeconds(a);
+                      return (
+                        <tr key={a.id}>
+                          <td>{dateTime(a.createdAt)}</td>
+                          <td>{a.spotLabel}</td>
+                          <td>{KIND_STAFF_LABEL[a.kind]}</td>
+                          <td>{r === null ? '—' : formatDuration(r, true)}</td>
+                          <td>{a.responderName ?? '—'}</td>
+                          <td>{a.outcome ? OUTCOME_LABEL[a.outcome] : STATUS_LABEL[a.status]}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         </>

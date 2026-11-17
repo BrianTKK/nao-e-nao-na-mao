@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import type { Spot, Venue } from '@nenm/shared';
 import { dataSource } from '../../data/source';
+import { Logo } from '../../components/Logo';
 import { QrCode } from '../../components/QrCode';
 import { useDocumentTitle } from '../../hooks/hooks';
 import './print.css';
 
 /**
- * Página para imprimir os QR codes: um cartaz por local, em preto e branco,
+ * Página para imprimir os QR codes: um cartaz por local, em Papel (#EEEBE1) com o logo positivo (Folha),
+ * o QR escuro sobre claro e o nome do lugar em Fraunces,
  * com o texto que a mulher entende de longe. Na tela, os botões; no papel,
  * só os cartazes (dois por folha A4).
  */
@@ -38,10 +40,12 @@ export function PrintSpots() {
       <div className="poster-grid">
         {spots.map((s) => (
           <section key={s.id} className="poster" aria-label={`Cartaz do local ${s.label}`}>
+            <Logo variant="positivo" size={36} clearSpace={false} label="Mariana" className="poster-logo" />
             <p className="poster-title">Precisa de ajuda?</p>
             <p className="poster-sub">Leia o QR code. A nossa equipe vem até você, sem chamar atenção.</p>
-            <QrCode value={`${window.location.origin}/q/${s.code}`} label={`QR code do local ${s.label}`} size={220} />
-            <p className="poster-spot">{s.label}</p>
+            <QrCode value={`${window.location.origin}/q/${s.code}`} label={`QR code do local ${s.label}`} size={200} />
+            <p className="poster-spot display">{s.label}</p>
+            <hr className="poster-picote" />
             <p className="poster-foot">
               {venue.name} · Não precisa instalar nada · Em perigo, ligue 190 · Central da Mulher, 180
             </p>

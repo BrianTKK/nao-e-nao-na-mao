@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { SPOT_KIND_LABEL, type Spot, type SpotKind } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { QrCode } from '../../components/QrCode';
+import { Icon } from '../../components/Icon';
 
 const spotUrl = (code: string) => `${window.location.origin}/q/${code}`;
 
@@ -50,13 +51,15 @@ export function Spots() {
         <p id="spot-error" className="error" aria-live="assertive">
           {error}
         </p>
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="btn btn-calm">
+          <Icon name="plus" size={20} />
           Criar QR code
         </button>
       </form>
 
       <div className="spots-toolbar">
         <Link className="btn" to="/painel/qr-codes/imprimir">
+          <Icon name="printer" size={20} />
           Página para imprimir os QR codes
         </Link>
       </div>

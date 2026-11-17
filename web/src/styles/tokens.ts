@@ -3,7 +3,14 @@ import { tokens } from '@nenm/shared';
 /**
  * Transforma os tokens compartilhados em variáveis CSS no :root. Assim a web
  * e o app partem do mesmo arquivo (shared/src/tokens.ts).
- * Tamanhos de fonte em rem (base 16 px), para acompanhar o zoom do navegador.
+ *
+ * Nomes gerados:
+ * - cor: --c-<chave> (ex.: --c-alert, --c-onAlert, --c-leaf) e --c-status-<estado>;
+ * - espaço --s-*, raio --r-*, tamanho de fonte --fs-* (em rem, base 16 px,
+ *   para acompanhar o zoom do navegador), duração --d-*, curvas --ease-*;
+ * - fonte: --font-body (texto e botões), --font-display (títulos, números,
+ *   nome) e --font (o mesmo que --font-body, nome antigo);
+ * - alvo de toque: --touch.
  */
 export function applyTokens(root: HTMLElement = document.documentElement): void {
   const vars: Record<string, string> = {};
@@ -20,6 +27,8 @@ export function applyTokens(root: HTMLElement = document.documentElement): void 
   vars['--ease-standard'] = `cubic-bezier(${motion.easing.standard.join(',')})`;
   vars['--ease-exit'] = `cubic-bezier(${motion.easing.exit.join(',')})`;
   vars['--font'] = fontFamily.web;
+  vars['--font-body'] = fontFamily.body;
+  vars['--font-display'] = fontFamily.display;
   vars['--touch'] = `${touchTarget}px`;
 
   for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);

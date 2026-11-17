@@ -15,17 +15,19 @@ export function History() {
   return (
     <>
       <h1>Alertas</h1>
-      <div className="field panel-filter">
-        <label htmlFor="period">Período</label>
-        <select id="period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          <option value={1}>Últimas 24 horas</option>
-          <option value={7}>Últimos 7 dias</option>
-          <option value={30}>Últimos 30 dias</option>
-        </select>
-      </div>
-      <div className="field panel-filter">
-        <label htmlFor="word">Buscar pela palavra-código</label>
-        <input id="word" type="search" value={word} onChange={(e) => setWord(e.target.value)} placeholder="ex.: borboleta" autoComplete="off" />
+      <div className="panel-filters">
+        <div className="field panel-filter">
+          <label htmlFor="period">Período</label>
+          <select id="period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            <option value={1}>Últimas 24 horas</option>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+          </select>
+        </div>
+        <div className="field panel-filter">
+          <label htmlFor="word">Buscar pela palavra-código</label>
+          <input id="word" type="search" value={word} onChange={(e) => setWord(e.target.value)} placeholder="ex.: borboleta" autoComplete="off" />
+        </div>
       </div>
       {error && <p className="error">Não foi possível carregar os alertas.</p>}
       {!alerts && !error && <p className="muted">Carregando…</p>}
@@ -51,11 +53,11 @@ export function History() {
                 const r = responseSeconds(a);
                 return (
                   <tr key={a.id}>
-                    <td>{dateTime(a.createdAt)}</td>
+                    <td className="tabular">{dateTime(a.createdAt)}</td>
                     <td>{a.spotLabel}</td>
-                    <td>{displayCode(a.shortCode)}</td>
+                    <td className="display">{displayCode(a.shortCode)}</td>
                     <td>{KIND_STAFF_LABEL[a.kind]}</td>
-                    <td>{r === null ? '—' : formatDuration(r)}</td>
+                    <td className="tabular">{r === null ? '—' : formatDuration(r)}</td>
                     <td>{a.responderName ?? '—'}</td>
                     <td>{a.outcome ? OUTCOME_LABEL[a.outcome] : '—'}</td>
                     <td>

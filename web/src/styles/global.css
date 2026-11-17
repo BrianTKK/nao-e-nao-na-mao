@@ -1,4 +1,29 @@
-/* As variáveis --c-*, --s-*, --r-*, --fs-*, --d-* vêm de shared/src/tokens.ts (ver tokens.ts). */
+/*
+ * Base visual da web, direção "Comanda" (17/11/2026): verde-garrafa, sálvia
+ * para a ação calma, latão só para o alerta e a ação principal, o tíquete com
+ * picote como forma da marca.
+ *
+ * As variáveis --c-*, --s-*, --r-*, --fs-*, --d-*, --ease-*, --font-* e
+ * --touch vêm de shared/src/tokens.ts (ver styles/tokens.ts).
+ *
+ * Utilitários desta folha (para as páginas):
+ *   .num            Fraunces 600 com algarismos tabulares (tempo, contadores)
+ *   .display        Fraunces 600 em qualquer texto (palavra-código, nome do local)
+ *   .tabular        algarismos tabulares sem trocar a fonte
+ *   .label-caps     rótulo curto em maiúsculas, 14 px
+ *   .btn            contorno (secundário); .btn-primary latão (1 por tela ou cartão);
+ *                   .btn-calm sálvia; .btn-danger contorno perigo; .btn-ghost só texto;
+ *                   .btn-lg 64 px; .btn-block largura toda; .btn-icon quadrado
+ *   .card           cartão (superfície, filete, raio 8, sem sombra)
+ *   .perforation    picote tracejado horizontal; .perforation-v vertical
+ *   .ticket         recorte dos dois entalhes laterais (só a forma)
+ *   .alert-new      bloco de latão cheio do alerta novo (combine com .ticket)
+ *   .ticket-arrive  entrada do alerta (desce 12 px); .pulse para o ponto "Novo"
+ *   .status-badge + .status-<estado>, .status-dot
+ *   .muted, .error, .visually-hidden, .skip-link, .field, .rule
+ */
+
+@import './fonts.css';
 
 *,
 *::before,
@@ -9,6 +34,8 @@
 html {
   color-scheme: dark;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--c-bg);
 }
 
 body {
@@ -16,39 +43,119 @@ body {
   min-height: 100dvh;
   background: var(--c-bg);
   color: var(--c-text);
-  font-family: var(--font);
-  font-size: var(--fs-md);
+  font-family: var(--font-body, var(--font));
+  font-size: var(--fs-sm);
+  font-weight: 400;
   line-height: 1.45;
+  font-synthesis-style: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ------------------------------------------------------------- Tipografia */
 
 h1,
 h2,
 h3 {
-  line-height: 1.2;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   margin: 0 0 var(--s-sm);
+  text-wrap: balance;
 }
 
 h1 { font-size: var(--fs-xl); }
 h2 { font-size: var(--fs-lg); }
 h3 { font-size: var(--fs-md); }
 
+h4,
+h5,
+h6 {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin: 0 0 var(--s-xs);
+}
+
 p { margin: 0 0 var(--s-sm); }
 
-a { color: var(--c-accent); text-underline-offset: 3px; }
+strong,
+b { font-weight: 600; }
 
-/* Foco sempre visível, em amarelo, para quem navega pelo teclado. */
+a {
+  color: var(--c-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+/* Números: Fraunces 600, algarismos da mesma largura para o tempo não pular. */
+.num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.label-caps {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.muted { color: var(--c-textMuted); }
+
+.error {
+  color: var(--c-danger);
+  font-weight: 600;
+}
+
+/* Filete de divisão. */
+.rule {
+  border: 0;
+  border-top: 1px solid var(--c-border);
+  margin: var(--s-lg) 0;
+}
+
+/* ------------------------------------------------------------------- Foco */
+
+/* Anel amarelo de 3 px só para quem navega pelo teclado. */
+:focus { outline: none; }
 :focus-visible {
   outline: 3px solid var(--c-focus);
   outline-offset: 3px;
   border-radius: var(--r-sm);
 }
 
+/*
+ * Título ou região que recebe foco por código (tabindex="-1", para o leitor
+ * de tela anunciar a troca de tela) não ganha anel: um retângulo amarelo em
+ * volta do título é o que alguém olhando por cima do ombro veria primeiro.
+ * Controles (botão, link, campo) continuam com o anel acima.
+ */
+:is(h1, h2, h3, h4, h5, h6, p, main, section, article, header, div, [role='region'], [role='status'], [role='alert'])[tabindex='-1']:is(:focus, :focus-visible) {
+  outline: none;
+}
+
 .visually-hidden {
   position: absolute !important;
   width: 1px;
   height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -58,72 +165,105 @@ a { color: var(--c-accent); text-underline-offset: 3px; }
   top: -100px;
   background: var(--c-accent);
   color: var(--c-onAccent);
+  font-weight: 600;
   padding: var(--s-xs) var(--s-md);
   border-radius: var(--r-sm);
   z-index: 10;
 }
 .skip-link:focus { top: var(--s-md); }
 
-/* ---------------------------------------------------------------- Botões */
+/* ----------------------------------------------------------------- Botões */
 
+/* Padrão = secundário: contorno de 1,5 px, fundo transparente, texto claro. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s-xs);
   min-height: var(--touch);
-  padding: var(--s-sm) var(--s-lg);
-  border-radius: var(--r-md);
-  border: 2px solid var(--c-borderStrong);
-  background: var(--c-surface);
+  padding: var(--s-xs) var(--s-md);
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--c-borderStrong);
+  background: transparent;
   color: var(--c-text);
-  font: inherit;
-  font-weight: 700;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
     transform var(--d-fast) var(--ease-standard),
-    background-color var(--d-fast) var(--ease-standard);
+    background-color var(--d-fast) var(--ease-standard),
+    border-color var(--d-fast) var(--ease-standard),
+    color var(--d-fast) var(--ease-standard);
 }
 .btn:hover { background: var(--c-surfaceRaised); }
-.btn:active { transform: scale(0.97); }
-.btn[disabled] { opacity: 0.6; cursor: progress; }
+.btn:active { transform: scale(0.98); }
+.btn[disabled],
+.btn[aria-disabled='true'] { opacity: 0.55; cursor: not-allowed; }
+.btn[aria-busy='true'] { cursor: progress; }
+.btn svg { flex: none; }
 
+/* Ação principal: latão cheio. Uma por tela ou por cartão. */
 .btn-primary {
+  background: var(--c-alert);
+  border-color: var(--c-alert);
+  color: var(--c-onAlert);
+}
+.btn-primary:hover { background: var(--c-alert); filter: brightness(1.06); }
+
+/* Ação calma: sálvia (página de ajuda, confirmações tranquilas). */
+.btn-calm {
   background: var(--c-accent);
   border-color: var(--c-accent);
   color: var(--c-onAccent);
 }
-.btn-primary:hover { background: var(--c-accent); filter: brightness(1.08); }
+.btn-calm:hover { background: var(--c-accent); filter: brightness(1.06); }
 
+/* Destrutiva: contorno e texto perigo, sem preenchimento. */
+.btn-danger {
+  border-color: var(--c-danger);
+  color: var(--c-danger);
+}
+.btn-danger:hover { background: color-mix(in srgb, var(--c-danger) 10%, transparent); }
+
+/* Só texto, sublinhado (ação terciária). */
 .btn-ghost {
   background: transparent;
   border-color: transparent;
   text-decoration: underline;
+  text-underline-offset: 3px;
   font-weight: 500;
 }
+.btn-ghost:hover { background: transparent; text-decoration-thickness: 2px; }
 
+.btn-lg { min-height: 64px; font-size: var(--fs-md); padding-inline: var(--s-lg); }
 .btn-block { width: 100%; }
+.btn-icon { padding: 0; width: var(--touch); }
 
-/* ---------------------------------------------------------------- Campos */
+/* ----------------------------------------------------------------- Campos */
 
 .field { display: grid; gap: var(--s-xxs); margin-bottom: var(--s-md); }
-.field label { font-weight: 700; }
+.field label { font-weight: 600; }
 .field input,
-.field select {
+.field select,
+.field textarea {
   min-height: var(--touch);
   padding: var(--s-xs) var(--s-sm);
   border-radius: var(--r-sm);
-  border: 2px solid var(--c-borderStrong);
+  border: 1.5px solid var(--c-borderStrong);
   background: var(--c-bg);
   color: var(--c-text);
   font: inherit;
 }
+.field input::placeholder,
+.field textarea::placeholder { color: var(--c-textMuted); opacity: 1; }
+.field [aria-invalid='true'] { border-color: var(--c-danger); }
 
-.error {
-  color: var(--c-danger);
-  font-weight: 700;
-}
+/* ---------------------------------------------------------------- Cartões */
 
 .card {
   background: var(--c-surface);
@@ -132,18 +272,74 @@ a { color: var(--c-accent); text-underline-offset: 3px; }
   padding: var(--s-lg);
 }
 
-.muted { color: var(--c-textMuted); }
+/* -------------------------------------------------------- Tíquete e picote */
 
-/* Selo de estado: sempre com texto e ícone, nunca só a cor. */
+/* Picote: a linha tracejada da comanda. A cor segue --perforation. */
+.perforation {
+  border: 0;
+  border-top: 2px dashed var(--perforation, var(--c-border));
+  margin: var(--s-md) 0;
+}
+.perforation-v {
+  border: 0;
+  border-left: 1.5px dashed var(--perforation, var(--c-border));
+  align-self: stretch;
+}
+
+/*
+ * Tíquete: dois semicírculos recortados nas laterais, na altura --notch-y
+ * (padrão 50%; ponha na linha do picote, ex. style={{ '--notch-y': '62%' }}).
+ * É só a forma: o fundo vem de .alert-new ou de quem usar.
+ */
+.ticket {
+  --notch: 9px;
+  --notch-y: 50%;
+  position: relative;
+  border-radius: var(--r-lg);
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+/* Alerta novo: o único bloco cheio da tela, em latão. */
+.alert-new {
+  --perforation: color-mix(in srgb, var(--c-onAlert) 45%, transparent);
+  background: var(--c-alert);
+  color: var(--c-onAlert);
+  border-radius: var(--r-lg);
+  padding: var(--s-lg);
+}
+.alert-new :is(h1, h2, h3, .muted) { color: var(--c-onAlert); }
+/* Dentro do latão, a ação principal inverte: fundo escuro, texto latão. */
+.alert-new .btn-primary {
+  background: var(--c-onAlert);
+  border-color: var(--c-onAlert);
+  color: var(--c-alert);
+}
+.alert-new .btn:not(.btn-primary) {
+  border-color: var(--c-onAlert);
+  color: var(--c-onAlert);
+}
+.alert-new .btn:not(.btn-primary):hover { background: color-mix(in srgb, var(--c-onAlert) 10%, transparent); }
+/* O anel amarelo some no latão: dentro dele, o anel usa a tinta escura. */
+.alert-new :focus-visible { outline-color: var(--c-onAlert); }
+
+/* ---------------------------------------------------------------- Estados */
+
+/* Selo de estado: sempre com texto e ícone, nunca só a cor. "Novo" é o único cheio. */
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: var(--s-xxs);
   padding: 2px var(--s-xs);
-  border-radius: var(--r-pill);
-  border: 2px solid currentColor;
+  border-radius: var(--r-sm);
+  border: 1.5px solid currentColor;
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.3;
   white-space: nowrap;
 }
 .status-open { color: var(--c-status-open); }
@@ -151,6 +347,35 @@ a { color: var(--c-accent); text-underline-offset: 3px; }
 .status-on_the_way { color: var(--c-status-on_the_way); }
 .status-resolved { color: var(--c-status-resolved); }
 .status-cancelled { color: var(--c-status-cancelled); }
+.status-badge.status-open {
+  background: var(--c-status-open);
+  border-color: var(--c-status-open);
+  color: var(--c-onAlert);
+}
+
+/* Ponto de status: o único lugar com canto de pílula. */
+.status-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+}
+
+/* -------------------------------------------------------------- Movimento */
+
+/* O alerta chega descendo 12 px; o ponto "Novo" pulsa a 1,2 s. Só isso. */
+@keyframes ticket-arrive {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.ticket-arrive { animation: ticket-arrive var(--d-slow) var(--ease-standard) both; }
+
+@keyframes pulse {
+  50% { opacity: 0.35; }
+}
+.pulse { animation: pulse var(--d-pulse) ease-in-out infinite; }
 
 /* Quem pediu menos movimento no sistema não vê animação. */
 @media (prefers-reduced-motion: reduce) {
@@ -162,4 +387,5 @@ a { color: var(--c-accent); text-underline-offset: 3px; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .btn:active { transform: none; }
 }

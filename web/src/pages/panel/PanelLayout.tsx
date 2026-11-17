@@ -3,6 +3,8 @@ import { NavLink, Outlet } from 'react-router';
 import { DEMO_PASSWORD, DataError, type StaffMember } from '@nenm/shared';
 import { dataSource, showDemo } from '../../data/source';
 import { useDocumentTitle } from '../../hooks/hooks';
+import { Icon } from '../../components/Icon';
+import { Logo } from '../../components/Logo';
 import { useWebAlarm } from './useWebAlarm';
 import './panel.css';
 
@@ -38,13 +40,13 @@ function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
         Pular para o conteúdo
       </a>
       <header className="panel-header">
-        <div>
-          <p className="panel-brand">Mariana</p>
-          <p className="muted panel-who">
+        <p className="panel-brand">
+          <Logo variant="negativo" size={28} clearSpace={false} label="Mariana, painel do bar" />
+        </p>
+        <div className="panel-header-actions">
+          <p className="panel-who">
             {me.fullName} · {me.role === 'manager' ? 'Gerência' : 'Equipe'}
           </p>
-        </div>
-        <div className="panel-header-actions">
           {me.role === 'manager' && (
             <button
               type="button"
@@ -53,16 +55,21 @@ function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
               onClick={alarm.toggle}
               title="Bipe repetido e aviso do navegador enquanto houver alerta que ninguém viu"
             >
+              <Icon name="bell" size={20} />
               {alarm.enabled ? (alarm.needsTap ? 'Alarme: toque na página para liberar o som' : 'Alarme ligado') : 'Ligar o alarme'}
             </button>
           )}
-          <button type="button" className="btn" onClick={signOut}>
+          <button type="button" className="btn panel-signout" onClick={signOut}>
+            <Icon name="log-out" size={20} />
             Sair
           </button>
         </div>
       </header>
       {alarm.enabled && alarm.notifications === 'denied' && (
-        <p className="panel-alarm-note muted">O navegador bloqueou os avisos deste site: o bipe toca só com a aba aberta.</p>
+        <p className="panel-alarm-note">
+          <Icon name="info" size={20} />
+          O navegador bloqueou os avisos deste site: o bipe toca só com a aba aberta.
+        </p>
       )}
       <div className="visually-hidden" aria-live="assertive">
         {alarm.announcement}
@@ -118,6 +125,7 @@ function Login({ onSignedIn }: { onSignedIn: (m: StaffMember) => void }) {
 
   return (
     <main className="panel-login">
+      <Logo variant="negativo" size={36} clearSpace={false} className="panel-login-logo" />
       <h1>Painel do bar</h1>
       <p className="muted">Entre com a conta da gerência.</p>
       <form onSubmit={submit} className="card" noValidate>
@@ -137,15 +145,13 @@ function Login({ onSignedIn }: { onSignedIn: (m: StaffMember) => void }) {
           />
         </div>
         <div aria-live="assertive">{error && <p className="error">{error}</p>}</div>
-        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+        <button type="submit" className="btn btn-calm btn-block" aria-busy={busy || undefined} disabled={busy}>
           {busy ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
       {showDemo && (
         <aside className="panel-demo">
-          <p>
-            <strong>Demonstração (bar fictício)</strong>
-          </p>
+          <p className="label-caps muted">Demonstração · bar fictício</p>
           <button
             type="button"
             className="btn"

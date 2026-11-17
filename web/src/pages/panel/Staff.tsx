@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useOutletContext } from 'react-router';
 import { DataError, type StaffMember } from '@nenm/shared';
 import { dataSource } from '../../data/source';
+import { Icon } from '../../components/Icon';
 import type { PanelContext } from './PanelLayout';
 
 const date = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR') : 'Pendente');
@@ -70,7 +71,7 @@ export function Staff() {
                   onBlur={(e) => e.target.value !== (s.trainedAt?.slice(0, 10) ?? '') && update(s, { trainedAt: e.target.value || null })}
                 />
                 {s.id !== me.id && (
-                  <button type="button" className="btn" onClick={() => update(s, { active: !s.active })}>
+                  <button type="button" className={`btn${s.active ? ' btn-danger' : ''}`} onClick={() => update(s, { active: !s.active })}>
                     {s.active ? `Desativar ${s.fullName.split(' ')[0]}` : `Reativar ${s.fullName.split(' ')[0]}`}
                   </button>
                 )}
@@ -117,7 +118,10 @@ function NewStaffForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <details className="card staff-form">
-      <summary>Cadastrar alguém na equipe</summary>
+      <summary>
+        <Icon name="plus" size={20} />
+        Cadastrar alguém na equipe
+      </summary>
       <form onSubmit={submit} noValidate>
         <div className="form-grid">
           <div className="field">
@@ -155,7 +159,7 @@ function NewStaffForm({ onCreated }: { onCreated: () => void }) {
           {error && <p className="error">{error}</p>}
           {done && <p>{done}</p>}
         </div>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <button type="submit" className="btn btn-calm" aria-busy={busy || undefined} disabled={busy}>
           {busy ? 'Salvando…' : 'Cadastrar'}
         </button>
       </form>

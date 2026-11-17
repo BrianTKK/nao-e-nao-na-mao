@@ -14,10 +14,12 @@ import {
 } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { session, useDocumentTitle, useOnline } from '../../hooks/hooks';
+import { Icon, type IconName } from '../../components/Icon';
 import { StatusSteps } from './StatusSteps';
 import { CounterCard } from './CounterCard';
 import { MenuView } from './MenuView';
 import { WifiView } from './WifiView';
+import { EmergencyLinks } from './EmergencyLinks';
 import { coversFor, firstInPage, type InPageCover } from './cover';
 import './help.css';
 
@@ -31,9 +33,18 @@ type Phase =
 
 const tokenKey = (code: string) => `nenm.alert.${code.toUpperCase()}`;
 
+/** Ícone de traço de cada opção (sálvia só no ícone; as três têm o mesmo peso). */
+const KIND_ICON: Record<AlertKind, IconName> = {
+  unsafe: 'alert-circle',
+  leave: 'door',
+  talk: 'message',
+};
+
 /**
  * Página que o QR code do banheiro ou da mesa abre. Sem login, sem instalar.
  * - O título da aba é só o nome do bar (neutro): não diz "ajuda".
+ * - Sem logo da Mariana: para quem olha por cima do ombro, a página tem de
+ *   parecer coisa do bar (a marca já está na placa do QR).
  * - "Ver cardápio" e "Wi-Fi do local" (só se o local cadastrou) trocam a tela
  *   pelo cardápio ou pelo Wi-Fi do próprio local, para quem estiver olhando;
  *   ver cover.ts.
@@ -48,6 +59,11 @@ export function HelpPage() {
   const [shown, setShown] = useState<InPageCover['kind'] | null>(null);
   const hidden = shown !== null;
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Cancelar tem um segundo passo na própria tela (nada de diálogo do sistema).
+  const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmTitleRef = useRef<HTMLParagraphElement>(null);
 
   useDocumentTitle(spot ? spot.venueName : 'Carregando…');
 
@@ -83,9 +99,11 @@ export function HelpPage() {
   }, [token, code]);
 
   // Leva o foco ao título a cada troca de etapa (leitor de tela acompanha).
+  // No acompanhamento o título só existe quando o pedido chega: `hasAlert` cobre isso.
+  const hasAlert = alert !== null;
   useEffect(() => {
     if (!hidden) headingRef.current?.focus();
-  }, [phase.name, hidden]);
+  }, [phase.name, hidden, hasAlert]);
 
   const covers = spot ? coversFor(spot) : [];
   const escCover = firstInPage(covers)?.kind ?? null;
@@ -116,19 +134,35 @@ export function HelpPage() {
     [code, online],
   );
 
+  // A pergunta de confirmação recebe o foco quando aparece (leitor de tela lê).
+  useEffect(() => {
+    if (confirming) confirmTitleRef.current?.focus();
+  }, [confirming]);
+
+  const keepAlert = useCallback(() => {
+    setConfirming(false);
+    // Devolve o foco ao botão que abriu a confirmação.
+    requestAnimationFrame(() => cancelButtonRef.current?.focus());
+  }, []);
+
   const cancel = useCallback(async () => {
     if (!token) return;
-    if (!window.confirm('Cancelar o pedido? A equipe deixa de vir.')) return;
+    setCancelling(true);
     try {
       await dataSource.public.cancelAlert(token);
     } catch {
       // já encerrado: o acompanhamento mostra o estado final
     }
+    setCancelling(false);
+    setConfirming(false);
+    // A confirmação some com o pedido encerrado: o foco volta ao título.
+    requestAnimationFrame(() => headingRef.current?.focus());
   }, [token]);
 
   const restart = useCallback(() => {
     session.set(tokenKey(code), null);
     setAlert(null);
+    setConfirming(false);
     setPhase({ name: 'choose' });
   }, [code]);
 
@@ -143,7 +177,7 @@ export function HelpPage() {
   return (
     <div className="help">
       <header className="help-header">
-        <span className="help-venue">{spot?.venueName ?? ' '}</span>
+        <span className="help-venue">{spot?.venueName ?? ' '}</span>
         {covers.length > 0 && (
           <span className="help-covers">
             {covers.map((c) =>
@@ -157,6 +191,7 @@ export function HelpPage() {
                   rel="noopener noreferrer"
                   aria-label="Ver cardápio: abre o cardápio digital do local em outra aba; esta página continua aberta"
                 >
+                  <Icon name="menu-book" size={20} />
                   Ver cardápio
                 </a>
               ) : (
@@ -171,6 +206,7 @@ export function HelpPage() {
                       : 'Ver cardápio: mostra o cardápio do local no lugar desta tela'
                   }
                 >
+                  <Icon name={c.kind === 'wifi' ? 'wifi' : 'menu-book'} size={20} />
                   {c.kind === 'wifi' ? 'Wi-Fi do local' : 'Ver cardápio'}
                 </button>
               ),
@@ -187,7 +223,7 @@ export function HelpPage() {
             <h1 ref={headingRef} tabIndex={-1}>
               Este QR code não está ativo
             </h1>
-            <p>Procure alguém da equipe do bar ou ligue para o 190 se estiver em perigo.</p>
+            <p className="help-lede">Procure alguém da equipe do bar ou ligue para o 190 se estiver em perigo.</p>
             <EmergencyLinks />
           </>
         )}
@@ -197,22 +233,29 @@ export function HelpPage() {
             <h1 ref={headingRef} tabIndex={-1}>
               Precisa de ajuda? A nossa equipe vem até você.
             </h1>
-            <p className="muted">
+            <p className="help-lede">
               Você está em: <strong className="help-spot">{spot.label}</strong>. Só a nossa equipe recebe o pedido.
             </p>
             <div className="help-options" role="group" aria-label="O que está acontecendo?">
-              {ALERT_KINDS.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className="btn btn-primary help-option"
-                  disabled={phase.name === 'sending'}
-                  aria-busy={phase.name === 'sending' && phase.kind === kind}
-                  onClick={() => send(kind)}
-                >
-                  {phase.name === 'sending' && phase.kind === kind ? 'Enviando…' : KIND_LABEL[kind]}
-                </button>
-              ))}
+              {ALERT_KINDS.map((kind) => {
+                const busy = phase.name === 'sending' && phase.kind === kind;
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    className="btn help-option"
+                    disabled={phase.name === 'sending'}
+                    aria-busy={busy}
+                    onClick={() => send(kind)}
+                  >
+                    <Icon name={KIND_ICON[kind]} size={28} className="help-option-icon" />
+                    <span className="help-option-label">{busy ? 'Enviando…' : KIND_LABEL[kind]}</span>
+                    <span className="help-option-chevron" aria-hidden="true">
+                      <Icon name="chevron-right" size={20} />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <EmergencyLinks />
           </>
@@ -231,24 +274,39 @@ export function HelpPage() {
                 <p className="help-onway help-called">{calledMessage(alert.assignedFirstName, alert.assignedAppearance)}</p>
               )}
             </div>
+            <div className="help-code">
+              <p className="help-code-label">Sua palavra-código:</p>
+              <p className="help-word">{displayCode(alert.shortCode)}</p>
+              <div className="help-code-perforation" aria-hidden="true" />
+              <p className="help-code-note">Quem vier da equipe vai dizer essa palavra.</p>
+            </div>
             <StatusSteps alert={alert} />
-            <p className="help-code">
-              Sua palavra-código: <strong className="help-word">{displayCode(alert.shortCode)}</strong>
-              <span className="muted"> Quem vier da equipe vai dizer essa palavra.</span>
-            </p>
-            {isActive(alert.status) ? (
-              <div className="help-actions">
-                <button type="button" className="btn" onClick={cancel}>
-                  Cancelar pedido
-                </button>
-              </div>
-            ) : (
-              <div className="help-actions">
-                <button type="button" className="btn" onClick={restart}>
+            <div className="help-actions">
+              {!isActive(alert.status) ? (
+                <button type="button" className="btn btn-block" onClick={restart}>
                   Fazer um novo pedido
                 </button>
-              </div>
-            )}
+              ) : confirming ? (
+                <div className="help-confirm" role="group" aria-labelledby="help-confirm-title">
+                  <p id="help-confirm-title" ref={confirmTitleRef} tabIndex={-1} className="help-confirm-title">
+                    Cancelar o pedido?
+                  </p>
+                  <p className="help-confirm-note">A equipe deixa de vir.</p>
+                  <div className="help-confirm-actions">
+                    <button type="button" className="btn help-confirm-yes" onClick={cancel} disabled={cancelling} aria-busy={cancelling}>
+                      {cancelling ? 'Cancelando…' : 'Sim, cancelar'}
+                    </button>
+                    <button type="button" className="btn" onClick={keepAlert} disabled={cancelling}>
+                      Não
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" ref={cancelButtonRef} className="btn btn-danger btn-block" onClick={() => setConfirming(true)}>
+                  Cancelar pedido
+                </button>
+              )}
+            </div>
             <EmergencyLinks />
           </>
         )}
@@ -280,18 +338,4 @@ function headline(a: PublicAlert): string {
     case 'cancelled':
       return 'Pedido cancelado';
   }
-}
-
-function EmergencyLinks() {
-  return (
-    <nav className="help-emergency" aria-label="Telefones de emergência">
-      <p className="muted">Em perigo agora?</p>
-      <a className="btn" href="tel:190">
-        Ligar 190 · Polícia
-      </a>
-      <a className="btn" href="tel:180">
-        Ligar 180 · Central da Mulher
-      </a>
-    </nav>
-  );
 }

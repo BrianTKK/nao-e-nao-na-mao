@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../../components/Icon';
+import { BackButton } from './BackButton';
 
 /**
  * Disfarce do Wi-Fi do local: a tela mostra a rede e a senha, como quem pediu
@@ -47,16 +49,15 @@ export function WifiView({ venueName, ssid, password, onBack }: { venueName: str
         </div>
       </dl>
       {password && (
-        <button type="button" className="btn btn-primary wifi-copy" onClick={copy}>
+        <button type="button" className="btn btn-calm btn-lg btn-block wifi-copy" onClick={copy}>
+          <Icon name={copied === 'ok' ? 'check' : 'copy'} size={22} />
           {copied === 'ok' ? 'Senha copiada' : 'Copiar a senha'}
         </button>
       )}
       <p className="muted wifi-hint" aria-live="polite">
         {copied === 'fail' ? 'Não deu para copiar: toque e segure a senha para selecionar.' : 'Nas configurações do celular, escolha a rede e cole a senha.'}
       </p>
-      <button type="button" className="btn menu-back" onClick={onBack} aria-label="Voltar: volta à página de ajuda">
-        Voltar
-      </button>
+      <BackButton onBack={onBack} />
     </main>
   );
 }

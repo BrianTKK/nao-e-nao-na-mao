@@ -1,5 +1,7 @@
 import { Link } from 'react-router';
 import { DEMO_SPOTS } from '@nenm/shared';
+import { Icon } from '../components/Icon';
+import { Logo } from '../components/Logo';
 import { QrCode } from '../components/QrCode';
 import { useDocumentTitle } from '../hooks/hooks';
 import './home.css';
@@ -18,7 +20,12 @@ export function TryApp() {
   const restroom = DEMO_SPOTS[0];
   return (
     <main className="home try">
-      <p className="home-kicker">Mariana · demonstração</p>
+      <header className="home-brand">
+        <Link className="home-logo-link" to="/">
+          <Logo variant="negativo" size={40} clearSpace={false} label="Mariana, voltar ao início" />
+        </Link>
+        <p className="home-kicker label-caps">Mariana · demonstração</p>
+      </header>
       <h1>Testar o app da equipe no celular</h1>
       <p className="home-lead">O app é de quem trabalha no bar: recebe o alerta e avisa que está indo.</p>
 
@@ -57,11 +64,14 @@ export function TryApp() {
         </div>
 
         <figure className="card try-qr">
-          <QrCode value={EXPO_URL} label="QR code para abrir o app no Expo Go" size={220} />
+          <div className="try-qr-frame">
+            <QrCode value={EXPO_URL} label="QR code para abrir o app no Expo Go" size={220} />
+          </div>
           <figcaption>
             <p>Leia com o Expo Go ou com a câmera.</p>
             {/* No próprio celular, ler o QR é impossível: o link abre direto no Expo Go. */}
             <a className="btn btn-primary" href={EXPO_URL}>
+              <Icon name="phone" size={20} />
               Já estou no celular: abrir no Expo Go
             </a>
             <p className="muted try-url">{EXPO_URL}</p>
@@ -86,7 +96,8 @@ export function TryApp() {
           fechado e a tela bloqueada, e toca como alarme. O arquivo tem cerca de 45 MB.
         </p>
         <p>
-          <a className="btn btn-primary" href={APK_URL} download>
+          <a className="btn" href={APK_URL} download>
+            <Icon name="arrow-right" size={20} />
             Baixar o app para Android
           </a>
         </p>

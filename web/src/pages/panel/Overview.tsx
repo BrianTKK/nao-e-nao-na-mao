@@ -5,6 +5,7 @@ import { dataSource } from '../../data/source';
 import { useNow } from '../../hooks/hooks';
 import { useAlerts } from './usePanelData';
 import { LiveBoard } from './LiveBoard';
+import { BarList, StatGrid } from './Stats';
 import type { PanelContext } from './PanelLayout';
 
 /** Visão geral: o que está acontecendo agora e os números do mês (prova diante do Procon). */
@@ -27,75 +28,46 @@ export function Overview() {
 
   const outcomes = Object.entries(stats.byOutcome).sort((a, b) => b[1] - a[1]) as [AlertOutcome, number][];
   const spots = Object.entries(stats.bySpot).sort((a, b) => b[1] - a[1]);
-  const maxSpot = Math.max(1, ...spots.map(([, n]) => n));
+  const outcomeRows = outcomes.map(([o, n]) => ({ label: OUTCOME_LABEL[o], value: n }));
+  if (stats.cancelled > 0) outcomeRows.push({ label: 'Cancelados por quem pediu', value: stats.cancelled });
 
   return (
     <>
       <h1>Visão geral</h1>
 
       <section aria-labelledby="agora" className="panel-section">
-        <h2 id="agora">Agora</h2>
-        <p className="muted" aria-live="polite">
-          {active.length === 0 ? '' : `${active.length} alerta(s) em aberto`}
-        </p>
+        <div className="panel-section-head">
+          <h2 id="agora">Agora</h2>
+          <p className="muted" aria-live="polite">
+            {active.length === 0 ? '' : `${active.length} ${active.length === 1 ? 'alerta' : 'alertas'} em aberto`}
+          </p>
+        </div>
         <LiveBoard alerts={active} staff={staff} me={me} now={now} />
       </section>
 
       <section aria-labelledby="mes" className="panel-section">
         <h2 id="mes">Últimos 30 dias</h2>
-        <dl className="kpis">
-          <div className="kpi">
-            <dt>Alertas</dt>
-            <dd>{stats.total}</dd>
-          </div>
-          <div className="kpi">
-            <dt>Tempo até alguém ir (mediana)</dt>
-            <dd>{stats.medianResponseSeconds === null ? '—' : formatDuration(stats.medianResponseSeconds)}</dd>
-          </div>
-          <div className="kpi">
-            <dt>Atendidos até o fim</dt>
-            <dd>{stats.total ? `${Math.round((stats.resolved / stats.total) * 100)}%` : '—'}</dd>
-          </div>
-          <div className="kpi">
-            <dt>Equipe com o curso Não se Cale</dt>
-            <dd>
-              {trained} de {staff.filter((s) => s.active).length}
-            </dd>
-          </div>
-        </dl>
+        <StatGrid
+          stats={[
+            { label: 'Alertas', value: stats.total },
+            {
+              label: 'Tempo até alguém ir (mediana)',
+              value: stats.medianResponseSeconds === null ? '—' : formatDuration(stats.medianResponseSeconds),
+            },
+            { label: 'Atendidos até o fim', value: stats.total ? `${Math.round((stats.resolved / stats.total) * 100)}%` : '—' },
+            { label: 'Equipe com o curso Não se Cale', value: `${trained} de ${staff.filter((s) => s.active).length}` },
+          ]}
+        />
       </section>
 
-      <div className="panel-grid">
-        <section aria-labelledby="locais" className="panel-section card">
+      <div className="panel-columns">
+        <section aria-labelledby="locais" className="panel-section panel-block">
           <h2 id="locais">Alertas por local</h2>
-          <ul className="bars">
-            {spots.map(([label, n]) => (
-              <li key={label}>
-                <span className="bar-label">{label}</span>
-                <span className="bar-track" aria-hidden="true">
-                  <span className="bar-fill" style={{ width: `${(n / maxSpot) * 100}%` }} />
-                </span>
-                <span className="bar-value">{n}</span>
-              </li>
-            ))}
-          </ul>
+          <BarList tone="alert" rows={spots.map(([label, n]) => ({ label, value: n }))} />
         </section>
-        <section aria-labelledby="desfechos" className="panel-section card">
+        <section aria-labelledby="desfechos" className="panel-section panel-block">
           <h2 id="desfechos">Como terminaram</h2>
-          <ul className="plain-list">
-            {outcomes.map(([o, n]) => (
-              <li key={o}>
-                <span>{OUTCOME_LABEL[o]}</span>
-                <strong>{n}</strong>
-              </li>
-            ))}
-            {stats.cancelled > 0 && (
-              <li>
-                <span>Cancelados por quem pediu</span>
-                <strong>{stats.cancelled}</strong>
-              </li>
-            )}
-          </ul>
+          <BarList tone="calm" rows={outcomeRows} />
         </section>
       </div>
     </>

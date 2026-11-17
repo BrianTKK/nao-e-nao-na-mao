@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MenuFile } from '@nenm/shared';
+import { BackButton } from './BackButton';
 
 /**
  * O cardápio do próprio local, cadastrado pela equipe, ocupando a tela. Quem
@@ -26,9 +27,7 @@ export function MenuView({ venueName, files, url, onBack }: { venueName: string;
           </a>
         </p>
       )}
-      <button type="button" className="btn menu-back" onClick={onBack} aria-label="Voltar: volta à página de ajuda">
-        Voltar
-      </button>
+      <BackButton onBack={onBack} />
     </main>
   );
 }

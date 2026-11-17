@@ -162,7 +162,7 @@ export function Menu() {
               <label htmlFor="menu-url">Link (https://)</label>
               <input id="menu-url" type="url" inputMode="url" value={url} maxLength={500} placeholder="https://" onChange={(e) => setUrl(e.target.value)} />
             </div>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-calm">
               Salvar link
             </button>
           </form>
@@ -189,7 +189,7 @@ export function Menu() {
               />
             </div>
             <div className="menu-actions">
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="btn btn-calm">
                 Salvar Wi-Fi
               </button>
               {wifiSaved && (
