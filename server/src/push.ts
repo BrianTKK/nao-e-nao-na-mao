@@ -73,10 +73,15 @@ interface FcmOptions {
   /** Endereço do FCM (os testes trocam por um servidor falso). */
   fcmBase?: string;
   log?: Log;
+  /**
+   * Só valida a mensagem no FCM, sem entregar (`validate_only`). Com `topic`, envia ao
+   * tópico em vez do token: serve para conferir o formato sem nenhum aparelho (push:test --validar).
+   */
+  validateOnly?: { topic?: string };
 }
 
 /** Envia pelo FCM HTTP v1, com o token de acesso OAuth da conta de serviço (renovado antes de vencer). */
-export function createFcmSender({ account, fetch: doFetch = fetch, fcmBase = 'https://fcm.googleapis.com', log = console.error }: FcmOptions): PushSender {
+export function createFcmSender({ account, fetch: doFetch = fetch, fcmBase = 'https://fcm.googleapis.com', log = console.error, validateOnly }: FcmOptions): PushSender {
   let access: { token: string; expiresAt: number } | null = null;
   let keyPromise: ReturnType<typeof importPKCS8> | null = null;
 
@@ -111,8 +116,9 @@ export function createFcmSender({ account, fetch: doFetch = fetch, fcmBase = 'ht
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${await accessToken()}` },
           body: JSON.stringify({
+            ...(validateOnly ? { validate_only: true } : {}),
             message: {
-              token,
+              ...(validateOnly?.topic ? { topic: validateOnly.topic } : { token }),
               data,
               // Alta prioridade acorda o celular em repouso (Doze). Passado 2 min, o aviso já não serve.
               android: { priority: 'high', ttl: '120s' },

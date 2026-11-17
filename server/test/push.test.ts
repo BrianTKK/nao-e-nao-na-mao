@@ -223,6 +223,16 @@ test('FCM v1: OAuth com a conta de serviço, token de acesso reaproveitado e men
   assert.deepEqual(body.message.data, { title: 'x' });
 });
 
+test('FCM v1: modo de validação (push:test --validar) manda validate_only a um tópico, sem token', async () => {
+  const g = fakeGoogle(() => ({ status: 200, body: { name: 'projects/mariana-teste/messages/fake_message_id' } }));
+  const sender = createFcmSender({ account, fetch: g.doFetch, fcmBase: 'https://fcm.test', log: () => {}, validateOnly: { topic: 'mariana-validacao' } });
+  assert.equal(await sender.send({ token: 'qualquer', data: { title: 'x' } }), 'ok');
+  const body = JSON.parse(String(g.calls.find((c) => c.url.startsWith('https://fcm.test'))!.init.body));
+  assert.equal(body.validate_only, true);
+  assert.equal(body.message.topic, 'mariana-validacao');
+  assert.equal(body.message.token, undefined);
+});
+
 test('FCM v1: 404, UNREGISTERED, SENDER_ID_MISMATCH e token malformado dizem token inválido; o resto é erro', async () => {
   const replies = [
     { status: 404, body: { error: { status: 'NOT_FOUND' } } },
