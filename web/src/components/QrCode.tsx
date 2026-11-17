@@ -18,7 +18,7 @@ export function QrCode({ value, label, size = 160 }: { value: string; label: str
     <div
       role="img"
       aria-label={label}
-      style={{ width: size, height: size, background: '#fff', borderRadius: 8, padding: 4 }}
+      style={{ width: size, maxWidth: '100%', aspectRatio: '1 / 1', background: '#fff', borderRadius: 8, padding: 4 }}
       // O SVG é gerado localmente pela biblioteca qrcode a partir da URL do local.
       dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
     />

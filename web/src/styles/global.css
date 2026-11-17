@@ -246,11 +246,14 @@ a:hover { text-decoration-thickness: 2px; }
 
 /* ----------------------------------------------------------------- Campos */
 
-.field { display: grid; gap: var(--s-xxs); margin-bottom: var(--s-md); }
+/* minmax(0, 1fr) + min-width: 0: o campo encolhe com a coluna em vez de empurrar a página (reflow a 195 px). */
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-xxs); margin-bottom: var(--s-md); }
 .field label { font-weight: 600; }
 .field input,
 .field select,
 .field textarea {
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--touch);
   padding: var(--s-xs) var(--s-sm);
   border-radius: var(--r-sm);
@@ -388,4 +391,10 @@ a:hover { text-decoration-thickness: 2px; }
     scroll-behavior: auto !important;
   }
   .btn:active { transform: none; }
+}
+
+/* Tela muito estreita (celular de 390 px com zoom de 200% = 195 px): o cartão perde folga lateral para o texto respirar. */
+@media (max-width: 280px) {
+  .card { padding: var(--s-md); }
+  .alert-new { padding: var(--s-md); }
 }

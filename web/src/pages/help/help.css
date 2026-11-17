@@ -59,6 +59,7 @@
 /* As três opções com o mesmo peso: contorno, superfície, ícone sálvia. */
 .help-options {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-sm);
   margin: 0 0 var(--s-xl);
 }
@@ -88,6 +89,19 @@
 }
 /* Enquanto envia: as outras ficam apagadas, a escolhida continua legível. */
 .help-option[aria-busy='true'] { opacity: 1; }
+
+/*
+ * Tela muito estreita (celular de 390 px com zoom de 200% tem 195 px): ícone,
+ * espaços e seta encolhem para o texto não ficar numa coluna de 3 letras. O
+ * alvo continua com 72 px ou mais de altura e a largura toda.
+ */
+@media (max-width: 280px) {
+  .help { padding-inline: var(--s-sm); }
+  .help-option { gap: var(--s-xs); padding-left: var(--s-sm); font-size: var(--fs-sm); }
+  .help-option-icon { width: 20px; height: 20px; }
+  .help-option-chevron { padding: 0 var(--s-xs); }
+  .help-option-chevron svg { width: 16px; height: 16px; }
+}
 
 /* ------------------------------------------------------------ 190 e 180 */
 
