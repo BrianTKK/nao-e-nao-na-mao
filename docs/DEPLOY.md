@@ -84,6 +84,27 @@ DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
 
 As migrações novas (`db/migrations/*.sql`) rodam sozinhas quando o contêiner sobe.
 
+### Ensaio antes de publicar
+
+```bash
+DEPLOY_DRY_RUN=1 DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
+```
+
+Lê o `.env` e a lista do deploy anterior na VPS e mostra quantos arquivos iriam, quais são novos e o que seria apagado. Não envia, não apaga e não reconstrói nada.
+
+### Limpeza do que saiu do repositório
+
+O `tar` só acrescenta e substitui. Antes desta correção, um arquivo apagado no git ficava na VPS: o `MenuDisguise.tsx`, apagado no `324e6e9`, quebrou o `tsc -b` da web no deploy de 16/11.
+
+- **A lista**: a cada deploy, a lista do que foi enviado (formato `git ls-files -z`) fica em `/var/www/naoenao/.deployed-files`.
+- **O que é apagado**: o que estava na lista anterior e não está na nova. As pastas que ficarem vazias por isso também, mas só as que tinham arquivos enviados (`rmdir`, que não apaga pasta com conteúdo).
+- **Quem decide e quem apaga**: `deploy/prune-plan.mjs` calcula no seu computador (por isso o deploy precisa do `node`); `deploy/prune-remote.sh` apaga na VPS.
+- **O que nunca é apagado**:
+    - o que o script não enviou: `.env`, `REVISION`, `.deployed-files`, volumes, `node_modules`, `dist` e backups. Nada disso está na lista, e mesmo numa lista adulterada esses nomes são recusados;
+    - caminho absoluto, com `..` ou que, seguindo links, saia de `DEPLOY_DIR`. O `prune-remote.sh` confere de novo na VPS.
+- **Sem lista anterior** (primeiro deploy com a correção): nada é apagado, só a lista é gravada.
+- **Testes**: `npm run test:deploy` testa o plano (arquivo removido, lista ausente, `..`, absoluto, arquivo fora da lista, nomes protegidos) e roda o `prune-remote.sh` numa pasta temporária.
+
 ## Variáveis do `.env` do servidor
 
 | Variável | Para quê |

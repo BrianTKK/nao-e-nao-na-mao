@@ -14,7 +14,8 @@
     "mobile": "npm run start -w mobile",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w web && npm run typecheck -w mobile",
     "test:db": "node db/tests/functions.test.mjs",
-    "test": "npm run test -w shared && npm run test:db && npm run test -w server",
+    "test": "npm run test -w shared && npm run test:db && npm run test -w server && npm run test:deploy",
+    "test:deploy": "node --test deploy/prune.test.mjs",
     "server": "npm run dev -w server"
   },
   "overrides": {
