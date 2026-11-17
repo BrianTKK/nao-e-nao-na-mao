@@ -12,7 +12,8 @@
     "seed": "tsx --env-file-if-exists=.env src/cli.ts seed",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit -p .",
-    "demo:reset": "tsx --env-file-if-exists=.env src/cli.ts demo:reset"
+    "demo:reset": "tsx --env-file-if-exists=.env src/cli.ts demo:reset",
+    "push:test": "tsx --env-file-if-exists=.env scripts/push-test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

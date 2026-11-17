@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { useMotion } from '@/hooks/useMotion';
@@ -7,6 +7,7 @@ import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
 import { WIFI_LIMITS } from '@nenm/shared';
 import { testAlarm } from '@/notifications/alarm';
+import { ownAndroidBuild, pushStatus, registerPush } from '@/notifications/push';
 import { color, space, ui } from '@/theme/theme';
 
 export default function Settings() {
@@ -18,6 +19,13 @@ export default function Settings() {
   const [ssid, setSsid] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
   const [wifiStatus, setWifiStatus] = useState<string | null>(null);
+  const [push, setPush] = useState(pushStatus);
+  // O registro do push roda ao entrar e pode terminar depois de esta tela abrir.
+  useEffect(() => {
+    if (!ownAndroidBuild) return;
+    const id = setTimeout(() => setPush(pushStatus()), 1500);
+    return () => clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     if (me?.role !== 'manager') return;
@@ -95,10 +103,14 @@ export default function Settings() {
         <Text style={ui.muted}>
           Alerta novo toca como alarme e repete por 2 minutos até alguém ver. Com o app aberto, o celular vibra sem parar.
           {Platform.OS === 'android'
-            ? ' Para tocar com o celular no "Não perturbe", permita isso no canal "Alertas (alarme)" das notificações do Expo Go.'
+            ? ` Para tocar com o celular no "Não perturbe", permita isso no canal "Alertas (alarme)" das notificações ${ownAndroidBuild ? 'do app' : 'do Expo Go'}.`
             : ' No iPhone, o modo silencioso corta o som (a vibração continua).'}
         </Text>
-        <Text style={ui.muted}>Com o app fechado, o alarme não chega: deixe o app aberto ou em segundo plano durante o turno.</Text>
+        <Text style={ui.muted}>
+          {ownAndroidBuild && push.registered
+            ? 'Com o app fechado, o alarme chega pelo push. Se o celular economiza bateria, deixe o app fora da otimização de bateria.'
+            : 'Com o app fechado, o alarme não chega: deixe o app aberto ou em segundo plano durante o turno.'}
+        </Text>
         <Button
           label={alarm === 'sent' ? 'Toca em 5 segundos: bloqueie a tela' : 'Testar o alarme'}
           variant="primary"
@@ -107,7 +119,7 @@ export default function Settings() {
         {alarm === 'denied' && (
           <>
             <Text style={ui.body} accessibilityLiveRegion="polite">
-              As notificações estão bloqueadas para o Expo Go.
+              As notificações estão bloqueadas para {ownAndroidBuild ? 'o app' : 'o Expo Go'}.
             </Text>
             <Button label="Abrir as configurações" onPress={() => Linking.openSettings()} />
           </>
@@ -166,6 +178,31 @@ export default function Settings() {
               {wifiStatus}
             </Text>
           )}
+        </View>
+      )}
+
+      {me?.role === 'manager' && ownAndroidBuild && (
+        <View style={ui.card}>
+          <Text style={ui.h2} accessibilityRole="header">
+            Teste do push
+          </Text>
+          <Text style={ui.muted}>
+            {push.registered ? 'Push ativo neste aparelho.' : push.problem ?? 'Push ainda não registrado neste aparelho.'} O token abaixo serve para mandar um
+            alarme de teste direto pelo Firebase, com o app fechado.
+          </Text>
+          {push.deviceToken && (
+            <Text style={ui.body} selectable accessibilityLabel="Token do aparelho">
+              {push.deviceToken}
+            </Text>
+          )}
+          {push.deviceToken && <Button label="Compartilhar o token" onPress={() => Share.share({ message: push.deviceToken! }).catch(() => {})} />}
+          <Button
+            label="Registrar de novo"
+            onPress={async () => {
+              await registerPush().catch(() => false);
+              setPush(pushStatus());
+            }}
+          />
         </View>
       )}
 

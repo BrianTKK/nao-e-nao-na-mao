@@ -5,7 +5,7 @@
 # - Ferramentas: JDK 17 em $TOOLS/jdk-17, Android SDK em $TOOLS/sdk, cache do
 #   Gradle em $TOOLS/gradle. Padrão TOOLS=/d/Android.
 # - Segredos, fora do repositório e do cofre (padrão SECRETS=/d/segredos/mariana):
-#   google-services.json (Firebase; sem ele, o APK sai sem push) e
+#   google-services.json (Firebase; sem ele, ou com MARIANA_SEM_FIREBASE=1, o APK sai sem push) e
 #   mariana-release.properties (assinatura; sem ele, o APK sai com a chave de depuração).
 # - Saída: $TOOLS/apk/mariana-<versão>-<commit>.apk
 # Detalhes em docs/NOTIFICACOES.md.
@@ -22,11 +22,13 @@ cd "$(dirname "$0")/.."
 [ -x "$JAVA_HOME/bin/java" ] || { echo "ERRO: JDK 17 não encontrado em $JAVA_HOME" >&2; exit 1; }
 [ -d "$ANDROID_HOME/cmdline-tools/latest" ] || { echo "ERRO: Android SDK não encontrado em $ANDROID_HOME" >&2; exit 1; }
 
-if [ -f "$SECRETS/google-services.json" ]; then
-  cp "$SECRETS/google-services.json" google-services.json
-  echo "Firebase: google-services.json incluído (push ligado)."
+# O google-services.json fica onde está (fora do repositório): o app.config.js lê o caminho.
+if [ -f "$SECRETS/google-services.json" ] && [ "${MARIANA_SEM_FIREBASE:-0}" != "1" ]; then
+  MARIANA_GOOGLE_SERVICES_FILE="$(cygpath -m "$SECRETS/google-services.json" 2>/dev/null || echo "$SECRETS/google-services.json")"
+  export MARIANA_GOOGLE_SERVICES_FILE
+  echo "Firebase: google-services.json de $SECRETS (push ligado)."
 else
-  rm -f google-services.json
+  unset MARIANA_GOOGLE_SERVICES_FILE
   echo "Firebase: sem google-services.json; o APK sai sem push (alarme só pelo toque local)."
 fi
 
