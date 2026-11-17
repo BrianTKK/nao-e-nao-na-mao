@@ -81,7 +81,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
         : null;
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
   const responder = alert.responderName ? `${alert.responderName.split(' ')[0]} a caminho` : null;
-  const statusText = isNew ? (forMe ? 'Para você' : STATUS_LABEL.open) : STATUS_LABEL[alert.status];
+  const statusText = STATUS_LABEL[alert.status];
   const label = `${assignedText ? `${assignedText}. ` : ''}${statusText}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Palavra ${spokenCode(alert.shortCode)}.${responder ? ` ${responder}.` : ''}`;
 
   const ink = isNew ? color.onAlert : color.text;
@@ -100,7 +100,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
       >
         <View style={styles.top}>
           <View style={styles.status}>
-            <Icon name={STATUS_ICON[isNew ? 'open' : alert.status]} size={20} color={tone} />
+            <Icon name={STATUS_ICON[alert.status]} size={20} color={tone} />
             <Text style={[styles.statusText, { color: tone }]}>{statusText}</Text>
           </View>
           <Text style={[ui.num, styles.time, { color: inkMuted }]}>há {waited}</Text>

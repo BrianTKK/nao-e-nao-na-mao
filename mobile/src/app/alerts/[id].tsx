@@ -143,9 +143,12 @@ export default function AlertDetail() {
     <View style={ui.screen}>
       <ScrollView style={ui.screen} contentContainerStyle={[ui.content, { paddingBottom: space.lg }]}>
         <View style={{ gap: space.xxs }}>
-          <View style={styles.statusRow} accessibilityLiveRegion="polite">
+          <View style={styles.statusRow}>
             <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{STATUS_LABEL[alert.status]}</Text>
+            {/* Só o estado é região viva: o tempo muda a cada segundo e não deve ser anunciado. */}
+            <Text style={[styles.statusText, { color: statusColor }]} accessibilityLiveRegion="polite">
+              {STATUS_LABEL[alert.status]}
+            </Text>
             <Text style={[ui.num, styles.time]}>· há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
           </View>
           <Text style={[ui.display, styles.place]} accessibilityRole="header">

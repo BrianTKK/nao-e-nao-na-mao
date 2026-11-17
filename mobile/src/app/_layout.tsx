@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MotionProvider } from '@/hooks/useMotion';
 import { SessionProvider } from '@/hooks/useSession';
 import { setupNotifications } from '@/hooks/useActiveAlerts';
+import { setPendingAlert } from '@/notifications/openAlert';
 import { color, font, fontSize } from '@/theme/theme';
 
 // A tela de abertura fica até as fontes carregarem (ou falharem).
@@ -31,6 +32,11 @@ export default function RootLayout() {
   });
   const [timedOut, setTimedOut] = useState(false);
   const ready = fontsLoaded || !!fontError || timedOut;
+  // O Stack já está montado (o toque com o app aberto pode navegar na hora).
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (ready) mounted.current = true;
+  }, [ready]);
 
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), FONT_TIMEOUT_MS);
@@ -44,11 +50,29 @@ export default function RootLayout() {
   useEffect(() => {
     setupNotifications().catch(() => {});
     if (Platform.OS === 'web') return;
-    // Tocar na notificação abre o alerta direto.
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
+    // Tocar na notificação abre o alerta direto. A mesma resposta pode chegar
+    // pelo listener e pela última guardada: abre uma vez só.
+    let handled: string | null = null;
+    const open = (res: Notifications.NotificationResponse) => {
+      const key = `${res.notification.request.identifier}:${res.actionIdentifier}`;
+      if (key === handled) return;
+      handled = key;
+      try {
+        Notifications.clearLastNotificationResponse();
+      } catch {}
       const id = res.notification.request.content.data?.alertId;
-      if (typeof id === 'string') router.push(`/alerts/${id}`);
-    });
+      if (typeof id !== 'string') return;
+      // Antes de o app estar pronto, a navegação se perderia: a lista de alertas abre depois.
+      if (mounted.current) router.push(`/alerts/${id}`);
+      else setPendingAlert(id);
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    // App fechado: o toque chega antes do listener e fica só como a última resposta.
+    // Vira pendente: a lista de alertas o abre quando montar.
+    try {
+      const last = Notifications.getLastNotificationResponse();
+      if (last) open(last);
+    } catch {}
     return () => sub.remove();
   }, []);
 

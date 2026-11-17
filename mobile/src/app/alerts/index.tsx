@@ -5,6 +5,7 @@ import type { ConnectionState } from '@nenm/shared';
 import { Button } from '@/components/Button';
 import { AlertCard } from '@/components/AlertCard';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
+import { takePendingAlert } from '@/notifications/openAlert';
 import { useSession } from '@/hooks/useSession';
 import { dataSource, showDemo, simulateAlert } from '@/data/source';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
@@ -46,6 +47,13 @@ export default function Alerts() {
 
   useEffect(() => {
     if (me === null) router.replace('/login');
+  }, [me]);
+
+  // Toque na notificação com o app fechado: abre o alerta agora que o app está pronto e com login.
+  useEffect(() => {
+    if (!me) return;
+    const pending = takePendingAlert();
+    if (pending) router.push({ pathname: '/alerts/[id]', params: { id: pending } });
   }, [me]);
 
   return (
