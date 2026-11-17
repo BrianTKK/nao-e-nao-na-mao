@@ -64,7 +64,7 @@ Pedido da Central (17/11/2026), depois do teste do Brian em 16/11 no Android pel
 | O quê | Onde | Observação |
 | --- | --- | --- |
 | Conta de serviço do Firebase (chave privada) | PC: `D:\segredos\mariana\fcm-service-account.json`. VPS: `/etc/naoenao/fcm-service-account.json`, montada só leitura no contêiner | `FCM_SERVICE_ACCOUNT_FILE=/run/secrets/naoenao/fcm-service-account.json` no `.env` da VPS (ver `docs/DEPLOY.md`). Sem ela, o push fica desligado, com um aviso no log |
-| `google-services.json` (configuração do app no Firebase, pacote `me.obrian.mariana`) | PC: `D:\segredos\mariana\google-services.json` | O `build-apk.sh` copia para `mobile/` (fora do git) antes do build. Sem ele, o APK sai sem push |
+| `google-services.json` (configuração do app no Firebase, pacote `me.obrian.mariana`) | PC: `D:\segredos\mariana\google-services.json` | O `build-apk.sh` aponta para ele por `MARIANA_GOOGLE_SERVICES_FILE`, lida pelo `mobile/app.config.js`, sem copiar para a pasta do projeto. O prebuild o põe em `mobile/android/app/`, fora do git. Sem ele (ou com `MARIANA_SEM_FIREBASE=1`), o APK sai sem push |
 | Chave de assinatura do APK | PC: `D:\segredos\mariana\mariana-release.keystore`, com as senhas em `mariana-release.properties` ao lado | Gerada no PC em 17/11/2026 (RSA 4096, alias `mariana`). **Sem ela, não dá para atualizar o app já instalado por cima**: o Android exige a mesma assinatura. Vale ter uma cópia fora do PC, num lugar seguro e nunca no git |
 
 ### Gerar o APK no PC
@@ -80,6 +80,25 @@ bash mobile/scripts/build-apk.sh
   - entrar com a conta;
   - aceitar as notificações;
   - nos ajustes do canal "Alertas (alarme)", permitir passar pelo "Não perturbe".
+
+### Teste de ponta a ponta, antes do deploy
+
+Sugestão da Central (17/11/2026). Prova a entrega do Firebase sem depender da VPS:
+
+1. Instalar o APK e entrar com uma conta da **gerência**.
+2. Em **Ajustes → Teste do push**, compartilhar o token do aparelho com o PC. O token aparece mesmo antes do deploy, quando o servidor no ar ainda não aceita registrá-lo.
+3. Fechar o app (tirar dos recentes) e bloquear a tela.
+4. No PC:
+
+   ```bash
+   npm run push:test -w server -- <token-do-aparelho> --repetir
+   ```
+
+   O script manda a mesma mensagem de um alerta, com as 5 repetições e o mesmo `tag`. Ele lê a chave de `FCM_SERVICE_ACCOUNT_FILE`, por padrão `D:/segredos/mariana/fcm-service-account.json`, e só mostra o resultado de cada envio.
+5. **Passou** se:
+   - tocou como alarme, com o som da Mariana e a vibração longa, com o app fechado;
+   - cada repetição substituiu a anterior na bandeja, em vez de empilhar;
+   - tocar no aviso abriu o app.
 
 ### Testado e não testado (17/11/2026)
 
@@ -101,7 +120,8 @@ bash mobile/scripts/build-apk.sh
   - o `google-services.json` é do mesmo projeto (`mariana-c86f0`) e do pacote `me.obrian.mariana`;
   - o bundle Android compila (`expo export`);
   - o `expo prebuild` gera o `android/` com o som em `res/raw`, o `google-services.json` e a assinatura release;
-  - o Gradle 9.4.1 baixou e configurou o projeto.
+  - o Gradle 9.4.1 baixou e configurou o projeto;
+  - o `push:test` do PC chegou ao FCM de verdade: com um token falso, a resposta foi 400, a recusa do token.
 - **Parou na licença**: o build pediu o NDK 27.1.12297006 e parou em "License for package NDK ... not accepted". Aceitar a licença do Android SDK (`sdkmanager --licenses`) é um ok do Brian. O APK ainda não foi gerado.
 - **Não testado**:
   - o APK e tudo no celular: o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
