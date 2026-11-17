@@ -13,7 +13,7 @@ const ERRORS: Partial<Record<DataError['code'], string>> = {
 };
 const message = (err: unknown) => (err instanceof DataError && ERRORS[err.code]) || 'Não foi possível salvar. Confira os campos e tente de novo.';
 
-/** Equipe do bar: quem recebe os pedidos, o curso Não se Cale e quem está ativo. */
+/** Equipe do bar: quem recebe os alertas, o curso Não se Cale e quem está ativo. */
 export function Staff() {
   const { me } = useOutletContext<PanelContext>();
   const [staff, setStaff] = useState<StaffMember[] | null>(null);
@@ -37,7 +37,7 @@ export function Staff() {
     <>
       <h1>Equipe</h1>
       <p className="muted">
-        Quem está ativo recebe os pedidos de ajuda no app. Desativar tira o acesso na hora, inclusive do celular que estiver aberto.
+        Quem está ativo recebe os alertas no app. Desativar tira o acesso na hora, inclusive do celular que estiver aberto.
       </p>
       <NewStaffForm onCreated={load} />
       <div aria-live="assertive">{error && <p className="error">{error}</p>}</div>

@@ -5,7 +5,7 @@ import './home.css';
 
 /** Página inicial do projeto: o que é e por onde testar. */
 export function Home() {
-  useDocumentTitle('Não é Não na Mão · pedido de ajuda discreto no bar');
+  useDocumentTitle('Não é Não na Mão · alerta discreto no bar');
   const restroom = DEMO_SPOTS[0];
   return (
     <main className="home">
@@ -22,7 +22,7 @@ export function Home() {
         </li>
         <li className="card">
           <h2>2. A equipe recebe</h2>
-          <p>O app do segurança ou do garçom vibra com o local. Quem toca em "Estou indo" assume o pedido.</p>
+          <p>O app do segurança ou do garçom vibra com o local. Quem toca em "Estou indo" assume o alerta.</p>
         </li>
         <li className="card">
           <h2>3. Ela vê quem vem</h2>

@@ -9,7 +9,7 @@ import { showDemo, simulateAlert } from '@/data/source';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { space, ui } from '@/theme/theme';
 
-/** Pedidos abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
+/** Alertas abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
 export default function Alerts() {
   const { me } = useSession();
   const alerts = useActiveAlerts(me?.id ?? null);
@@ -42,7 +42,7 @@ export default function Alerts() {
               {me ? `${me.fullName.split(' ')[0]} · ${me.appearance ? `hoje de ${me.appearance}` : 'roupa do dia não informada'}` : ''}
             </Text>
             <Text style={ui.h2} accessibilityRole="header" accessibilityLiveRegion="polite">
-              {alerts === null ? 'Carregando…' : alerts.length === 0 ? 'Nenhum pedido agora' : `${alerts.length} pedido(s) em aberto`}
+              {alerts === null ? 'Carregando…' : alerts.length === 0 ? 'Nenhum alerta agora' : `${alerts.length} alerta(s) em aberto`}
             </Text>
           </View>
         }
@@ -51,15 +51,15 @@ export default function Alerts() {
         )}
         ListEmptyComponent={
           alerts ? (
-            <Text style={ui.body}>Quando alguém ler um QR code do bar, o pedido aparece aqui e o celular vibra.</Text>
+            <Text style={ui.body}>Quando alguém ler um QR code do bar, o alerta aparece aqui e o celular vibra.</Text>
           ) : undefined
         }
         ListFooterComponent={
           showDemo ? (
             <View style={[ui.card, { marginTop: space.lg }]}>
               <Text style={ui.label}>Demonstração</Text>
-              <Text style={ui.muted}>Cria um pedido como se alguém tivesse lido o QR code do banheiro feminino.</Text>
-              <Button label="Simular um pedido" onPress={() => simulateAlert().catch(() => {})} />
+              <Text style={ui.muted}>Cria um alerta como se alguém tivesse lido o QR code do banheiro feminino.</Text>
+              <Button label="Simular um alerta" onPress={() => simulateAlert().catch(() => {})} />
             </View>
           ) : undefined
         }

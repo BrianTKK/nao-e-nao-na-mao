@@ -16,18 +16,18 @@ import { StatusBadge } from '../../components/StatusBadge';
 
 const ERRORS: Partial<Record<DataError['code'], string>> = {
   already_taken: 'Outra pessoa já está indo.',
-  invalid_transition: 'Este pedido já mudou de estado.',
+  invalid_transition: 'Este alerta já mudou de estado.',
   staff_not_found: 'Essa pessoa não está ativa na equipe.',
 };
 
 /**
- * Quadro ao vivo de quem coordena. Cada pedido aberto tem as ações na ordem do
- * atendimento: "Vi o pedido", "Estou indo" (a própria gerência vai), "Mandar
+ * Quadro ao vivo de quem coordena. Cada alerta aberto tem as ações na ordem do
+ * atendimento: "Vi o alerta", "Estou indo" (a própria gerência vai), "Mandar
  * alguém" (direciona para alguém da equipe) e "Resolvido". Cada ação muda na
  * hora a página da mulher e o app da equipe.
  */
 export function LiveBoard({ alerts, staff, me, now }: { alerts: Alert[]; staff: StaffMember[]; me: StaffMember; now: number }) {
-  if (alerts.length === 0) return <p className="muted">Nenhum pedido em aberto.</p>;
+  if (alerts.length === 0) return <p className="muted">Nenhum alerta em aberto.</p>;
   const crew = staff.filter((s) => s.active && s.id !== me.id);
   return (
     <ul className="live-list">
@@ -91,10 +91,10 @@ function LiveItem({ alert: a, crew, now }: { alert: Alert; crew: StaffMember[]; 
             type="button"
             className="btn"
             disabled={!!busy}
-            aria-label={`Vi o pedido do ${place}`}
-            onClick={() => run('ack', () => dataSource.staff.ackAlert(a.id), `Pedido do ${place} marcado como visto.`)}
+            aria-label={`Vi o alerta do ${place}`}
+            onClick={() => run('ack', () => dataSource.staff.ackAlert(a.id), `Alerta do ${place} marcado como visto.`)}
           >
-            {busy === 'ack' ? 'Salvando…' : 'Vi o pedido'}
+            {busy === 'ack' ? 'Salvando…' : 'Vi o alerta'}
           </button>
         )}
         {waiting && (
@@ -135,7 +135,7 @@ function LiveItem({ alert: a, crew, now }: { alert: Alert; crew: StaffMember[]; 
         )}
         <span className="live-group">
           <label className="visually-hidden" htmlFor={`outcome-${a.id}`}>
-            Como terminou o pedido do {place}
+            Como terminou o alerta do {place}
           </label>
           <select id={`outcome-${a.id}`} value={outcome} onChange={(e) => setOutcome(e.target.value as AlertOutcome)} disabled={!!busy}>
             <option value="">Como terminou…</option>
@@ -149,8 +149,8 @@ function LiveItem({ alert: a, crew, now }: { alert: Alert; crew: StaffMember[]; 
             type="button"
             className="btn"
             disabled={!!busy || !outcome}
-            aria-label={`Marcar o pedido do ${place} como resolvido`}
-            onClick={() => outcome && run('done', () => dataSource.staff.resolveAlert(a.id, outcome), `Pedido do ${place} resolvido.`)}
+            aria-label={`Marcar o alerta do ${place} como resolvido`}
+            onClick={() => outcome && run('done', () => dataSource.staff.resolveAlert(a.id, outcome), `Alerta do ${place} resolvido.`)}
           >
             {busy === 'done' ? 'Salvando…' : 'Resolvido'}
           </button>

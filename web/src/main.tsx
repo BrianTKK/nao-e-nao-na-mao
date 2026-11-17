@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { applyTokens } from './styles/tokens';
 import './styles/global.css';
 import { Home } from './pages/Home';
@@ -29,7 +29,9 @@ createRoot(document.getElementById('root')!).render(
         {/* Painel da gerência. */}
         <Route path="/painel" element={<PanelLayout />}>
           <Route index element={<Overview />} />
-          <Route path="pedidos" element={<History />} />
+          <Route path="alertas" element={<History />} />
+          {/* Endereço antigo, de antes de "pedido" virar "alerta" (16/11). */}
+          <Route path="pedidos" element={<Navigate to="/painel/alertas" replace />} />
           <Route path="equipe" element={<Staff />} />
           <Route path="qr-codes" element={<Spots />} />
           <Route path="qr-codes/imprimir" element={<PrintSpots />} />

@@ -46,7 +46,7 @@ export function PanelLayout() {
         <NavLink to="/painel" end>
           Visão geral
         </NavLink>
-        <NavLink to="/painel/pedidos">Pedidos</NavLink>
+        <NavLink to="/painel/alertas">Alertas</NavLink>
         <NavLink to="/painel/equipe">Equipe</NavLink>
         <NavLink to="/painel/qr-codes">QR codes</NavLink>
         <NavLink to="/painel/relatorio">Relatório do mês</NavLink>
@@ -57,7 +57,7 @@ export function PanelLayout() {
         ) : (
           <section className="card">
             <h1>Este painel é da gerência</h1>
-            <p>A equipe usa o app no celular para receber e atender os pedidos.</p>
+            <p>A equipe usa o app no celular para receber e atender os alertas.</p>
           </section>
         )}
       </main>

@@ -44,7 +44,7 @@ export default function Login() {
           <Text style={ui.h1} accessibilityRole="header">
             App da equipe
           </Text>
-          <Text style={ui.body}>Receba os pedidos de ajuda do bar e diga a quem pediu que você está indo.</Text>
+          <Text style={ui.body}>Receba os alertas do bar e diga a quem pediu que você está indo.</Text>
 
           <View style={{ gap: space.xxs }}>
             <Text style={ui.label} nativeID="email-label">

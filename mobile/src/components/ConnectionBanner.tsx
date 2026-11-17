@@ -5,9 +5,9 @@ import { dataSource } from '@/data/source';
 import { color, fontSize, radius, space } from '@/theme/theme';
 
 const TEXT: Record<ConnectionState, string> = {
-  online: 'Conectado: os pedidos chegam na hora',
+  online: 'Conectado: os alertas chegam na hora',
   connecting: 'Reconectando…',
-  offline: 'Sem conexão: os pedidos novos não estão chegando',
+  offline: 'Sem conexão: os alertas novos não estão chegando',
 };
 
 /**

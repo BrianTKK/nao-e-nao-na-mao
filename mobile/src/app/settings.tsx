@@ -47,7 +47,7 @@ export default function Settings() {
             Reduzir movimento
           </Text>
           <Text style={ui.muted}>
-            Tira as animações e o pulso dos pedidos novos (a vibração continua).
+            Tira as animações e o pulso dos alertas novos (a vibração continua).
             {systemReduceMotion ? ' O celular já pede menos movimento.' : ''}
           </Text>
         </View>

@@ -22,7 +22,7 @@ export function Overview() {
   const active = alerts?.filter((a) => isActive(a.status)) ?? [];
   const trained = staff.filter((s) => s.active && s.trainedAt).length;
 
-  if (error) return <p className="error">Não foi possível carregar os pedidos.</p>;
+  if (error) return <p className="error">Não foi possível carregar os alertas.</p>;
   if (!alerts || !stats) return <p className="muted">Carregando…</p>;
 
   const outcomes = Object.entries(stats.byOutcome).sort((a, b) => b[1] - a[1]) as [AlertOutcome, number][];
@@ -36,7 +36,7 @@ export function Overview() {
       <section aria-labelledby="agora" className="panel-section">
         <h2 id="agora">Agora</h2>
         <p className="muted" aria-live="polite">
-          {active.length === 0 ? '' : `${active.length} pedido(s) em aberto`}
+          {active.length === 0 ? '' : `${active.length} alerta(s) em aberto`}
         </p>
         <LiveBoard alerts={active} staff={staff} me={me} now={now} />
       </section>
@@ -45,7 +45,7 @@ export function Overview() {
         <h2 id="mes">Últimos 30 dias</h2>
         <dl className="kpis">
           <div className="kpi">
-            <dt>Pedidos de ajuda</dt>
+            <dt>Alertas</dt>
             <dd>{stats.total}</dd>
           </div>
           <div className="kpi">
@@ -67,7 +67,7 @@ export function Overview() {
 
       <div className="panel-grid">
         <section aria-labelledby="locais" className="panel-section card">
-          <h2 id="locais">Pedidos por local</h2>
+          <h2 id="locais">Alertas por local</h2>
           <ul className="bars">
             {spots.map(([label, n]) => (
               <li key={label}>

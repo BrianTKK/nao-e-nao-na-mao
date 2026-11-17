@@ -67,7 +67,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Item | Estado | Onde |
 | --- | --- | --- |
 | Quadro ao vivo com quem está indo e o tempo correndo | ✅ | `web/src/pages/panel/LiveBoard.tsx` |
-| "Vi o pedido" pelo painel | ✅ | A página dela passa a "A equipe viu o seu pedido" na hora. Testado no PC com as três telas |
+| "Vi o alerta" pelo painel | ✅ | A página dela passa a "A equipe viu o seu pedido" na hora. Testado no PC com as três telas |
 | "Mandar alguém" (direcionar) | ✅ | `POST /api/manager/alerts/:id/assign`, só para alguém ativo do mesmo bar. O app da pessoa mostra "Marta pediu que você vá" e vibra de novo. A página dela mostra "Diego, de camisa preta, foi chamado para ir até você" e, quando ele toca em "Estou indo", "está indo até você". Testado no PC com as três telas |
 | Motion e acessibilidade das ações do painel | 🟡 | O cartão "acende" a cada troca de estado. Os botões têm rótulo com o local para o leitor de tela, o retorno da ação fica numa região viva e o foco é visível. Falta a rodada com o NVDA (F3) |
 | Assumir (a gerência vai) e encerrar pelo painel | ✅ | Usa as mesmas rotas da equipe. Testado: a página mostrou "Marta, de blazer azul, está indo até você" |

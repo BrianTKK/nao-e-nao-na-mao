@@ -30,7 +30,7 @@ const day = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00`).to
 export function Report() {
   const [month, setMonth] = useState(monthInput());
   useDocumentTitle(`Relatório ${month} · Não é Não na Mão`);
-  // Pedidos guardados com o mês a que pertencem: trocar o mês mostra "Carregando…" sem apagar no efeito.
+  // Alertas guardados com o mês a que pertencem: trocar o mês mostra "Carregando…" sem apagar no efeito.
   const [loaded, setLoaded] = useState<{ month: string; alerts: Alert[] } | null>(null);
   const alerts = loaded?.month === month ? loaded.alerts : null;
   const [generatedAt] = useState(() => new Date().toLocaleString('pt-BR'));
@@ -78,7 +78,7 @@ export function Report() {
 
       <header className="report-header">
         <p className="report-kicker">Protocolo Não se Cale (Lei estadual 17.621/2023) · Lei federal 14.786/2023</p>
-        <h1>Relatório de pedidos de ajuda · {monthName(month)}</h1>
+        <h1>Relatório de alertas · {monthName(month)}</h1>
         {venue && (
           <p>
             {venue.name}
@@ -97,7 +97,7 @@ export function Report() {
             <table className="report-table">
               <tbody>
                 <tr>
-                  <th scope="row">Pedidos de ajuda (acionamentos)</th>
+                  <th scope="row">Alertas (acionamentos)</th>
                   <td>{stats.total}</td>
                 </tr>
                 <tr>
@@ -119,7 +119,7 @@ export function Report() {
                   <td>{stats.medianResponseSeconds === null ? '—' : formatDuration(stats.medianResponseSeconds, true)}</td>
                 </tr>
                 <tr>
-                  <th scope="row">Tempo até alguém ir (9 em cada 10 pedidos, até)</th>
+                  <th scope="row">Tempo até alguém ir (9 em cada 10 alertas, até)</th>
                   <td>{p90 === null ? '—' : formatDuration(p90, true)}</td>
                 </tr>
                 <tr>
@@ -134,7 +134,7 @@ export function Report() {
 
           <div className="report-cols">
             <section aria-labelledby="r-tipo">
-              <h2 id="r-tipo">Por tipo de pedido</h2>
+              <h2 id="r-tipo">Por tipo de alerta</h2>
               <table className="report-table">
                 <tbody>
                   {(Object.entries(byKind) as [AlertKind, number][]).map(([k, n]) => (
@@ -201,16 +201,16 @@ export function Report() {
           </section>
 
           <section aria-labelledby="r-lista" className="report-break">
-            <h2 id="r-lista">Registro de cada pedido</h2>
+            <h2 id="r-lista">Registro de cada alerta</h2>
             {alerts.length === 0 ? (
-              <p>Nenhum pedido no mês.</p>
+              <p>Nenhum alerta no mês.</p>
             ) : (
               <table className="report-table report-list">
                 <thead>
                   <tr>
                     <th scope="col">Quando</th>
                     <th scope="col">Local</th>
-                    <th scope="col">Pedido</th>
+                    <th scope="col">Tipo</th>
                     <th scope="col">Até alguém ir</th>
                     <th scope="col">Quem atendeu</th>
                     <th scope="col">Desfecho</th>

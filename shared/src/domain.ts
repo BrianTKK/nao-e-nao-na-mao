@@ -141,7 +141,7 @@ export const OUTCOME_LABEL: Record<AlertOutcome, string> = {
   talk_resolved: 'A conversa resolveu',
   police_called: 'Acionamos o 190',
   not_found: 'Não encontrei a pessoa',
-  false_alarm: 'Pedido indevido',
+  false_alarm: 'Alerta indevido',
 };
 
 export const SPOT_KIND_LABEL: Record<SpotKind, string> = {

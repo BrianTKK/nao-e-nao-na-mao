@@ -18,7 +18,7 @@ export function TryApp() {
     <main className="home try">
       <p className="home-kicker">Não é Não na Mão · demonstração</p>
       <h1>Testar o app da equipe no celular</h1>
-      <p className="home-lead">O app é de quem trabalha no bar: recebe o pedido de ajuda e avisa que está indo.</p>
+      <p className="home-lead">O app é de quem trabalha no bar: recebe o alerta e avisa que está indo.</p>
 
       <section className="try-grid" aria-labelledby="passos">
         <div>
@@ -47,9 +47,9 @@ export function TryApp() {
               de demonstração, que volta ao estado inicial todo dia.
             </li>
             <li>
-              <strong>Faça um pedido de ajuda</strong> pelo botão "Simular um pedido" no fim da lista, ou abrindo{' '}
+              <strong>Dispare um alerta</strong> pelo botão "Simular um alerta" no fim da lista, ou abrindo{' '}
               <Link to={`/q/${restroom.code}`}>a página do QR do {restroom.label.toLowerCase()}</Link> em outro aparelho. O celular vibra e o
-              pedido aparece. Toque nele e em "Estou indo".
+              alerta aparece. Toque nele e em "Estou indo".
             </li>
           </ol>
         </div>

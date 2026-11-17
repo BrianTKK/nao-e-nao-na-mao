@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Alert } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 
-/** Pedidos dos últimos `days` dias, recarregados a cada mudança (tempo real). */
+/** Alertas dos últimos `days` dias, recarregados a cada mudança (tempo real). */
 export function useAlerts(days: number): { alerts: Alert[] | null; error: boolean } {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [error, setError] = useState(false);

@@ -24,12 +24,12 @@ import { color, fontSize, motion, radius, space, ui } from '@/theme/theme';
 
 const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
   already_taken: 'Outra pessoa da equipe já está indo.',
-  invalid_transition: 'Este pedido já foi encerrado.',
-  alert_not_found: 'Pedido não encontrado.',
+  invalid_transition: 'Este alerta já foi encerrado.',
+  alert_not_found: 'Alerta não encontrado.',
   network: 'Sem conexão. Tente de novo quando o sinal voltar.',
 };
 
-/** Atender um pedido: ver, dizer "Estou indo" e registrar como terminou. */
+/** Atender um alerta: ver, dizer "Estou indo" e registrar como terminou. */
 export default function AlertDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { me } = useSession();
@@ -45,7 +45,7 @@ export default function AlertDetail() {
 
   useEffect(() => {
     load();
-    // Abrir o pedido conta como "visto": o painel mede quanto tempo isso levou.
+    // Abrir o alerta conta como "visto": o painel mede quanto tempo isso levou.
     dataSource.staff.ackAlert(id).catch(() => {});
     const stop = dataSource.staff.watchActiveAlerts(() => load());
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -72,7 +72,7 @@ export default function AlertDetail() {
   if (alert === null)
     return (
       <View style={[ui.screen, ui.content]}>
-        <Text style={ui.body}>Pedido não encontrado.</Text>
+        <Text style={ui.body}>Alerta não encontrado.</Text>
         <Button label="Voltar" onPress={() => router.back()} />
       </View>
     );
@@ -162,8 +162,8 @@ export default function AlertDetail() {
 
       {!active && (
         <View style={ui.card}>
-          <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Pedido encerrado.'}</Text>
-          <Button label="Voltar aos pedidos" onPress={() => router.back()} />
+          <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
+          <Button label="Voltar aos alertas" onPress={() => router.back()} />
         </View>
       )}
     </ScrollView>

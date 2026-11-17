@@ -24,8 +24,8 @@ function create(): DataSource {
 
 export const dataSource = create();
 
-/** Atalhos do bar de demonstração (conta de teste e "Simular um pedido"). EXPO_PUBLIC_SHOW_DEMO=0 esconde. */
+/** Atalhos do bar de demonstração (conta de teste e "Simular um alerta"). EXPO_PUBLIC_SHOW_DEMO=0 esconde. */
 export const showDemo = process.env.EXPO_PUBLIC_SHOW_DEMO !== '0';
 
-/** Cria um pedido como se alguém tivesse lido o QR code do banheiro feminino do bar de demonstração. */
+/** Cria um alerta como se alguém tivesse lido o QR code do banheiro feminino do bar de demonstração. */
 export const simulateAlert = () => dataSource.public.createAlert(DEMO_SPOTS[0].code, 'unsafe');

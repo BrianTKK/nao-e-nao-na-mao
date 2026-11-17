@@ -89,7 +89,7 @@ O app vem de um Metro em modo de produção na VPS (`expo-naoenao.obrian.me`) e 
 ### Demonstração (bar fictício)
 
 1. **Página do QR code**: `http://localhost:5173/q/ESQBF7K2` (banheiro feminino). Os outros códigos estão em `db/seed.sql`.
-2. **App**: "Preencher com a conta de teste do Diego" e "Entrar". O botão "Simular um pedido" faz o papel do QR code.
+2. **App**: "Preencher com a conta de teste do Diego" e "Entrar". O botão "Simular um alerta" faz o papel do QR code.
 3. **Painel**: `/painel`, com "Preencher com a conta de teste da gerente".
 
 As contas de teste estão em `db/test-users.json`.

@@ -3,7 +3,7 @@ import { KIND_STAFF_LABEL, OUTCOME_LABEL, displayCode, formatDuration, normalize
 import { StatusBadge } from '../../components/StatusBadge';
 import { dateTime, useAlerts } from './usePanelData';
 
-/** Registro de todos os pedidos: o histórico que o protocolo pede. */
+/** Registro de todos os alertas: o histórico que o protocolo pede. */
 export function History() {
   const [days, setDays] = useState(30);
   const [word, setWord] = useState('');
@@ -14,7 +14,7 @@ export function History() {
 
   return (
     <>
-      <h1>Pedidos</h1>
+      <h1>Alertas</h1>
       <div className="field panel-filter">
         <label htmlFor="period">Período</label>
         <select id="period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
@@ -27,19 +27,19 @@ export function History() {
         <label htmlFor="word">Buscar pela palavra-código</label>
         <input id="word" type="search" value={word} onChange={(e) => setWord(e.target.value)} placeholder="ex.: borboleta" autoComplete="off" />
       </div>
-      {error && <p className="error">Não foi possível carregar os pedidos.</p>}
+      {error && <p className="error">Não foi possível carregar os alertas.</p>}
       {!alerts && !error && <p className="muted">Carregando…</p>}
       {alerts && query && alerts.length === 0 && <p className="muted">Nenhum alerta com essa palavra no período.</p>}
       {alerts && (
-        <div className="table-wrap" tabIndex={0} role="region" aria-label="Tabela de pedidos (role para os lados no celular)">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Tabela de alertas (role para os lados no celular)">
           <table className="table">
-            <caption className="visually-hidden">{alerts.length} pedidos no período</caption>
+            <caption className="visually-hidden">{alerts.length} alertas no período</caption>
             <thead>
               <tr>
                 <th scope="col">Quando</th>
                 <th scope="col">Local</th>
                 <th scope="col">Palavra</th>
-                <th scope="col">Pedido</th>
+                <th scope="col">Tipo</th>
                 <th scope="col">Até alguém ir</th>
                 <th scope="col">Quem atendeu</th>
                 <th scope="col">Desfecho</th>

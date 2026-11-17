@@ -16,7 +16,7 @@ import { useMotion } from '@/hooks/useMotion';
 const ICON: Record<Alert['status'], string> = { open: '●', seen: '◉', on_the_way: '➜', resolved: '✓', cancelled: '×' };
 
 /**
- * Cartão de pedido. Pedido novo pulsa (borda e brilho) até alguém ver: o bar
+ * Cartão de alerta. Alerta novo pulsa (borda e brilho) até alguém ver: o bar
  * é escuro e barulhento, e o alerta precisa saltar aos olhos. Com "reduzir
  * movimento", a borda fica grossa e parada.
  */
@@ -57,7 +57,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityHint="Abre o pedido para atender"
+        accessibilityHint="Abre o alerta para atender"
         style={[styles.card, { borderColor: statusColor, borderWidth: isNew ? 4 : 2 }]}
       >
         <View style={styles.row}>
