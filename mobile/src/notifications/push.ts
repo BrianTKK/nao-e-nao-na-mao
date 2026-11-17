@@ -31,9 +31,15 @@ const supported = () => ownAndroidBuild;
 /** Para o teste do push nos Ajustes (só a gerência vê): o token deste aparelho ou o motivo de não haver. */
 export const pushStatus = () => ({ deviceToken, registered: token !== null, problem });
 
+/** Vale tentar de novo (falta de rede ou servidor fora); não vale com o Firebase ausente ou a notificação bloqueada. */
+let retryable = false;
+export const shouldRetryPush = () => ownAndroidBuild && token === null && retryable;
+
 async function send(next: string): Promise<void> {
-  await dataSource.staff.registerPushToken(next, 'android');
-  token = next;
+  const { pushEnabled } = await dataSource.staff.registerPushToken(next, 'android');
+  // Só com o servidor mandando push o app deixa as repetições do alarme para ele.
+  token = pushEnabled ? next : null;
+  problem = pushEnabled ? null : 'O servidor ainda não manda push (falta a chave do Firebase nele). O alarme repete pelo próprio app.';
 }
 
 /** Registra o token deste aparelho. Devolve se o push ficou ativo. */
@@ -43,6 +49,7 @@ export async function registerPush(): Promise<boolean> {
     const { granted } = await Notifications.getPermissionsAsync();
     if (!granted && !(await Notifications.requestPermissionsAsync()).granted) {
       problem = 'As notificações estão bloqueadas para o app.';
+      retryable = false;
       return false;
     }
     const device = await Notifications.getDevicePushTokenAsync();
@@ -51,20 +58,23 @@ export async function registerPush(): Promise<boolean> {
       return false;
     }
     deviceToken = device.data;
+    retryable = true;
     await send(device.data);
-    problem = null;
+    retryable = false;
     // O Firebase pode trocar o token (reinstalação, dados apagados): registrar o novo.
     listener ??= Notifications.addPushTokenListener((t) => {
       if (t.type === 'android' && typeof t.data === 'string' && t.data !== token) send(t.data).catch(() => {});
     });
-    return true;
+    return token !== null;
   } catch (err) {
     // Sem o Firebase no build ("Default FirebaseApp is not initialized") ou sem rede.
     console.warn('Push remoto desligado:', (err as Error).message);
     token = null;
-    problem = /Firebase/i.test((err as Error).message)
+    const noFirebase = /Firebase/i.test((err as Error).message);
+    retryable = !noFirebase;
+    problem = noFirebase
       ? 'Este APK foi gerado sem o Firebase (sem o google-services.json).'
-      : 'Não deu para registrar o push (sem rede ou o servidor recusou).';
+      : 'Não deu para registrar o push (sem rede ou o servidor recusou). O app tenta de novo ao voltar para ele.';
     return false;
   }
 }

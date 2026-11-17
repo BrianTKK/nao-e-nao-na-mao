@@ -35,7 +35,7 @@ async function sendOnce(again: boolean): Promise<void> {
   const result = await sender.send({ token: token!, data: messageData(alert, 'new', again) });
   console.log(`${new Date().toLocaleTimeString('pt-BR')}  ${again ? 'repetição' : 'primeiro aviso'}: ${result}`);
   if (result === 'invalid_token') {
-    console.error('O FCM não conhece este token (app desinstalado, dados apagados ou token de outro projeto).');
+    console.error('O FCM recusou o token: app desinstalado, dados apagados, token de outro projeto ou texto que não é token.');
     process.exit(1);
   }
 }

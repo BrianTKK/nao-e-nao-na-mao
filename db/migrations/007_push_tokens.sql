@@ -13,7 +13,11 @@ create table push_tokens (
   platform text not null check (platform in ('android')),
   created_at timestamptz not null default now(),
   -- Última vez que o app confirmou o token (a cada login e abertura).
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- Fim do login com que o token foi registrado. Depois dele, o aparelho não
+  -- recebe mais: quem teve a sessão vencida (sem tocar em "Sair") não fica
+  -- recebendo, na tela bloqueada, os alertas do bar.
+  expires_at timestamptz not null
 );
 
 create index push_tokens_user on push_tokens (user_id);

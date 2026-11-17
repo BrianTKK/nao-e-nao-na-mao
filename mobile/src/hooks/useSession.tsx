@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { StaffMember } from '@nenm/shared';
 import { dataSource } from '@/data/source';
-import { registerPush, unregisterPush } from '@/notifications/push';
+import { AppState } from 'react-native';
+import { registerPush, shouldRetryPush, unregisterPush } from '@/notifications/push';
 
 interface SessionState {
   /** undefined enquanto carrega; null sem login. */
@@ -27,7 +28,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Push remoto (só no app próprio do Android): registra o aparelho para quem entrou.
   const meId = me?.id;
   useEffect(() => {
-    if (meId) registerPush().catch(() => {});
+    if (!meId) return;
+    registerPush().catch(() => {});
+    // Sem rede ao abrir: tenta de novo quando a pessoa volta ao app (o servidor pode estar
+    // com o token antigo deste aparelho, e o alarme local repetiria junto com o push).
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && shouldRetryPush()) registerPush().catch(() => {});
+    });
+    return () => sub.remove();
   }, [meId]);
 
   const value = useMemo<SessionState>(

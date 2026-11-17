@@ -122,8 +122,13 @@ export function createFcmSender({ account, fetch: doFetch = fetch, fcmBase = 'ht
         if (res.ok) return 'ok';
         const text = await res.text();
         if (res.status === 401) access = null;
-        // Token que não existe mais (app desinstalado, dados apagados): apagar.
+        // Token que não serve mais e deve ser apagado:
+        // - 404 / UNREGISTERED: app desinstalado ou dados apagados;
+        // - 403 SENDER_ID_MISMATCH: token de outro projeto do Firebase;
+        // - 400 que fala do token: não é um token do FCM (não apaga 400 de mensagem malformada).
         if (res.status === 404 || text.includes('UNREGISTERED')) return 'invalid_token';
+        if (res.status === 403 && text.includes('SENDER_ID_MISMATCH')) return 'invalid_token';
+        if (res.status === 400 && /registration token/i.test(text)) return 'invalid_token';
         log(`push: FCM respondeu ${res.status}`);
         return 'error';
       } catch (err) {
@@ -143,6 +148,8 @@ interface Ring {
   alertId: string;
   venueId: string;
   userId?: string;
+  /** Designado: quando a gerência designou. Uma nova designação da mesma pessoa toca de novo. */
+  since?: string;
   timers: NodeJS.Timeout[];
 }
 
@@ -181,23 +188,27 @@ interface PushOptions {
 
 export function createPush({ db, sender, repeatAtMs = ALARM_REPEAT_AT_S.map((s) => s * 1000), log = console.error }: PushOptions) {
   const rings = new Map<string, Ring>();
-  const keyOf = (r: Pick<Ring, 'why' | 'alertId' | 'userId'>) => `${r.why}:${r.alertId}:${r.userId ?? ''}`;
+  // O toque fica no mapa até deixar de valer (stop), mesmo depois da última repetição:
+  // senão qualquer mudança posterior no alerta recomeçaria o ciclo inteiro.
+  const keyOf = (r: Pick<Ring, 'why' | 'alertId' | 'userId' | 'since'>) => `${r.why}:${r.alertId}:${r.userId ?? ''}:${r.since ?? ''}`;
 
   async function tokensFor(ring: Ring): Promise<string[]> {
     const { rows } =
       ring.why === 'new'
-        ? await db.query<{ token: string }>('select t.token from push_tokens t join staff s on s.id = t.user_id where s.venue_id = $1 and s.active', [ring.venueId])
-        : await db.query<{ token: string }>('select t.token from push_tokens t join staff s on s.id = t.user_id where s.id = $1 and s.venue_id = $2 and s.active', [
+        ? await db.query<{ token: string }>('select t.token from push_tokens t join staff s on s.id = t.user_id where s.venue_id = $1 and s.active and t.expires_at > now()', [ring.venueId])
+        : await db.query<{ token: string }>('select t.token from push_tokens t join staff s on s.id = t.user_id where s.id = $1 and s.venue_id = $2 and s.active and t.expires_at > now()', [
             ring.userId,
             ring.venueId,
           ]);
     return rows.map((r) => r.token);
   }
 
-  async function deliver(ring: Ring, alert: Alert, repeat: boolean): Promise<void> {
+  /** Envia a todos os aparelhos do toque, se ele ainda valer (`current`) na hora de enviar. */
+  async function deliver(ring: Ring, alert: Alert, repeat: boolean, current: () => boolean): Promise<void> {
     if (!sender) return;
     const tokens = await tokensFor(ring);
-    if (!tokens.length) return;
+    // Alguém pode ter visto o alerta enquanto lia o banco: não mandar "Ninguém viu ainda" depois disso.
+    if (!tokens.length || !current()) return;
     const data = messageData(alert, ring.why, repeat);
     const results = await Promise.all(tokens.map((token) => sender.send({ token, data })));
     const invalid = tokens.filter((_, i) => results[i] === 'invalid_token');
@@ -217,18 +228,18 @@ export function createPush({ db, sender, repeatAtMs = ALARM_REPEAT_AT_S.map((s) 
   function start(ring: Ring, alert: Alert): void {
     const key = keyOf(ring);
     rings.set(key, ring);
-    deliver(ring, alert, false).catch((err) => log(`push: ${(err as Error).message}`));
-    ring.timers = repeatAtMs.map((ms, i) => {
+    const current = () => rings.get(key) === ring;
+    deliver(ring, alert, false, current).catch((err) => log(`push: ${(err as Error).message}`));
+    ring.timers = repeatAtMs.map((ms) => {
       const timer = setTimeout(async () => {
-        if (rings.get(key) !== ring) return;
+        if (!current()) return;
         try {
           const now = await getAlert(db, ring.venueId, ring.alertId);
           if (!stillRinging(now, ring)) return stop(key);
-          await deliver(ring, now!, true);
+          await deliver(ring, now!, true, current);
         } catch (err) {
           log(`push: ${(err as Error).message}`);
         }
-        if (i === repeatAtMs.length - 1 && rings.get(key) === ring) rings.delete(key);
       }, ms);
       timer.unref();
       return timer;
@@ -255,7 +266,7 @@ export function createPush({ db, sender, repeatAtMs = ALARM_REPEAT_AT_S.map((s) 
     const wanted: Ring[] = [];
     if (alert?.status === 'open') wanted.push({ why: 'new', alertId, venueId, timers: [] });
     if (alert?.assignedToId && stillRinging(alert, { why: 'assigned', userId: alert.assignedToId }))
-      wanted.push({ why: 'assigned', alertId, venueId, userId: alert.assignedToId, timers: [] });
+      wanted.push({ why: 'assigned', alertId, venueId, userId: alert.assignedToId, since: alert.assignedAt ?? undefined, timers: [] });
     const wantedKeys = new Set(wanted.map(keyOf));
     for (const key of [...rings.keys()]) if (key.split(':')[1] === alertId && !wantedKeys.has(key)) stop(key);
     for (const ring of wanted) if (!rings.has(keyOf(ring))) start(ring, alert!);

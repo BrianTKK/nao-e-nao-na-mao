@@ -36,8 +36,19 @@ Pedido da Central (17/11/2026), depois do teste do Brian em 16/11 no Android pel
   - alerta novo: toda a equipe ativa do bar;
   - alerta designado pela gerência: só a pessoa escolhida, até ela tocar em "Estou indo".
 - **Repetição no servidor**: 20, 40, 60, 90 e 120 s depois do primeiro aviso. Antes de cada repetição o servidor confere no banco, e o "Vi o alerta" (ou o "Estou indo", no designado) cancela.
-- **Token inválido** (`UNREGISTERED` ou 404 do FCM) é apagado do banco. Erro passageiro (500, rede) não apaga.
-- **Tokens**: tabela `push_tokens` (migração 007). O app registra o token ao entrar e a cada abertura com login (`PUT /api/me/push-token`) e remove ao sair (`DELETE /api/me/push-token`). O token é do aparelho: se outra pessoa entrar no mesmo celular, ele passa para ela. No máximo 5 aparelhos por pessoa. Quem é desativada pela gerência deixa de receber na hora.
+- **Token inválido** é apagado do banco:
+  - 404 ou `UNREGISTERED`: app desinstalado ou dados apagados;
+  - 403 `SENDER_ID_MISMATCH`: token de outro projeto do Firebase;
+  - 400 que fala do token (não é um token do FCM).
+
+  Erro passageiro (500, rede) e 400 de mensagem malformada não apagam.
+- **O ciclo de um toque**: depois da última repetição, o toque não recomeça por qualquer mudança no alerta (um "vi" de outra pessoa, por exemplo). Uma nova designação da mesma pessoa toca de novo. Antes de cada envio, o servidor confere se o toque ainda vale, para não mandar "Ninguém viu ainda" depois que alguém viu.
+- **Tokens**: tabela `push_tokens` (migração 007).
+  - O app registra o token ao entrar e a cada abertura com login (`PUT /api/me/push-token`) e remove ao sair (`DELETE /api/me/push-token`). Sem rede na abertura, ele tenta de novo quando a pessoa volta ao app.
+  - O token é do aparelho: se outra pessoa entrar no mesmo celular, ele passa para ela. No máximo 5 aparelhos por pessoa.
+  - **O token vence junto com o login** (`expires_at`, tirado do token de login). Quem teve a sessão vencida sem tocar em "Sair" não fica recebendo, na tela bloqueada, os alertas do bar.
+  - Quem é desativada pela gerência deixa de receber na hora.
+  - A resposta do `PUT` diz se o servidor manda push (`pushEnabled`). **Só com `true` o app deixa as repetições para o servidor.** Com o servidor sem a chave, o app repete sozinho, como no Expo Go.
 - **A mensagem é só de dados** (sem o bloco `notification`), com `android.priority: high` e `ttl: 120s`. Os campos são os que o `expo-notifications` 58.1.9 lê (`NotificationData.kt` e `FirebaseMessagingDelegate.kt`, conferidos no código):
   - `title` e `message`;
   - `body`, um JSON com o `alertId`, para abrir o alerta ao tocar;
@@ -103,17 +114,21 @@ Sugestão da Central (17/11/2026). Prova a entrega do Firebase sem depender da V
 ### Testado e não testado (17/11/2026)
 
 - **Testado no PC**:
-  - 11 testes novos do servidor com o FCM simulado (`server/test/push.test.ts`):
+  - 14 testes novos do servidor com o FCM simulado (`server/test/push.test.ts`):
     - registro e remoção do token, e o token que passa a outra pessoa;
     - a equipe do bar recebe e o outro bar não;
     - canal, `tag` e `alertId` na mensagem, e a palavra-código fora dela;
     - a repetição, o "vi" que cancela e a parada depois da última repetição;
     - o designado, que recebe até o "Estou indo";
-    - o token `UNREGISTERED` apagado e o erro passageiro mantido;
+    - o token `UNREGISTERED`, o de outro projeto e o malformado apagados, e o erro passageiro mantido;
+    - o token com o login vencido, que deixa de receber;
+    - o ciclo terminado, que não recomeça com o "vi" de outra pessoa, e a nova designação, que toca;
+    - o servidor sem a chave, que responde `pushEnabled: false`;
     - a pessoa desativada, que deixa de receber;
     - o OAuth (JWT RS256 conferido com a chave pública) e o token de acesso reaproveitado;
     - sem a conta de serviço, o push desliga sem a chave no log;
-  - todos os testes do repositório e o typecheck dos quatro pacotes passam;
+  - todos os testes do repositório passam (100: 20 do shared, 13 do banco, 60 do servidor e 7 do deploy), e o typecheck dos quatro pacotes também;
+  - uma revisão sobre o diff, com cada achado verificado por um segundo leitor. Ela achou 7 defeitos reais, todos corrigidos. Um oitavo foi refutado: "com o app aberto, o push toca de novo". No `expo-notifications` 58.1.9, o `NotificationsHandler` não mostra mensagem só de dados com o app aberto;
   - **com o Google de verdade**, usando a conta de serviço de `D:\segredos\mariana`:
     - o OAuth devolveu o token de acesso (200);
     - um envio `validate_only` a um token falso foi aceito na autenticação e recusado só pelo token (400 `INVALID_ARGUMENT`). A API do FCM está ligada e a conta tem permissão;

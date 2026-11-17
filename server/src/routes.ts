@@ -17,6 +17,8 @@ export interface RouteDeps {
   /** Derruba o tempo real de quem foi desativado. */
   disconnectUser: (userId: string) => void;
   limits: { alertsPerMinutePerIp: number; loginsPer5MinPerIp: number };
+  /** O servidor tem a conta de serviço do FCM: o app pode deixar as repetições para ele. */
+  pushEnabled: boolean;
 }
 
 const uuid = z.string().uuid();
@@ -64,7 +66,7 @@ const menuUrl = z
   .url()
   .refine((u) => u.startsWith('https://') && !/\s/.test(u), 'https_only');
 
-export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }: RouteDeps): Router {
+export function createRoutes({ db, auth, alertChanged, disconnectUser, limits, pushEnabled }: RouteDeps): Router {
   const r = Router();
 
   // ------------------------------------------------------------------ página do QR (sem login)
@@ -124,11 +126,15 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }:
     const body = z.object({ token: pushToken, platform: z.literal('android') }).strict().parse(req.body);
     await db.tx(async (t) => {
       // O token é do aparelho: se outra pessoa entrou nele, passa para ela.
+      // Vale até o fim deste login (o token de login traz o vencimento).
+      const expires = req.actor!.expiresAt ?? Math.floor(Date.now() / 1000) + 3600;
       await t.query(
-        `insert into push_tokens (user_id, token, platform) values ($1, $2, $3)
-         on conflict (token) do update set user_id = excluded.user_id, platform = excluded.platform, updated_at = now()`,
-        [req.actor!.id, body.token, body.platform],
+        `insert into push_tokens (user_id, token, platform, expires_at) values ($1, $2, $3, to_timestamp($4))
+         on conflict (token) do update set user_id = excluded.user_id, platform = excluded.platform,
+           updated_at = now(), expires_at = excluded.expires_at`,
+        [req.actor!.id, body.token, body.platform, expires],
       );
+      await t.query("delete from push_tokens where expires_at < now() - interval '1 day'");
       // No máximo 5 aparelhos por pessoa: os mais antigos saem.
       await t.query(
         `delete from push_tokens where user_id = $1 and id not in (
@@ -136,7 +142,8 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits }:
         [req.actor!.id],
       );
     });
-    res.status(204).end();
+    // O app só deixa as repetições do alarme para o servidor se ele de fato manda push.
+    res.json({ pushEnabled });
   });
 
   r.delete('/me/push-token', auth.requireStaff, async (req, res) => {

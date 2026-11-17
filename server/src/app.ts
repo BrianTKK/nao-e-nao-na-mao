@@ -88,6 +88,7 @@ export function buildServer({ config, db, limits, push: pushOptions }: StartOpti
       },
       disconnectUser: realtime.disconnectUser,
       limits: { alertsPerMinutePerIp: 6, loginsPer5MinPerIp: 10, ...limits },
+      pushEnabled: push.enabled,
     }),
   );
 

@@ -38,7 +38,8 @@ before(async () => {
   other = await t.login(OTHER_EMAIL, OTHER_PASSWORD);
   for (const [who, login] of [['diego', diego], ['ana', ana], ['marta', marta], ['other', other]] as const) {
     const res = await t.api('/me/push-token', { method: 'PUT', token: login, body: { token: TOKEN[who], platform: 'android' } });
-    assert.equal(res.status, 204);
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { pushEnabled: true }, 'o app só deixa as repetições ao servidor se ele manda push');
   }
 });
 after(() => t.stop());
@@ -144,6 +145,35 @@ test('token inválido (UNREGISTERED) é apagado; erro passageiro, não', async (
   await t.api('/me/push-token', { method: 'PUT', token: diego, body: { token: TOKEN.diego, platform: 'android' } });
 });
 
+test('token de login vencido: o aparelho deixa de receber, mesmo sem ter tocado em "Sair"', async () => {
+  const exp = await t.db.query<{ expired: boolean }>("select expires_at > now() + interval '15 hours' as expired from push_tokens where token = $1", [TOKEN.ana]);
+  assert.equal(exp.rows[0].expired, true, 'vale até o fim do login (16 h)');
+  await t.db.query("update push_tokens set expires_at = now() - interval '1 minute' where token = $1", [TOKEN.ana]);
+  const { alert } = await createAlert('ESQBF7K2');
+  await wait(50);
+  assert.equal(to(TOKEN.ana).length, 0);
+  assert.equal(to(TOKEN.diego).length, 1);
+  await t.api(`/staff/alerts/${alert.id}/ack`, { token: marta, body: {} });
+  await t.api('/me/push-token', { method: 'PUT', token: ana, body: { token: TOKEN.ana, platform: 'android' } });
+});
+
+test('designado: depois das repetições, um "vi" de outra pessoa não recomeça o alarme; designar de novo, sim', async () => {
+  const { alert } = await createAlert('ESQBM4P9');
+  const staff = (await t.api<{ id: string; fullName: string }[]>('/manager/staff', { token: marta })).body;
+  const anaId = staff.find((s) => s.fullName.startsWith('Ana'))!.id;
+  await t.api(`/manager/alerts/${alert.id}/assign`, { token: marta, body: { staffId: anaId } });
+  await wait(REPEAT_MS[REPEAT_MS.length - 1] + 150);
+  const afterCycle = to(TOKEN.ana).length;
+  await t.api(`/staff/alerts/${alert.id}/ack`, { token: diego, body: {} });
+  await wait(100);
+  assert.equal(to(TOKEN.ana).length, afterCycle, 'o ciclo terminado não volta a tocar');
+  await wait(20);
+  await t.api(`/manager/alerts/${alert.id}/assign`, { token: marta, body: { staffId: anaId } });
+  await wait(80);
+  assert.equal(to(TOKEN.ana).length, afterCycle + 1, 'nova designação toca de novo');
+  await t.api(`/staff/alerts/${alert.id}/start`, { token: ana, body: {} });
+});
+
 test('desativada pela gerência, a pessoa deixa de receber', async () => {
   const staff = (await t.api<{ id: string; fullName: string }[]>('/manager/staff', { token: marta })).body;
   const diegoId = staff.find((s) => s.fullName.startsWith('Diego'))!.id;
@@ -193,17 +223,23 @@ test('FCM v1: OAuth com a conta de serviço, token de acesso reaproveitado e men
   assert.deepEqual(body.message.data, { title: 'x' });
 });
 
-test('FCM v1: 404 e UNREGISTERED dizem token inválido; 500 é erro passageiro', async () => {
+test('FCM v1: 404, UNREGISTERED, SENDER_ID_MISMATCH e token malformado dizem token inválido; o resto é erro', async () => {
   const replies = [
     { status: 404, body: { error: { status: 'NOT_FOUND' } } },
     { status: 400, body: { error: { details: [{ errorCode: 'UNREGISTERED' }] } } },
+    { status: 403, body: { error: { status: 'PERMISSION_DENIED', details: [{ errorCode: 'SENDER_ID_MISMATCH' }] } } },
+    { status: 400, body: { error: { status: 'INVALID_ARGUMENT', message: 'The registration token is not a valid FCM registration token' } } },
+    { status: 400, body: { error: { status: 'INVALID_ARGUMENT', message: 'Invalid value at message.android.ttl' } } },
     { status: 500, body: { error: { status: 'INTERNAL' } } },
   ];
   const g = fakeGoogle(() => replies.shift()!);
   const sender = createFcmSender({ account, fetch: g.doFetch, fcmBase: 'https://fcm.test', log: () => {} });
   assert.equal(await sender.send({ token: 'a', data: {} }), 'invalid_token');
   assert.equal(await sender.send({ token: 'b', data: {} }), 'invalid_token');
-  assert.equal(await sender.send({ token: 'c', data: {} }), 'error');
+  assert.equal(await sender.send({ token: 'c', data: {} }), 'invalid_token', 'token de outro projeto');
+  assert.equal(await sender.send({ token: 'd', data: {} }), 'invalid_token', 'não é um token do FCM');
+  assert.equal(await sender.send({ token: 'e', data: {} }), 'error', 'mensagem malformada não apaga o token');
+  assert.equal(await sender.send({ token: 'f', data: {} }), 'error');
 });
 
 test('sem a conta de serviço, o push fica desligado com um aviso; arquivo ruim não vaza o conteúdo no log', () => {
@@ -222,4 +258,16 @@ test('sem a conta de serviço, o push fica desligado com um aviso; arquivo ruim 
   writeFileSync(good, JSON.stringify(account));
   assert.notEqual(senderFromConfig(good, (m) => logs.push(m)), null);
   assert.match(logs[2], /ligado \(FCM, projeto mariana-teste\)/);
+});
+
+test('servidor sem a conta de serviço: aceita o token e avisa que o push está desligado', async () => {
+  const off = await startTestServer({ alertsPerMinutePerIp: 1000 });
+  try {
+    const login = await off.login('diego@bar-esquina.test');
+    const res = await off.api('/me/push-token', { method: 'PUT', token: login, body: { token: TOKEN.diego, platform: 'android' } });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { pushEnabled: false });
+  } finally {
+    await off.stop();
+  }
 });

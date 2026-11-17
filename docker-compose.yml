@@ -22,6 +22,10 @@ services:
       # Chave da conta de serviço do Firebase (push remoto), fora do repositório e
       # da pasta do deploy, só leitura. Sem o arquivo, o push fica desligado. Ver docs/DEPLOY.md.
       - ${FCM_SECRETS_DIR:-/etc/naoenao}:/run/secrets/naoenao:ro
+    # Grupo só da chave (sem ninguém dele na VPS): o usuário node do contêiner a lê,
+    # e nenhum usuário do servidor com o gid 1000 lê.
+    group_add:
+      - "10001"
     depends_on:
       db:
         condition: service_healthy

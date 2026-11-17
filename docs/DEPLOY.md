@@ -128,15 +128,15 @@ A chave da conta de serviço é uma credencial: **nunca no git, no cofre nem na 
 
 ```bash
 # do PC (Git Bash), uma vez:
-ssh root@<ip-da-vps> 'install -d -m 750 -o root -g 1000 /etc/naoenao'
+ssh root@<ip-da-vps> 'getent group 10001 || groupadd -g 10001 naoenao-segredos; install -d -m 750 -o root -g 10001 /etc/naoenao'
 scp /d/segredos/mariana/fcm-service-account.json root@<ip-da-vps>:/etc/naoenao/
-ssh root@<ip-da-vps> 'chown root:1000 /etc/naoenao/fcm-service-account.json && chmod 640 /etc/naoenao/fcm-service-account.json'
+ssh root@<ip-da-vps> 'chown root:10001 /etc/naoenao/fcm-service-account.json && chmod 640 /etc/naoenao/fcm-service-account.json'
 # no .env da VPS:
 #   FCM_SERVICE_ACCOUNT_FILE=/run/secrets/naoenao/fcm-service-account.json
 DEPLOY_HOST=root@<ip-da-vps> ./deploy.sh
 ```
 
-O grupo `1000` é o usuário `node` do contêiner, que precisa ler o arquivo. No log do app deve aparecer `Push remoto ligado (FCM, projeto ...)`. O servidor nunca escreve a chave no log: se o arquivo estiver errado, ele diz só o motivo ("não é um JSON válido", nomes dos campos que faltam).
+O grupo `10001` (`naoenao-segredos`) não tem ninguém na VPS: só o contêiner do app o recebe (`group_add` no `docker-compose.yml`), e o usuário `node` lê o arquivo por ele. Com o gid `1000` (o do `node`), qualquer usuário da VPS com esse gid também leria a chave. Se o `getent group 10001` mostrar um grupo que já existe e tem gente, escolher outro número e trocar nos dois lugares. No log do app deve aparecer `Push remoto ligado (FCM, projeto ...)`. O servidor nunca escreve a chave no log: se o arquivo estiver errado, ele diz só o motivo ("não é um JSON válido", nomes dos campos que faltam).
 
 ## Bar de demonstração
 

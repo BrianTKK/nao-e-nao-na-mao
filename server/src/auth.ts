@@ -10,6 +10,8 @@ export interface Actor {
   id: string;
   venueId: string;
   role: 'staff' | 'manager';
+  /** Fim do login (segundos desde 1970), lido do token. */
+  expiresAt?: number;
 }
 
 declare module 'express-serve-static-core' {
@@ -51,9 +53,11 @@ export function createAuth(config: Config, db: Db) {
   async function verify(token: string | undefined): Promise<Actor> {
     if (!token) throw new HttpError(401, 'unauthorized');
     let sub: string | undefined;
+    let exp: number | undefined;
     try {
       const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
       sub = payload.sub;
+      exp = payload.exp;
     } catch {
       throw new HttpError(401, 'unauthorized');
     }
@@ -62,7 +66,7 @@ export function createAuth(config: Config, db: Db) {
       [sub],
     );
     if (!rows[0]) throw new HttpError(401, 'unauthorized');
-    return { id: sub!, venueId: rows[0].venue_id, role: rows[0].role };
+    return { id: sub!, venueId: rows[0].venue_id, role: rows[0].role, expiresAt: exp };
   }
 
   const bearer = (req: Request) => {

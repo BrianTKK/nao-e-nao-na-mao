@@ -420,7 +420,9 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         commit();
       },
       // A demonstração não tem servidor de push: o alarme dela é só o toque local.
-      async registerPushToken() {},
+      async registerPushToken() {
+        return { pushEnabled: false };
+      },
       async removePushToken() {},
     },
 
