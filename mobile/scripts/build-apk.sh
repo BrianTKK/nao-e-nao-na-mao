@@ -16,6 +16,8 @@ SECRETS="${MARIANA_SECRETS:-/d/segredos/mariana}"
 export JAVA_HOME="$TOOLS/jdk-17"
 export ANDROID_HOME="$TOOLS/sdk"
 export GRADLE_USER_HOME="$TOOLS/gradle"
+# Build nativo num caminho curto (o ninja do Windows não passa de 260 caracteres; ver plugins/withShortObjectPaths.js).
+export MARIANA_CXX_DIR="$(cygpath -m "$TOOLS/cxx" 2>/dev/null || echo "$TOOLS/cxx")"
 export PATH="$JAVA_HOME/bin:$PATH"
 
 cd "$(dirname "$0")/.."
@@ -48,7 +50,9 @@ cp package.json "$SAVED/package.json"
 npx expo prebuild --platform android --no-install --clean
 cp "$SAVED/package.json" package.json
 
-(cd android && ./gradlew assembleRelease --no-daemon)
+# Só ARM (os celulares de verdade); x86 e x86_64 são de emulador e quase dobram o APK.
+ARCHS="${MARIANA_ARCHS:-armeabi-v7a,arm64-v8a}"
+(cd android && ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures="$ARCHS")
 
 VERSION="$(node -p "require('./app.json').expo.version")"
 REV="$(git rev-parse --short HEAD)"
