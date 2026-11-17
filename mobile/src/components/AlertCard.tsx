@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
   FadeInDown,
 } from 'react-native-reanimated';
-import { KIND_STAFF_LABEL, STATUS_LABEL, elapsedSeconds, formatDuration, type Alert } from '@nenm/shared';
+import { KIND_STAFF_LABEL, displayCode, spokenCode, STATUS_LABEL, elapsedSeconds, formatDuration, type Alert } from '@nenm/shared';
 import { color, fontSize, motion, radius, space } from '@/theme/theme';
 import { useMotion } from '@/hooks/useMotion';
 
@@ -49,7 +49,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
   const forMe = !alert.responderId && alert.assignedToId === meId;
   const assignedText = alert.responderId ? null : forMe ? `${alert.assignedByName?.split(' ')[0] ?? 'A gerência'} pediu que você vá` : alert.assignedToName ? `Direcionado para ${alert.assignedToName.split(' ')[0]}` : null;
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
-  const label = `${assignedText ? `${assignedText}. ` : ''}${STATUS_LABEL[alert.status]}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Código ${alert.shortCode.split('').join(' ')}.`;
+  const label = `${assignedText ? `${assignedText}. ` : ''}${STATUS_LABEL[alert.status]}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Palavra ${spokenCode(alert.shortCode)}.`;
 
   return (
     <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(motion.duration.base)} style={[styles.shadow, animated]}>
@@ -70,7 +70,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
         <Text style={styles.spot}>{alert.spotLabel}</Text>
         <Text style={styles.kind}>{KIND_STAFF_LABEL[alert.kind]}</Text>
         <Text style={styles.code}>
-          Código {alert.shortCode}
+          Palavra: {displayCode(alert.shortCode)}
           {alert.responderName ? ` · ${alert.responderName.split(' ')[0]} a caminho` : ''}
         </Text>
       </Pressable>

@@ -13,6 +13,8 @@ import {
   isActive,
   type Alert,
   type AlertOutcome,
+  displayCode,
+  spokenCode,
 } from '@nenm/shared';
 import { dataSource } from '@/data/source';
 import { Button } from '@/components/Button';
@@ -92,14 +94,16 @@ export default function AlertDetail() {
         <Text style={ui.body}>{KIND_STAFF_LABEL[alert.kind]}</Text>
         <Text style={ui.muted}>Pediu há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
         <View style={{ marginTop: space.sm, padding: space.sm, borderRadius: radius.md, backgroundColor: color.bg }}>
-          <Text style={ui.muted}>Código para se apresentar</Text>
+          <Text style={ui.muted}>Palavra para se apresentar</Text>
           <Text
-            style={{ color: color.text, fontSize: fontSize.xxl, fontWeight: '700', letterSpacing: 6 }}
-            accessibilityLabel={`Código ${alert.shortCode.split('').join(' ')}`}
+            style={{ color: color.text, fontSize: fontSize.xxl, fontWeight: '700' }}
+            adjustsFontSizeToFit
+            numberOfLines={1}
+            accessibilityLabel={`Palavra-código: ${spokenCode(alert.shortCode)}`}
           >
-            {alert.shortCode}
+            {displayCode(alert.shortCode)}
           </Text>
-          <Text style={ui.muted}>Diga o código a ela: é assim que ela sabe que você é da equipe.</Text>
+          <Text style={ui.muted}>Diga a palavra a ela: é assim que ela sabe que você é da equipe.</Text>
         </View>
       </View>
 

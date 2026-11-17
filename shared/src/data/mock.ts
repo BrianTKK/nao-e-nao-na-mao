@@ -20,6 +20,7 @@ import {
 } from '../domain';
 import { DEMO_PASSWORD, DEMO_SPOTS, DEMO_USERS, DEMO_VENUE, type DemoUser } from './demo';
 import { DataError, type DataSource, type Unsubscribe } from './ports';
+import { pickCodeWord } from '../codeWords';
 
 export interface KeyValueStore {
   getItem(key: string): string | null;
@@ -49,8 +50,11 @@ interface State {
 }
 
 const STORAGE_KEY = 'nenm.mock.v1';
-const SHORT_CODE_ALPHABET = 'ACDEFHJKMNPRTWXY34679';
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+
+/** Letras e números sem os que se confundem, para o código impresso no QR do local. */
+const SPOT_CODE_ALPHABET = 'ACDEFHJKMNPRTWXY34679';
+const randomChars = (n = 4) => Array.from({ length: n }, () => SPOT_CODE_ALPHABET[Math.floor(Math.random() * SPOT_CODE_ALPHABET.length)]).join('');
 
 /** Gerador pseudoaleatório com semente: o histórico sai igual toda vez. */
 function mulberry32(seed: number) {
@@ -69,11 +73,6 @@ function randomToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-function randomShortCode(rand: () => number = Math.random): string {
-  let out = '';
-  for (let i = 0; i < 4; i++) out += SHORT_CODE_ALPHABET[Math.floor(rand() * SHORT_CODE_ALPHABET.length)];
-  return out;
-}
 
 function makeHistory(nowMs: number, staff: DemoUser[]): Alert[] {
   const rand = mulberry32(42);
@@ -116,7 +115,7 @@ function makeHistory(nowMs: number, staff: DemoUser[]): Alert[] {
       spotLabel: spot.label,
       kind,
       status: cancelled ? 'cancelled' : 'resolved',
-      shortCode: randomShortCode(rand),
+      shortCode: pickCodeWord([], rand),
       createdAt: iso(created),
       seenAt: cancelled ? null : iso(seen),
       onTheWayAt: cancelled ? null : iso(go),
@@ -256,7 +255,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
       spotLabel: spot.label,
       kind,
       status: 'open',
-      shortCode: randomShortCode(),
+      shortCode: pickCodeWord(state.alerts.filter((a) => a.venueId === spot.venueId && isActive(a.status)).map((a) => a.shortCode)),
       createdAt: iso(),
       seenAt: null,
       onTheWayAt: null,
@@ -438,7 +437,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         await wait();
         const user = me();
         if (user.role !== 'manager') throw new DataError('not_staff');
-        const code = `ESQ${randomShortCode()}${Math.floor(Math.random() * 10)}`;
+        const code = `ESQ${randomChars()}${Math.floor(Math.random() * 10)}`;
         const spot: Spot = { id: `spot-${code}`, venueId: user.venueId, code, label: label.trim(), kind, active: true };
         state.spots.push(spot);
         commit();
@@ -449,7 +448,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         const user = me();
         const spot = state.spots.find((s) => s.id === id && s.venueId === user.venueId);
         if (!spot || user.role !== 'manager') throw new DataError('spot_not_found');
-        spot.code = `ESQ${randomShortCode()}${Math.floor(Math.random() * 10)}`;
+        spot.code = `ESQ${randomChars()}${Math.floor(Math.random() * 10)}`;
         commit();
         return { ...spot };
       },
@@ -476,7 +475,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         const email = input.email.trim().toLowerCase();
         if (state.staff.some((s) => s.email === email)) throw new DataError('email_taken');
         const created: DemoUser = {
-          id: `staff-${randomShortCode()}`,
+          id: `staff-${randomChars()}`,
           email,
           venueId: user.venueId,
           fullName: input.fullName.trim(),

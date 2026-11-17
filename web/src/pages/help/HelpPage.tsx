@@ -6,6 +6,7 @@ import {
   KIND_LABEL,
   isActive,
   calledMessage,
+  displayCode,
   onTheWayMessage,
   type AlertKind,
   type PublicAlert,
@@ -196,8 +197,8 @@ export function HelpPage() {
             </div>
             <StatusSteps alert={alert} />
             <p className="help-code">
-              Seu código: <strong>{alert.shortCode.split('').join(' ')}</strong>
-              <span className="muted"> Quem vier vai dizer esse código.</span>
+              Sua palavra-código: <strong className="help-word">{displayCode(alert.shortCode)}</strong>
+              <span className="muted"> Quem vier da equipe vai dizer essa palavra.</span>
             </p>
             {isActive(alert.status) ? (
               <div className="help-actions">

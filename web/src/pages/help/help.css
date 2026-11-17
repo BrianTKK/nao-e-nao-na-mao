@@ -51,7 +51,7 @@
 .help-called { color: var(--c-status-seen); }
 
 .help-code { margin-top: var(--s-lg); }
-.help-code strong { font-size: var(--fs-lg); letter-spacing: 0.1em; margin-right: var(--s-xs); }
+.help-code strong { font-size: var(--fs-xl); margin-right: var(--s-xs); }
 
 .help-actions { margin-top: var(--s-md); }
 

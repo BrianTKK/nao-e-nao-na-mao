@@ -3,7 +3,7 @@
 // As regras de quem pode ver o quê na API ficam nos testes do server/.
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
@@ -36,7 +36,9 @@ const view = async (token) => (await db.query('select * from get_alert_by_token(
 
 before(async () => {
   db = new PGlite();
-  await db.exec(read('../migrations/001_init.sql'));
+  for (const file of readdirSync(join(here, '../migrations')).filter((f) => f.endsWith('.sql')).sort()) {
+    await db.exec(read(`../migrations/${file}`));
+  }
   for (const u of users) {
     await db.query('insert into users (id, email, password_hash) values ($1, $2, $3)', [u.id, u.email, 'x']);
   }
@@ -74,7 +76,7 @@ test('o seed cria o bar, 6 locais, 4 pessoas e o histórico com tempos', async (
 test('criar o pedido devolve um token de 64 caracteres; o banco guarda só o hash', async () => {
   const { token, short_code, venue_id } = await newAlert('esqbf7k2', 'unsafe');
   assert.match(token, /^[0-9a-f]{64}$/);
-  assert.match(short_code, /^[ACDEFHJKMNPRTWXY34679]{4}$/);
+  assert.match(short_code, /^[a-z]{4,10}$/);
   assert.equal(venue_id, VENUE_A);
   const stored = await db.query('select count(*)::int as n from alerts where token_hash = $1', [token]);
   assert.equal(stored.rows[0].n, 0);
@@ -179,4 +181,21 @@ test('o estado não fica incoerente nem por um update direto (constraints)', asy
   const { alert_id: id } = await newAlert('ESQEXT9R', 'unsafe');
   await rejects(db.query(`update alerts set status = 'resolved' where id = $1`, [id]), /resolved_has_outcome/);
   await rejects(db.query(`update alerts set status = 'qualquer' where id = $1`, [id]), /check constraint/);
+});
+
+test('a palavra-código não se repete entre alertas abertos do mesmo bar', async () => {
+  // Fecha o que ficou aberto dos testes anteriores para começar do zero.
+  await db.query(`update alerts set status = 'cancelled', cancelled_at = now() where status in ('open', 'seen', 'on_the_way')`);
+  const words = new Set();
+  // 40 alertas abertos ao mesmo tempo, espalhados pelos 6 locais (sem esbarrar no limite por minuto).
+  const codes = ['ESQBF7K2', 'ESQBM4P9', 'ESQM12T3', 'ESQM07H6', 'ESQBAL3W', 'ESQEXT9R'];
+  for (let n = 0; n < 40; n++) {
+    await db.query(`update alerts set created_at = created_at - interval '2 minutes' where venue_id = $1`, [VENUE_A]);
+    const { short_code } = await newAlert(codes[n % codes.length], 'talk');
+    assert.ok(!words.has(short_code), `palavra repetida: ${short_code}`);
+    words.add(short_code);
+  }
+  // Fechado o alerta, a palavra volta a poder sair.
+  const free = (await db.query(`select random_code_word($1) as w`, [VENUE_A])).rows[0].w;
+  assert.ok(!words.has(free));
 });

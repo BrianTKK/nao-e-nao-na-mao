@@ -1,8 +1,7 @@
 import { useState, type RefObject } from 'react';
+import { displayCode, pickCodeWord } from '@nenm/shared';
 
-const ALPHABET = 'ACDEFHJKMNPRTWXY34679';
-const localCode = () =>
-  Array.from({ length: 4 }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join('');
+const localCode = () => displayCode(pickCodeWord([]));
 
 const REASON_TEXT = {
   offline: 'Sem conexão no momento.',
@@ -38,7 +37,7 @@ export function CounterCard({
         <p className="counter-big">PEDIDO DE AJUDA</p>
         {spotLabel && <p>Local: {spotLabel}</p>}
         <p>
-          Código: <strong>{code.split('').join(' ')}</strong>
+          Palavra-código: <strong>{code}</strong>
         </p>
         {helpPhrase && <p className="muted">Ou use o código combinado do bar: {helpPhrase}.</p>}
       </div>

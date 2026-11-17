@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Vibration } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import { KIND_STAFF_LABEL, type Alert } from '@nenm/shared';
+import { KIND_STAFF_LABEL, displayCode, type Alert } from '@nenm/shared';
 import { dataSource } from '@/data/source';
 
 // O bar é barulhento: o pedido chega por vibração forte e texto, não por som.
@@ -45,7 +45,7 @@ function announce(alert: Alert, assigned = false) {
       title: assigned
         ? `${alert.assignedByName?.split(' ')[0] ?? 'A gerência'} pediu que você vá: ${alert.spotLabel}`
         : `Pedido de ajuda · ${alert.spotLabel}`,
-      body: `${KIND_STAFF_LABEL[alert.kind]}. Código ${alert.shortCode}.`,
+      body: `${KIND_STAFF_LABEL[alert.kind]}. Palavra ${displayCode(alert.shortCode)}.`,
       data: { alertId: alert.id },
     },
     trigger: null,

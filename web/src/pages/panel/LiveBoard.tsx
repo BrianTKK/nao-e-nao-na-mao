@@ -4,6 +4,7 @@ import {
   DataError,
   KIND_STAFF_LABEL,
   OUTCOME_LABEL,
+  displayCode,
   elapsedSeconds,
   formatDuration,
   type Alert,
@@ -77,9 +78,10 @@ function LiveItem({ alert: a, crew, now }: { alert: Alert; crew: StaffMember[]; 
         <StatusBadge status={a.status} />
         <strong id={`alert-${a.id}`}>{place}</strong>
         <span>{KIND_STAFF_LABEL[a.kind]}</span>
-        <span className="muted">
-          há {formatDuration(elapsedSeconds(a.createdAt, now), true)} · código {a.shortCode}
+        <span className="live-word" title="Quem for diz esta palavra a ela">
+          <span className="muted">palavra</span> {displayCode(a.shortCode)}
         </span>
+        <span className="muted">há {formatDuration(elapsedSeconds(a.createdAt, now), true)}</span>
       </div>
       <p className="live-who">{whoLine(a)}</p>
 

@@ -90,6 +90,8 @@
   to { transform: translateX(100%); }
 }
 .live-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+.live-word { font-size: var(--fs-md); font-weight: 700; }
+.live-word .muted { font-weight: 400; font-size: var(--fs-sm); }
 .live-who { margin: 0; font-weight: 700; }
 .live-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
 .live-actions select,
