@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { StaffMember } from '@nenm/shared';
 import { dataSource } from '@/data/source';
+import { registerPush, unregisterPush } from '@/notifications/push';
 
 interface SessionState {
   /** undefined enquanto carrega; null sem login. */
@@ -23,12 +24,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
+  // Push remoto (só no app próprio do Android): registra o aparelho para quem entrou.
+  const meId = me?.id;
+  useEffect(() => {
+    if (meId) registerPush().catch(() => {});
+  }, [meId]);
+
   const value = useMemo<SessionState>(
     () => ({
       me,
       refresh,
       signIn: async (email, password) => setMe(await dataSource.staff.signIn(email, password)),
       signOut: async () => {
+        // Antes de apagar o login: depois dele, o servidor não aceita mais o pedido.
+        await unregisterPush();
         await dataSource.staff.signOut();
         setMe(null);
       },

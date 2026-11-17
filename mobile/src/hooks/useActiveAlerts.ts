@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { Alert } from '@nenm/shared';
 import { dataSource } from '@/data/source';
-import { ring, setContinuousVibration, silence } from '@/notifications/alarm';
+import { dismissStale, ring, setContinuousVibration, silence } from '@/notifications/alarm';
 
 export { setupNotifications } from '@/notifications/alarm';
 
@@ -11,8 +11,8 @@ export { setupNotifications } from '@/notifications/alarm';
  * Toca enquanto o alerta estiver "novo" (ninguém viu) ou, se a gerência me
  * mandou, até eu tocar em "Estou indo". Para sozinho quando isso muda.
  *
- * Só toca com o app aberto ou em segundo plano recente: com o app fechado, o
- * aviso precisaria de push remoto, que o Expo Go do Android não tem.
+ * No Expo Go, só toca com o app aberto ou em segundo plano recente: com o app
+ * fechado, o aviso precisa do push remoto, que só o app próprio (APK) tem.
  */
 export function useActiveAlerts(meId: string | null): Alert[] | null {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
@@ -38,6 +38,8 @@ export function useActiveAlerts(meId: string | null): Alert[] | null {
       for (const id of ringing.current.keys()) if (!now.has(id)) silence(id).catch(() => {});
       ringing.current = now;
       first.current = false;
+      // Avisos do push de alertas que alguém já viu com o celular fechado.
+      dismissStale(new Set(now.keys())).catch(() => {});
       setContinuousVibration(now.size > 0 && AppState.currentState === 'active');
     });
     // Ao voltar para o app com alerta tocando, a vibração contínua recomeça; ao sair, para.

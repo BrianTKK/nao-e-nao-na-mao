@@ -16,3 +16,8 @@ web/public
 # Lista do deploy.sh na VPS (não é do app)
 .deployed-files
 REVISION
+# Build nativo e segredos do app (nunca vão para a imagem)
+mobile/android
+mobile/ios
+mobile/google-services.json
+**/*.keystore

@@ -1,7 +1,9 @@
 import { Platform, Vibration } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import { KIND_STAFF_LABEL, type Alert } from '@nenm/shared';
+import { ALARM_CHANNEL as OWN_CHANNEL, ALARM_CHANNEL_EXPO_GO, ALARM_REPEAT_AT_S, ALARM_SOUND, ALARM_VIBRATION, KIND_STAFF_LABEL, type Alert } from '@nenm/shared';
+import { pushActive } from './push';
 
 /**
  * Alarme de alerta novo, no que o Expo Go (SDK 58) deixa fazer:
@@ -24,15 +26,25 @@ import { KIND_STAFF_LABEL, type Alert } from '@nenm/shared';
  *
  * A palavra-código não vai na notificação: ela aparece na tela bloqueada, e a
  * palavra é o que prova a ela que a pessoa é da equipe.
+ *
+ * No app próprio (APK, desde 17/11/2026), duas diferenças:
+ * - o canal é outro (`alerts-alarm-v2`), com o som da Mariana;
+ * - com o push remoto ativo, quem repete é o servidor (server/src/push.ts),
+ *   e o app só toca o primeiro aviso local. O aviso local usa o id do alerta
+ *   como identificador, o mesmo `tag` do push: um substitui o outro, sem
+ *   aviso em dobro. Com o app aberto, o push (só de dados) não aparece.
  */
 
-/** Canal novo: o Android não deixa mudar som e importância de um canal que já existe. */
-export const ALARM_CHANNEL = 'alerts-alarm';
-const OLD_CHANNELS = ['alerts'];
+/** Expo Go não tem o som próprio (nem o push): fica no canal de som padrão. */
+const OWN_BUILD = Platform.OS !== 'web' && !isRunningInExpoGo();
+/** Canal do alarme. O Android não deixa mudar som e importância de um canal que já existe. */
+export const ALARM_CHANNEL = OWN_BUILD ? OWN_CHANNEL : ALARM_CHANNEL_EXPO_GO;
+const SOUND = OWN_BUILD ? ALARM_SOUND : 'default';
+const OLD_CHANNELS = OWN_BUILD ? ['alerts', ALARM_CHANNEL_EXPO_GO] : ['alerts'];
 
-export const VIBRATION = [0, 800, 300, 800, 300, 800, 300, 800];
+export const VIBRATION = ALARM_VIBRATION;
 /** Segundos depois do primeiro toque em que o alarme toca de novo, se ninguém tiver visto. */
-export const REPEAT_AT = [20, 40, 60, 90, 120];
+export const REPEAT_AT = ALARM_REPEAT_AT_S;
 
 const scheduled = new Map<string, string[]>();
 let vibrating = false;
@@ -53,7 +65,7 @@ export async function setupNotifications(): Promise<void> {
       name: 'Alertas (alarme)',
       description: 'Alerta novo de quem pediu ajuda no bar. Toca como alarme até alguém ver.',
       importance: Notifications.AndroidImportance.MAX,
-      sound: 'default',
+      sound: SOUND,
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.ALARM,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
@@ -79,7 +91,7 @@ function content(alert: Alert, assigned: boolean, repeat: boolean): Notification
     title,
     body: `${KIND_STAFF_LABEL[alert.kind]}. Toque para atender.`,
     data: { alertId: alert.id },
-    sound: 'default',
+    sound: SOUND,
     priority: Notifications.AndroidNotificationPriority.MAX,
     interruptionLevel: 'timeSensitive',
     vibrate: VIBRATION,
@@ -94,8 +106,16 @@ export async function ring(alert: Alert, assigned = false): Promise<void> {
   const ids: string[] = [];
   scheduled.set(alert.id, ids);
   try {
-    ids.push(await Notifications.scheduleNotificationAsync({ content: content(alert, assigned, false), trigger: Platform.OS === 'android' ? { channelId: ALARM_CHANNEL } : null }));
-    for (const seconds of REPEAT_AT) {
+    ids.push(
+      await Notifications.scheduleNotificationAsync({
+        // Mesmo identificador do push do servidor (tag = id do alerta): um substitui o outro.
+        identifier: alert.id,
+        content: content(alert, assigned, false),
+        trigger: Platform.OS === 'android' ? { channelId: ALARM_CHANNEL } : null,
+      }),
+    );
+    // Com o push ativo, o servidor repete (e acorda o celular com o app fechado).
+    for (const seconds of pushActive() ? [] : REPEAT_AT) {
       // O alerta pode ter sido visto enquanto agendava.
       if (scheduled.get(alert.id) !== ids) break;
       ids.push(
@@ -121,12 +141,29 @@ export async function silence(alertId: string): Promise<void> {
 async function cancel(ids: string[], alertId: string): Promise<void> {
   if (Platform.OS === 'web') return;
   await Promise.all(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {})));
+  await dismissWhere((id) => id === alertId);
+}
+
+/** Tira da bandeja os avisos (locais ou do push) cujo alerta satisfaz `match`. */
+async function dismissWhere(match: (alertId: string) => boolean): Promise<void> {
   const shown = await Notifications.getPresentedNotificationsAsync().catch(() => []);
   await Promise.all(
     shown
-      .filter((n) => n.request.content.data?.alertId === alertId)
+      .filter((n) => {
+        const id = n.request.content.data?.alertId;
+        return typeof id === 'string' && match(id);
+      })
       .map((n) => Notifications.dismissNotificationAsync(n.request.identifier).catch(() => {})),
   );
+}
+
+/**
+ * Ao abrir o app: tira da bandeja os avisos de alertas que já não tocam (alguém
+ * viu enquanto o celular estava fechado; o push do servidor não apaga sozinho).
+ */
+export async function dismissStale(ringing: ReadonlySet<string>): Promise<void> {
+  if (Platform.OS === 'web') return;
+  await dismissWhere((id) => !ringing.has(id));
 }
 
 /** Com o app aberto: vibra sem parar enquanto houver alerta que ninguém viu. */
@@ -150,7 +187,7 @@ export async function testAlarm(): Promise<boolean> {
     content: {
       title: 'Teste do alarme',
       body: 'É assim que um alerta novo chega.',
-      sound: 'default',
+      sound: SOUND,
       priority: Notifications.AndroidNotificationPriority.MAX,
       interruptionLevel: 'timeSensitive',
     },

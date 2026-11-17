@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Firebase e assinatura do APK: ficam fora do git (ver docs/NOTIFICACOES.md)
+google-services.json
+*.keystore
