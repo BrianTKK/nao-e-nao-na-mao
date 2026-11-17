@@ -6,30 +6,13 @@
 -- 3) este arquivo. A equipe é ligada às contas pelo e-mail: se a conta não
 -- existir, a linha é pulada.
 
-insert into venues (id, name, neighborhood, city, help_phrase, menu)
+insert into venues (id, name, neighborhood, city, help_phrase)
 values (
   '0b7a2f1e-5c3d-4e8a-9f10-3a2b1c0d9e01',
   'Bar Esquina da Vila',
   'Vila Madalena',
   'São Paulo',
-  'Pedir um "drink Margarida" no balcão',
-  '[
-    {"section": "Chopes e cervejas", "items": [
-      {"name": "Chope claro 300 ml", "price": 12.9},
-      {"name": "Chope escuro 300 ml", "price": 14.9},
-      {"name": "Long neck", "price": 13.0}
-    ]},
-    {"section": "Drinks", "items": [
-      {"name": "Caipirinha de limão", "price": 24.0},
-      {"name": "Gin tônica", "price": 32.0},
-      {"name": "Drink sem álcool da casa", "price": 18.0}
-    ]},
-    {"section": "Petiscos", "items": [
-      {"name": "Batata frita", "price": 29.0},
-      {"name": "Pastel de queijo (6 un.)", "price": 26.0},
-      {"name": "Bolinho de mandioca", "price": 31.0}
-    ]}
-  ]'::jsonb
+  'Pedir um "drink Margarida" no balcão'
 )
 on conflict (id) do nothing;
 

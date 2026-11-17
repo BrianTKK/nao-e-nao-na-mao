@@ -141,14 +141,14 @@ export async function getPublicAlertByHash(db: Queryable, tokenHash: string): Pr
 }
 
 export async function getPublicSpot(db: Queryable, code: string): Promise<PublicSpot | null> {
-  const { rows } = await db.query<{ code: string; label: string; venue_name: string; help_phrase: string; menu: PublicSpot['menu'] }>(
-    `select s.code, s.label, v.name as venue_name, v.help_phrase, v.menu
+  const { rows } = await db.query<{ code: string; label: string; venue_name: string; help_phrase: string }>(
+    `select s.code, s.label, v.name as venue_name, v.help_phrase
      from spots s join venues v on v.id = s.venue_id
      where s.code = $1 and s.active`,
     [code.toUpperCase()],
   );
   const r = rows[0];
-  return r ? { code: r.code, label: r.label, venueName: r.venue_name, helpPhrase: r.help_phrase, menu: r.menu } : null;
+  return r ? { code: r.code, label: r.label, venueName: r.venue_name, helpPhrase: r.help_phrase } : null;
 }
 
 interface StaffRow {
@@ -194,12 +194,12 @@ export async function listStaff(db: Queryable, venueId: string): Promise<StaffMe
 }
 
 export async function getVenue(db: Queryable, venueId: string): Promise<Venue> {
-  const { rows } = await db.query<{ id: string; name: string; neighborhood: string | null; city: string; help_phrase: string; menu: Venue['menu'] }>(
-    'select id, name, neighborhood, city, help_phrase, menu from venues where id = $1',
+  const { rows } = await db.query<{ id: string; name: string; neighborhood: string | null; city: string; help_phrase: string }>(
+    'select id, name, neighborhood, city, help_phrase from venues where id = $1',
     [venueId],
   );
   const r = rows[0];
-  return { id: r.id, name: r.name, neighborhood: r.neighborhood, city: r.city, helpPhrase: r.help_phrase, menu: r.menu };
+  return { id: r.id, name: r.name, neighborhood: r.neighborhood, city: r.city, helpPhrase: r.help_phrase };
 }
 
 interface SpotRow {

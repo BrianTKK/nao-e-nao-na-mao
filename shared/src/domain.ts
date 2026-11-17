@@ -25,18 +25,12 @@ export const ALERT_OUTCOMES: AlertOutcome[] = [
   'false_alarm',
 ];
 
-export interface MenuSection {
-  section: string;
-  items: { name: string; price: number }[];
-}
-
 export interface Venue {
   id: string;
   name: string;
   neighborhood: string | null;
   city: string;
   helpPhrase: string;
-  menu: MenuSection[];
 }
 
 export interface Spot {
@@ -93,7 +87,6 @@ export interface PublicSpot {
   label: string;
   venueName: string;
   helpPhrase: string;
-  menu: MenuSection[];
 }
 
 /** O que a mulher vê do próprio pedido, pelo token. */

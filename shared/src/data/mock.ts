@@ -294,7 +294,6 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
           label: spot.label,
           venueName: DEMO_VENUE.name,
           helpPhrase: DEMO_VENUE.helpPhrase,
-          menu: DEMO_VENUE.menu,
         };
       },
       createAlert,

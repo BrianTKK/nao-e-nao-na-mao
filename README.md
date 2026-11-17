@@ -10,7 +10,7 @@ Projeto da Global Solution CitizenTech (FIAP, Web Design).
 
 | Quem | Onde | O que faz |
 | --- | --- | --- |
-| Mulher no bar | **Web**, pelo QR code (`/q/<código>`) | Escolhe o que está acontecendo, acompanha a resposta, cancela, esconde a tela atrás do cardápio, liga para o 190 ou o 180 |
+| Mulher no bar | **Web**, pelo QR code (`/q/<código>`) | Escolhe o que está acontecendo, acompanha a resposta, cancela, liga para o 190 ou o 180 |
 | Equipe (segurança, garçom) | **App** (Expo, React Native) | Recebe o pedido com vibração e notificação, vê se está conectada, toca em "Estou indo" e registra como terminou |
 | Gerência e caixa (quem coordena) | **Web**, no painel (`/painel`) | Quadro ao vivo, direcionar ou assumir um pedido, cadastro da equipe e dos locais, QR codes para imprimir, histórico, tempo de resposta e relatório do mês para o Procon |
 

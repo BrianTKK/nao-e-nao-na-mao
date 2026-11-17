@@ -39,7 +39,7 @@ export function PrintSpots() {
         {spots.map((s) => (
           <section key={s.id} className="poster" aria-label={`Cartaz do local ${s.label}`}>
             <p className="poster-title">Precisa de ajuda?</p>
-            <p className="poster-sub">Leia o QR code. A equipe do bar vem até você, sem chamar atenção.</p>
+            <p className="poster-sub">Leia o QR code. A nossa equipe vem até você, sem chamar atenção.</p>
             <QrCode value={`${window.location.origin}/q/${s.code}`} label={`QR code do local ${s.label}`} size={220} />
             <p className="poster-spot">{s.label}</p>
             <p className="poster-foot">

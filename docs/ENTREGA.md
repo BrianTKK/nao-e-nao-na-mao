@@ -89,7 +89,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Contêiner sem root; segredo do token só no `.env` | ✅ | `USER node` no Dockerfile; o servidor não sobe sem `JWT_SECRET` em produção. A imagem foi construída e roda na VPS (F1) |
 | CSP: WebSocket só para a própria origem | ✅ | `connect-src 'self' ws(s)://<host>` (F2). Testado na API e no navegador: o Socket.IO conecta sem erro, e a página não cai na consulta de reserva |
 | Quem é desativado perde o tempo real na hora | ✅ | Sala `user:<id>`; o servidor derruba os sockets ao desativar. Testado |
-| Disfarce (título neutro, "Ver cardápio") | ✅ | Testado no navegador. Falta teste com usuárias |
+| Discrição (título da aba só com o nome do bar; o disfarce de cardápio saiu em 16/11 a pedido do Brian) | ✅ | Testado no navegador. Falta teste com usuárias |
 | Sem sinal: cartão para o balcão | 🟡 | Feito; falta o teste com o modo avião (F3) |
 | Celular no bolso | 🟡 | Vibração, notificação local e alerta visual escritos. O push remoto exige development build (Expo Go no Android sem push desde a SDK 53, conferido na documentação): vai como próximo passo no README e no PDF |
 | WebSocket com reconexão; a página da mulher consulta a cada 3 s se cair | ✅ | Socket.IO com reconexão; a queda é testada derrubando o WebSocket pelo servidor |

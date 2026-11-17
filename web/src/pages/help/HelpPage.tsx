@@ -14,7 +14,6 @@ import {
 } from '@nenm/shared';
 import { dataSource } from '../../data/source';
 import { session, useDocumentTitle, useOnline } from '../../hooks/hooks';
-import { MenuDisguise } from './MenuDisguise';
 import { StatusSteps } from './StatusSteps';
 import { CounterCard } from './CounterCard';
 import './help.css';
@@ -31,8 +30,7 @@ const tokenKey = (code: string) => `nenm.alert.${code.toUpperCase()}`;
 
 /**
  * Página que o QR code do banheiro ou da mesa abre. Sem login, sem instalar.
- * - O título da aba é sempre "Cardápio · <bar>" (neutro).
- * - "Ver cardápio" troca a tela pelo cardápio do bar, para quem estiver olhando.
+ * - O título da aba é só o nome do bar (neutro): não diz "ajuda".
  * - Sem conexão, a página vira um cartão para mostrar no balcão.
  */
 export function HelpPage() {
@@ -41,10 +39,9 @@ export function HelpPage() {
   const [spot, setSpot] = useState<PublicSpot | null>(null);
   const [phase, setPhase] = useState<Phase>({ name: 'loading' });
   const [alert, setAlert] = useState<PublicAlert | null>(null);
-  const [hidden, setHidden] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  useDocumentTitle(spot ? `Cardápio · ${spot.venueName}` : 'Cardápio');
+  useDocumentTitle(spot ? spot.venueName : 'Carregando…');
 
   // Carrega o local e retoma um pedido em andamento (se a página recarregou).
   useEffect(() => {
@@ -79,17 +76,8 @@ export function HelpPage() {
 
   // Leva o foco ao título a cada troca de etapa (leitor de tela acompanha).
   useEffect(() => {
-    if (!hidden) headingRef.current?.focus();
-  }, [phase.name, hidden]);
-
-  // Esc esconde a tela na hora.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setHidden(true);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+    headingRef.current?.focus();
+  }, [phase.name]);
 
   const send = useCallback(
     async (kind: AlertKind) => {
@@ -123,24 +111,10 @@ export function HelpPage() {
     setPhase({ name: 'choose' });
   }, [code]);
 
-  if (hidden && spot) {
-    return <MenuDisguise venueName={spot.venueName} menu={spot.menu} onBack={() => setHidden(false)} />;
-  }
-
   return (
     <div className="help">
       <header className="help-header">
         <span className="help-venue">{spot?.venueName ?? ' '}</span>
-        {spot && (
-          <button
-            type="button"
-            className="btn help-hide"
-            onClick={() => setHidden(true)}
-            aria-label="Esconder esta tela e mostrar o cardápio do bar"
-          >
-            Ver cardápio
-          </button>
-        )}
       </header>
 
       <main className="help-main" aria-busy={phase.name === 'loading' || phase.name === 'sending'}>
@@ -159,10 +133,10 @@ export function HelpPage() {
         {(phase.name === 'choose' || phase.name === 'sending') && spot && (
           <>
             <h1 ref={headingRef} tabIndex={-1}>
-              Precisa de ajuda? A equipe do bar vem até você.
+              Precisa de ajuda? A nossa equipe vem até você.
             </h1>
             <p className="muted">
-              Você está em: <strong className="help-spot">{spot.label}</strong>. Só a equipe do bar recebe o pedido.
+              Você está em: <strong className="help-spot">{spot.label}</strong>. Só a nossa equipe recebe o pedido.
             </p>
             <div className="help-options" role="group" aria-label="O que está acontecendo?">
               {ALERT_KINDS.map((kind) => (
