@@ -44,7 +44,20 @@ export const PERFORATION_ON_ALERT = 'rgba(26, 18, 0, 0.45)';
  * - Os outros estados: cartão escuro com faixa lateral na cor do estado, e o
  *   estado escrito com ícone (olho, pessoa andando, check).
  */
-export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: number; meId: string | null; onPress: () => void }) {
+export function AlertCard({
+  alert,
+  now,
+  meId,
+  unsent = false,
+  onPress,
+}: {
+  alert: Alert;
+  now: number;
+  meId: string | null;
+  /** Há toque meu neste alerta guardado sem sinal: o cartão mostra o estado que vai ficar e avisa que falta enviar. */
+  unsent?: boolean;
+  onPress: () => void;
+}) {
   const { reduceMotion } = useMotion();
   const pulse = useSharedValue(0);
   const forMe = !alert.responderId && !!meId && alert.assignedToId === meId;
@@ -82,7 +95,7 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
   const responder = alert.responderName ? `${alert.responderName.split(' ')[0]} a caminho` : null;
   const statusText = STATUS_LABEL[alert.status];
-  const label = `${assignedText ? `${assignedText}. ` : ''}${statusText}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Palavra ${spokenCode(alert.shortCode)}.${responder ? ` ${responder}.` : ''}`;
+  const label = `${assignedText ? `${assignedText}. ` : ''}${statusText}${unsent ? ', ainda não enviado por falta de sinal' : ''}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Palavra ${spokenCode(alert.shortCode)}.${responder ? ` ${responder}.` : ''}`;
 
   const ink = isNew ? color.onAlert : color.text;
   const inkMuted = isNew ? color.onAlert : color.textMuted;
@@ -107,6 +120,12 @@ export function AlertCard({ alert, now, meId, onPress }: { alert: Alert; now: nu
         </View>
 
         {assignedText && <Text style={[styles.assigned, { color: inkMuted }]}>{assignedText}</Text>}
+        {unsent && (
+          <View style={styles.status}>
+            <Icon name="wifi-off" size={18} color={inkMuted} />
+            <Text style={[styles.assigned, { color: inkMuted, flexShrink: 1 }]}>Sem sinal: ainda não enviado</Text>
+          </View>
+        )}
 
         <Text style={[ui.display, isNew ? styles.spotNew : styles.spot, { color: ink }]}>{alert.spotLabel}</Text>
         <Text style={[styles.kind, { color: ink }]}>{KIND_STAFF_LABEL[alert.kind]}</Text>

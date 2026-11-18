@@ -20,6 +20,7 @@ const DB_ERRORS: Record<string, number> = {
   outcome_required: 400,
   invalid_transition: 409,
   already_taken: 409,
+  action_id_reused: 409,
   not_staff: 403,
   not_manager: 403,
   staff_not_found: 404,

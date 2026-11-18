@@ -22,7 +22,7 @@ import {
   type VenueWifi,
 } from '../domain';
 import { DEMO_PASSWORD, DEMO_SPOTS, DEMO_USERS, DEMO_VENUE, type DemoUser } from './demo';
-import { DataError, type DataSource, type Unsubscribe } from './ports';
+import { DataError, type ActionMeta, type DataSource, type Unsubscribe } from './ports';
 import { pickCodeWord } from '../codeWords';
 
 export interface KeyValueStore {
@@ -208,6 +208,19 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
     if (!user) throw new DataError('not_staff');
     return user;
   };
+  /** Toques já aplicados, por id (igual ao servidor: o reenvio do mesmo toque não repete a transição). */
+  const appliedActions = new Map<string, string>();
+  const actionKey = (alertId: string, kind: string) => `${state.sessionId}:${alertId}:${kind}`;
+  const replayed = (meta: ActionMeta | undefined, alertId: string, kind: string): boolean => {
+    const prev = meta && appliedActions.get(meta.actionId);
+    if (!prev) return false;
+    if (prev !== actionKey(alertId, kind)) throw new DataError('unknown', 'action_id_reused');
+    return true;
+  };
+  const applied = (meta: ActionMeta | undefined, alertId: string, kind: string) => {
+    if (meta) appliedActions.set(meta.actionId, actionKey(alertId, kind));
+  };
+
   const myAlert = (id: string): Alert => {
     const user = me();
     const alert = state.alerts.find((a) => a.id === id && a.venueId === user.venueId);
@@ -372,22 +385,25 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
           return null;
         }
       },
-      async ackAlert(id) {
+      async ackAlert(id, meta) {
         await wait();
+        if (replayed(meta, id, 'ack')) return;
         const alert = myAlert(id);
         if (alert.status === 'open') {
           alert.status = 'seen';
           alert.seenAt = iso();
           commit();
         }
+        applied(meta, id, 'ack');
       },
-      async startResponse(id) {
+      async startResponse(id, meta) {
         await wait();
+        if (replayed(meta, id, 'start')) return;
         const user = me();
         const alert = myAlert(id);
         if (!isActive(alert.status)) throw new DataError('invalid_transition');
         if (alert.status === 'on_the_way') {
-          if (alert.responderId === user.id) return;
+          if (alert.responderId === user.id) return applied(meta, id, 'start');
           throw new DataError('already_taken');
         }
         alert.status = 'on_the_way';
@@ -396,13 +412,17 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         alert.responderId = user.id;
         alert.responderName = user.fullName;
         commit();
+        applied(meta, id, 'start');
       },
-      async resolveAlert(id, outcome, note) {
+      async resolveAlert(id, outcome, note, meta) {
         await wait();
+        if (replayed(meta, id, 'resolve')) return;
         const user = me();
         const alert = myAlert(id);
         if (!isActive(alert.status)) throw new DataError('invalid_transition');
         if (!outcome) throw new DataError('outcome_required');
+        // Só a gerência encerra o alerta que outra pessoa assumiu (igual ao banco, migração 008).
+        if (alert.status === 'on_the_way' && alert.responderId !== user.id && user.role !== 'manager') throw new DataError('already_taken');
         alert.status = 'resolved';
         alert.outcome = outcome;
         alert.note = note?.trim() || null;
@@ -413,6 +433,7 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
           alert.responderName = user.fullName;
         }
         commit();
+        applied(meta, id, 'resolve');
       },
       async setMyAppearance(appearance) {
         await wait();

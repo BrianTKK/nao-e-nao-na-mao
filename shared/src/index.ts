@@ -9,3 +9,5 @@ export { createMockDataSource } from './data/mock';
 export type { MockDataSource, MockOptions, KeyValueStore, SyncChannel } from './data/mock';
 export { createApiDataSource } from './data/api';
 export type { ApiOptions, TokenStore } from './data/api';
+export { applyPending, createOutbox, noticesFor, pendingFor, randomUuid } from './data/outbox';
+export type { NewAction, Outbox, OutboxNotice, OutboxNoticeReason, OutboxOptions, OutboxSnapshot, OutboxStorage, QueuedAction, QueuedActionKind } from './data/outbox';

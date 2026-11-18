@@ -293,3 +293,47 @@ export function onTheWayMessage(name: string | null, appearance: string | null):
   const who = name ?? 'Alguém da equipe';
   return appearance ? `${who}, de ${appearance}, está indo até você.` : `${who} está indo até você.`;
 }
+
+// ---------------------------------------------------------------------------
+// Fila de toques sem sinal (app da equipe): os textos que a tela mostra.
+// ---------------------------------------------------------------------------
+
+/** Título do aviso enquanto há toque guardado no aparelho. */
+export const QUEUED_TITLE = 'Sem sinal: vai enviar quando voltar';
+
+/** O que está guardado, dito para quem tocou. `kinds` são os toques da pessoa neste alerta. */
+export function queuedText(kinds: readonly ('ack' | 'start' | 'resolve')[]): string {
+  const start = kinds.includes('start');
+  const resolve = kinds.includes('resolve');
+  const what = start && resolve ? 'O seu "Estou indo" e o encerramento estão guardados' : resolve ? 'O encerramento está guardado' : 'O seu "Estou indo" está guardado';
+  return `${what} neste celular. A equipe e ela só veem quando o sinal voltar.`;
+}
+
+/** Linha da lista de alertas: quantos toques esperam o sinal. */
+export function queuedCountText(n: number): string {
+  return n === 1 ? '1 toque guardado: vai enviar quando o sinal voltar' : `${n} toques guardados: vão enviar quando o sinal voltar`;
+}
+
+const NOT_SENT_WHAT: Record<'ack' | 'start' | 'resolve', string> = {
+  ack: 'O seu toque não foi enviado',
+  start: 'O seu "Estou indo" não foi enviado',
+  resolve: 'O seu encerramento não foi enviado',
+};
+
+const NOT_SENT_WHY: Record<'closed' | 'taken' | 'not_found' | 'failed' | 'expired', string> = {
+  closed: 'o alerta foi encerrado enquanto você estava sem sinal',
+  taken: 'outra pessoa da equipe assumiu o alerta enquanto você estava sem sinal',
+  not_found: 'o alerta não existe mais',
+  failed: 'o servidor recusou. O que vale é o que aparece na tela',
+  expired: 'ficou guardado por tempo demais sem sinal',
+};
+
+/** Aviso de um toque guardado que não foi aplicado (o que vale é o que os outros fizeram). */
+export function notSentText(notice: {
+  kind: 'ack' | 'start' | 'resolve';
+  reason: 'closed' | 'taken' | 'not_found' | 'failed' | 'expired';
+  spotLabel?: string;
+}, withPlace = false): string {
+  const place = withPlace && notice.spotLabel ? `${notice.spotLabel}. ` : '';
+  return `${place}${NOT_SENT_WHAT[notice.kind]}: ${NOT_SENT_WHY[notice.reason]}.`;
+}

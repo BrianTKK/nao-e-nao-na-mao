@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
-import type { ConnectionState } from '@nenm/shared';
+import { isActive, notSentText, noticesFor, pendingFor, queuedCountText, type ConnectionState } from '@nenm/shared';
 import { Button } from '@/components/Button';
 import { AlertCard } from '@/components/AlertCard';
+import { Icon } from '@/components/Icon';
+import { NotSentNotice } from '@/components/OutboxNotices';
+import { outbox } from '@/data/outbox';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
+import { useOutbox } from '@/hooks/useOutbox';
 import { takePendingAlert } from '@/notifications/openAlert';
 import { useSession } from '@/hooks/useSession';
 import { dataSource, showDemo, simulateAlert } from '@/data/source';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
-import { space, ui } from '@/theme/theme';
+import { color, space, ui } from '@/theme/theme';
 
 /** "Reconectando…" só aparece se durar: a ligação inicial leva um instante. */
 const CONNECTING_GRACE_MS = 4000;
@@ -36,8 +40,14 @@ const countText = (n: number) => (n === 1 ? '1 alerta em aberto' : `${n} alertas
 /** Alertas abertos do bar, do mais antigo ao mais novo (quem espera há mais tempo, primeiro). */
 export default function Alerts() {
   const { me } = useSession();
-  const alerts = useActiveAlerts(me?.id ?? null);
+  const alerts = useActiveAlerts(me ?? null);
   const connectionTrouble = useConnectionTrouble();
+  // Toques meus guardados sem sinal ("Vi" é automático e não entra na conta) e os que não foram aplicados.
+  const box = useOutbox();
+  const queued = pendingFor(box, me?.id).filter((a) => a.kind !== 'ack');
+  const queuedAlerts = new Set(queued.map((a) => a.alertId));
+  const notSent = noticesFor(box, me?.id);
+  const open = alerts?.filter((a) => isActive(a.status)).length ?? 0;
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -77,12 +87,33 @@ export default function Alerts() {
               </Text>
             ) : null}
             <Text style={ui.h2} accessibilityRole="header" accessibilityLiveRegion="polite">
-              {alerts === null ? 'Carregando…' : alerts.length === 0 ? 'Nenhum alerta agora' : countText(alerts.length)}
+              {alerts === null
+                ? connectionTrouble
+                  ? 'Sem conexão: não deu para carregar os alertas'
+                  : 'Carregando…'
+                : open === 0
+                  ? 'Nenhum alerta agora'
+                  : countText(open)}
             </Text>
+            {queued.length > 0 && (
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}
+                accessible
+                accessibilityRole="text"
+                accessibilityLiveRegion="polite"
+                accessibilityLabel={queuedCountText(queued.length)}
+              >
+                <Icon name="wifi-off" size={20} color={color.alert} />
+                <Text style={[ui.body, ui.strong, { flex: 1 }]}>{queuedCountText(queued.length)}</Text>
+              </View>
+            )}
+            {notSent.map((n) => (
+              <NotSentNotice key={n.id} text={notSentText(n, true)} onDismiss={() => outbox.dismissNotice(n.id)} />
+            ))}
           </View>
         }
         renderItem={({ item }) => (
-          <AlertCard alert={item} now={now} meId={me?.id ?? null} onPress={() => router.push({ pathname: '/alerts/[id]', params: { id: item.id } })} />
+          <AlertCard alert={item} now={now} meId={me?.id ?? null} unsent={queuedAlerts.has(item.id)} onPress={() => router.push({ pathname: '/alerts/[id]', params: { id: item.id } })} />
         )}
         ListEmptyComponent={
           alerts ? (

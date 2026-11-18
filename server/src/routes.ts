@@ -22,6 +22,8 @@ export interface RouteDeps {
 }
 
 const uuid = z.string().uuid();
+/** Teto do tempo que um toque pode dizer que esperou no aparelho (o app descarta antes disso). */
+const QUEUED_MS_MAX = 24 * 60 * 60 * 1000;
 const alertToken = z.string().regex(/^[0-9a-f]{64}$/);
 const spotCode = z.string().regex(/^[A-Za-z0-9]{6,12}$/);
 const kind = z.enum(ALERT_KINDS as [string, ...string[]]);
@@ -164,16 +166,38 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits, p
     res.json(alert);
   });
 
-  const transition = (fn: string) =>
+  /**
+   * Toques da equipe. Com `actionId` (o app manda um por toque), o servidor aplica
+   * uma vez só: o reenvio do mesmo toque, depois de uma queda de conexão, devolve
+   * o alerta como está, sem repetir a transição nem o aviso (migração 008).
+   */
+  const actionMeta = { actionId: uuid.optional(), queuedMs: z.number().int().min(0).max(QUEUED_MS_MAX).optional() };
+  const transition = (fn: 'ack' | 'start' | 'resolve') =>
     r.post(`/staff/alerts/:id/${fn}`, auth.requireStaff, async (req, res) => {
       const id = uuid.parse(req.params.id);
-      if (fn === 'resolve') {
-        const body = z.object({ outcome, note: z.string().max(500).optional() }).strict().parse(req.body);
-        await db.query('select resolve_alert($1, $2, $3, $4)', [req.actor!.id, id, body.outcome, body.note ?? null]);
+      const actor = req.actor!.id;
+      const body =
+        fn === 'resolve'
+          ? z.object({ outcome, note: z.string().max(500).optional(), ...actionMeta }).strict().parse(req.body)
+          : { outcome: null, note: undefined, ...z.object(actionMeta).strict().parse(req.body ?? {}) };
+      let applied = true;
+      if (body.actionId) {
+        const { rows } = await db.query<{ applied: boolean }>('select apply_staff_action($1, $2, $3, $4, $5, $6, $7) as applied', [
+          actor,
+          id,
+          fn,
+          body.actionId,
+          body.queuedMs ?? 0,
+          body.outcome,
+          body.note ?? null,
+        ]);
+        applied = rows[0].applied;
+      } else if (fn === 'resolve') {
+        await db.query('select resolve_alert($1, $2, $3, $4)', [actor, id, body.outcome, body.note ?? null]);
       } else {
-        await db.query(`select ${fn === 'ack' ? 'ack_alert' : 'start_response'}($1, $2)`, [req.actor!.id, id]);
+        await db.query(`select ${fn === 'ack' ? 'ack_alert' : 'start_response'}($1, $2)`, [actor, id]);
       }
-      alertChanged(id);
+      if (applied) alertChanged(id);
       res.json(await q.getAlert(db, req.actor!.venueId, id));
     });
   transition('ack');

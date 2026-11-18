@@ -62,6 +62,18 @@ export interface PublicApi {
   cancelAlert(token: string): Promise<void>;
 }
 
+/**
+ * Identifica um toque da equipe ("Vi", "Estou indo", "Encerrar"). Com ele, o
+ * servidor aplica o toque uma vez só: reenviar depois de uma queda de conexão
+ * não repete a transição (ver data/outbox.ts).
+ */
+export interface ActionMeta {
+  /** UUID gerado no aparelho, um por toque. */
+  actionId: string;
+  /** Quanto tempo o toque esperou no aparelho até este envio, em ms. */
+  queuedMs?: number;
+}
+
 /** App da equipe: com login. */
 export interface StaffApi {
   signIn(email: string, password: string): Promise<StaffMember>;
@@ -72,9 +84,14 @@ export interface StaffApi {
   /** Avisa com a lista de pedidos abertos a cada mudança. */
   watchActiveAlerts(onChange: (alerts: Alert[]) => void): Unsubscribe;
   getAlert(id: string): Promise<Alert | null>;
-  ackAlert(id: string): Promise<void>;
-  startResponse(id: string): Promise<void>;
-  resolveAlert(id: string, outcome: AlertOutcome, note?: string): Promise<void>;
+  ackAlert(id: string, meta?: ActionMeta): Promise<void>;
+  /** Erro `already_taken` se outra pessoa já está indo. */
+  startResponse(id: string, meta?: ActionMeta): Promise<void>;
+  /**
+   * Erro `invalid_transition` se o alerta já foi encerrado ou cancelado, e
+   * `already_taken` se outra pessoa assumiu (só a gerência encerra o alerta de outra pessoa).
+   */
+  resolveAlert(id: string, outcome: AlertOutcome, note?: string, meta?: ActionMeta): Promise<void>;
   setMyAppearance(appearance: string): Promise<void>;
   /**
    * Push remoto (app próprio no Android): registra o token do Firebase deste aparelho para quem entrou.

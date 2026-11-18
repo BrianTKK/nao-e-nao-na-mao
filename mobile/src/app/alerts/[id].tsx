@@ -1,34 +1,49 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   DataError,
   KIND_STAFF_LABEL,
   OUTCOME_LABEL,
+  QUEUED_TITLE,
   STATUS_LABEL,
+  applyPending,
   elapsedSeconds,
   formatDuration,
   isActive,
+  notSentText,
+  noticesFor,
+  pendingFor,
+  queuedText,
   type Alert,
   type AlertOutcome,
+  type QueuedActionKind,
   displayCode,
   spokenCode,
 } from '@nenm/shared';
 import { dataSource } from '@/data/source';
+import { outbox } from '@/data/outbox';
+import { recallAlert, rememberAlerts } from '@/data/alertCache';
 import { Button } from '@/components/Button';
 import { Icon, type IconName } from '@/components/Icon';
 import { STATUS_ICON } from '@/components/AlertCard';
+import { NotSentNotice, QueuedNotice } from '@/components/OutboxNotices';
 import { OutcomeSheet } from '@/components/OutcomeSheet';
+import { StatusSteps } from '@/components/StatusSteps';
 import { Perforation, TicketNotches, useNotchY } from '@/components/TicketNotches';
+import { useMotion } from '@/hooks/useMotion';
+import { useOutbox } from '@/hooks/useOutbox';
 import { useSession } from '@/hooks/useSession';
-import { color, font, fontSize, radius, space, ui } from '@/theme/theme';
+import { color, font, fontSize, motion, radius, space, ui } from '@/theme/theme';
 
 const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
   already_taken: 'Outra pessoa da equipe já está indo.',
   invalid_transition: 'Este alerta já foi encerrado.',
   alert_not_found: 'Alerta não encontrado.',
-  network: 'Sem conexão. Tente de novo quando o sinal voltar.',
+  not_staff: 'O seu login venceu. Entre de novo para continuar.',
 };
 
 const first = (name: string | null | undefined) => name?.split(' ')[0] ?? null;
@@ -59,12 +74,22 @@ function whoLine(a: Alert, mine: boolean, meId: string | null): { icon: IconName
  * Em cima, lugar e motivo; no meio, a palavra-código num tíquete; embaixo,
  * uma barra fixa com a ação principal ao alcance do polegar. "Encerrar…" abre
  * a folha de desfechos.
+ *
+ * Sem sinal, a tela continua funcionando: abre com o último estado conhecido, e
+ * os toques ficam guardados na fila (data/outbox.ts). A tela mostra o alerta
+ * como ele vai ficar e avisa, com ícone e texto, que ainda não foi enviado. Se,
+ * na volta do sinal, outra pessoa já tiver assumido ou encerrado, o toque não
+ * passa por cima: vira um aviso e a tela mostra o que vale.
  */
 export default function AlertDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { me } = useSession();
+  const { reduceMotion } = useMotion();
   const insets = useSafeAreaInsets();
-  const [alert, setAlert] = useState<Alert | null | undefined>(undefined);
+  /** O alerta como o servidor mandou por último (ou o que a lista já conhecia, se não há sinal). */
+  const [server, setServer] = useState<Alert | null | undefined>(() => recallAlert(id));
+  /** A última leitura falhou (sem sinal): o que está na tela pode estar desatualizado. */
+  const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -72,13 +97,21 @@ export default function AlertDetail() {
   const [now, setNow] = useState(Date.now());
   const [notchY, onPerforationLayout] = useNotchY();
 
-  const load = useCallback(async () => setAlert(await dataSource.staff.getAlert(id)), [id]);
+  const load = useCallback(async () => {
+    try {
+      const fresh = await dataSource.staff.getAlert(id);
+      if (fresh) rememberAlerts([fresh]);
+      setServer(fresh);
+      setStale(false);
+    } catch {
+      // Sem sinal: fica o que já se sabia (a lista guarda o último estado de cada alerta).
+      setStale(true);
+      setServer((current) => current ?? recallAlert(id));
+    }
+  }, [id]);
 
   useEffect(() => {
     load();
-    // Abrir o alerta conta como "visto": o painel mede quanto tempo isso levou,
-    // e o alarme deste alerta para (useActiveAlerts silencia o que deixou de ser novo).
-    dataSource.staff.ackAlert(id).catch(() => {});
     const stop = dataSource.staff.watchActiveAlerts(() => load());
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -87,30 +120,96 @@ export default function AlertDetail() {
     };
   }, [id, load]);
 
+  // Abrir o alerta conta como "visto": o painel mede quanto tempo isso levou,
+  // e o alarme deste alerta para (useActiveAlerts silencia o que deixou de ser novo).
+  // Sem sinal, o "visto" também fica guardado na fila.
+  const meId = me?.id;
+  useEffect(() => {
+    if (meId) outbox.perform({ kind: 'ack', alertId: id, userId: meId }).catch(() => {});
+  }, [id, meId]);
+
+  // Toques meus guardados sem sinal e avisos do que não foi aplicado, deste alerta.
+  const box = useOutbox();
+  const pending = pendingFor(box, meId, id);
+  const notSent = noticesFor(box, meId, id);
+  const queuedKinds = pending.map((a) => a.kind).filter((k): k is QueuedActionKind => k !== 'ack');
+  const alert = server && me ? applyPending(server, pending, me) : server;
+
+  // Quando a fila anda (enviou ou descartou), busca o que vale agora no servidor.
+  const boxMark = `${pending.length}:${notSent.length}`;
+  const lastMark = useRef(boxMark);
+  useEffect(() => {
+    if (lastMark.current === boxMark) return;
+    lastMark.current = boxMark;
+    load();
+  }, [boxMark, load]);
+
   const active = alert ? isActive(alert.status) : false;
+
+  // Mudança de estado depois de a tela abrir: é quando o motion entra, com um toque no aparelho.
+  const status = alert?.status;
+  const lastStatus = useRef(status);
+  const [changes, setChanges] = useState(0);
+  useEffect(() => {
+    if (status === lastStatus.current) return;
+    const first = lastStatus.current === undefined;
+    lastStatus.current = status;
+    if (first || !status) return;
+    setChanges((n) => n + 1);
+    if (Platform.OS === 'web') return;
+    if (status === 'resolved') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    else if (status === 'on_the_way') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  }, [status]);
+  const entering = !reduceMotion && changes > 0;
+
+  const [retrying, setRetrying] = useState(false);
+  const retry = async () => {
+    if (!meId) return;
+    setRetrying(true);
+    await outbox.flush(meId).catch(() => {});
+    setRetrying(false);
+  };
 
   // Se o alerta for encerrado por outra pessoa com a folha aberta, a folha fecha.
   useEffect(() => {
     if (alert && !active) setSheetOpen(false);
   }, [alert, active]);
 
-  /** Salva e recarrega. Devolve se deu certo. */
-  const run = async (key: string, fn: () => Promise<void>): Promise<boolean> => {
+  /**
+   * Faz o toque passar pela fila e recarrega. Devolve 'sent' (o servidor aplicou),
+   * 'queued' (sem sinal: ficou guardado) ou null (o servidor recusou; o erro vai para a tela).
+   */
+  const run = async (key: string, action: { kind: QueuedActionKind; outcome?: AlertOutcome; note?: string }): Promise<'sent' | 'queued' | null> => {
+    if (!me || !alert) return null;
     setBusy(key);
     setError(null);
     try {
-      await fn();
-      await load();
-      return true;
+      const result = await outbox.perform({ ...action, alertId: alert.id, userId: me.id, spotLabel: alert.spotLabel });
+      if (result === 'sent') await load();
+      else if (Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(`${QUEUED_TITLE}.`);
+      return result;
     } catch (err) {
       setError((err instanceof DataError && ERROR_TEXT[err.code]) || 'Não foi possível salvar. Tente de novo.');
-      return false;
+      // Recusado: mostra o que vale agora (ex.: quem assumiu).
+      load();
+      return null;
     } finally {
       setBusy(null);
     }
   };
 
-  if (alert === undefined) return <View style={ui.screen} />;
+  if (alert === undefined)
+    return (
+      <View style={[ui.screen, ui.content]}>
+        {stale && (
+          <View style={styles.whoRow} accessible accessibilityRole="alert" accessibilityLiveRegion="polite">
+            <Icon name="wifi-off" size={22} color={color.alert} />
+            <Text style={[ui.body, { flex: 1 }]}>Sem sinal: não deu para abrir este alerta. O app tenta de novo sozinho quando a conexão voltar.</Text>
+          </View>
+        )}
+        {stale && <Button label="Voltar" icon="arrow-left" onPress={() => router.back()} />}
+      </View>
+    );
   if (alert === null)
     return (
       <View style={[ui.screen, ui.content]}>
@@ -127,11 +226,11 @@ export default function AlertDetail() {
   const othersGoing = active && alert.status === 'on_the_way' && !mine;
 
   const pick = async (o: AlertOutcome) => {
-    const ok = await run(`done:${o}`, () => dataSource.staff.resolveAlert(alert.id, o, note));
-    if (!ok) return;
+    const result = await run(`done:${o}`, { kind: 'resolve', outcome: o, note });
+    if (!result) return;
     setSheetOpen(false);
     setNote('');
-    if (Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(`Alerta encerrado: ${OUTCOME_LABEL[o]}.`);
+    if (result === 'sent' && Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(`Alerta encerrado: ${OUTCOME_LABEL[o]}.`);
   };
 
   const openSheet = () => {
@@ -142,15 +241,25 @@ export default function AlertDetail() {
   return (
     <View style={ui.screen}>
       <ScrollView style={ui.screen} contentContainerStyle={[ui.content, { paddingBottom: space.lg }]}>
+        {notSent.map((n) => (
+          <NotSentNotice key={n.id} text={notSentText(n)} onDismiss={() => outbox.dismissNotice(n.id)} />
+        ))}
+
         <View style={{ gap: space.xxs }}>
-          <View style={styles.statusRow}>
+          {/* A chave troca com o estado: o estado novo entra subindo, e o olho vai para o que mudou. */}
+          <Animated.View
+            key={alert.status}
+            entering={entering ? FadeInDown.duration(motion.duration.base) : undefined}
+            style={styles.statusRow}
+          >
             <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
             {/* Só o estado é região viva: o tempo muda a cada segundo e não deve ser anunciado. */}
             <Text style={[styles.statusText, { color: statusColor }]} accessibilityLiveRegion="polite">
               {STATUS_LABEL[alert.status]}
             </Text>
             <Text style={[ui.num, styles.time]}>· há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
-          </View>
+          </Animated.View>
+          <StatusSteps status={alert.status} confirmed={server?.status ?? alert.status} />
           <Text style={[ui.display, styles.place]} accessibilityRole="header">
             {alert.spotLabel}
           </Text>
@@ -173,23 +282,34 @@ export default function AlertDetail() {
         </View>
 
         {who && (
-          <View style={styles.whoRow}>
+          <Animated.View key={who.text} entering={entering ? FadeIn.duration(motion.duration.base) : undefined} style={styles.whoRow}>
             <Icon name={who.icon} size={22} color={who.tone === color.text ? color.textMuted : who.tone} />
             <Text style={[ui.body, ui.strong, { flex: 1 }]}>{who.text}</Text>
-          </View>
+          </Animated.View>
         )}
 
         {othersGoing && <Text style={ui.muted}>Fique por perto se precisar de apoio.</Text>}
 
+        {queuedKinds.length > 0 && <QueuedNotice text={queuedText(queuedKinds)} onRetry={retry} retrying={retrying} />}
+
+        {stale && queuedKinds.length === 0 && active && (
+          <View style={styles.whoRow} accessible accessibilityRole="text">
+            <Icon name="wifi-off" size={22} color={color.textMuted} />
+            <Text style={[ui.muted, { flex: 1 }]}>
+              Sem sinal: esta tela pode estar desatualizada. Você pode tocar assim mesmo; o app envia quando o sinal voltar.
+            </Text>
+          </View>
+        )}
+
         {!active && (
-          <View style={[ui.card, styles.result]}>
+          <Animated.View entering={entering ? FadeInDown.duration(motion.duration.base) : undefined} style={[ui.card, styles.result]}>
             <Icon name="check-circle" size={24} color={color.status.resolved} />
             <View style={{ flex: 1, gap: space.xxs }}>
               <Text style={ui.labelCaps}>Encerrado</Text>
               <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
               {alert.note ? <Text style={ui.muted}>{alert.note}</Text> : null}
             </View>
-          </View>
+          </Animated.View>
         )}
       </ScrollView>
 
@@ -206,7 +326,7 @@ export default function AlertDetail() {
             size="large"
             icon="walking"
             busy={busy === 'go'}
-            onPress={() => run('go', () => dataSource.staff.startResponse(alert.id))}
+            onPress={() => run('go', { kind: 'start' })}
           />
         )}
         {canResolve && (

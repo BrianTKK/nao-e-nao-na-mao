@@ -7,7 +7,9 @@ import { FocusInput } from '@/components/FocusInput';
 import { useMotion } from '@/hooks/useMotion';
 import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
-import { WIFI_LIMITS } from '@nenm/shared';
+import { WIFI_LIMITS, pendingFor } from '@nenm/shared';
+import { Icon } from '@/components/Icon';
+import { useOutbox } from '@/hooks/useOutbox';
 import { testAlarm } from '@/notifications/alarm';
 import { ownAndroidBuild, pushStatus, registerPush } from '@/notifications/push';
 import { color, space, ui } from '@/theme/theme';
@@ -22,6 +24,8 @@ export default function Settings() {
   const [wifiPassword, setWifiPassword] = useState('');
   const [wifiStatus, setWifiStatus] = useState<string | null>(null);
   const [push, setPush] = useState(pushStatus);
+  // Toques guardados sem sinal: quem sai agora só os envia quando entrar de novo neste celular.
+  const queued = pendingFor(useOutbox(), me?.id).filter((a) => a.kind !== 'ack').length;
   // O registro do push roda ao entrar e pode terminar depois de esta tela abrir.
   useEffect(() => {
     if (!ownAndroidBuild) return;
@@ -191,6 +195,16 @@ export default function Settings() {
               setPush(pushStatus());
             }}
           />
+        </View>
+      )}
+
+      {queued > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.xs }} accessible accessibilityRole="text">
+          <Icon name="wifi-off" size={20} color={color.alert} />
+          <Text style={[ui.body, { flex: 1 }]}>
+            {queued === 1 ? 'Há 1 toque seu guardado sem sinal.' : `Há ${queued} toques seus guardados sem sinal.`} Se você sair agora, ele só é enviado
+            quando você entrar de novo neste celular, em até 12 horas.
+          </Text>
         </View>
       )}
 

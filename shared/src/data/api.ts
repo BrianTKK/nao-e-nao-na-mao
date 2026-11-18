@@ -5,7 +5,7 @@
  */
 import { io, type Socket } from 'socket.io-client';
 import type { Alert, AlertKind, AlertOutcome, PublicAlert, PublicSpot, Spot, SpotKind, StaffMember, Venue, VenueMenu, VenueWifi } from '../domain';
-import { DataError, type ConnectionState, type DataErrorCode, type DataSource, type NewStaffInput, type StaffPatch, type Unsubscribe } from './ports';
+import { DataError, type ActionMeta, type ConnectionState, type DataErrorCode, type DataSource, type NewStaffInput, type StaffPatch, type Unsubscribe } from './ports';
 
 /** Onde guardar o token de login (localStorage na web, AsyncStorage no app). */
 export interface TokenStore {
@@ -19,7 +19,14 @@ export interface ApiOptions {
   tokenStore?: TokenStore;
   /** Intervalo da consulta de reserva da página da mulher quando o WebSocket cai. */
   pollMs?: number;
+  /** Para os testes trocarem a rede (padrão: o fetch global). */
+  fetch?: typeof fetch;
+  /** Teto de espera dos toques da equipe ("Vi", "Estou indo", "Encerrar"), em ms. Padrão: 10 s. */
+  actionTimeoutMs?: number;
 }
+
+/** O servidor não respondeu (proxy sem o app atrás, ou app reiniciando): para quem usa, é falta de conexão. */
+const GATEWAY_ERRORS = [502, 503, 504];
 
 const KNOWN_ERRORS: DataErrorCode[] = [
   'spot_not_found',
@@ -47,6 +54,8 @@ export function createApiDataSource(options: ApiOptions): DataSource {
     files: menu.files.map((f) => ({ ...f, url: f.url.startsWith('/') ? `${base}${f.url}` : f.url })),
   });
   const pollMs = options.pollMs ?? 3000;
+  const actionTimeoutMs = options.actionTimeoutMs ?? 10_000;
+  const doFetch: typeof fetch = (input, init) => (options.fetch ?? fetch)(input, init);
   let token: string | null = null;
   let tokenLoaded = false;
 
@@ -63,7 +72,10 @@ export function createApiDataSource(options: ApiOptions): DataSource {
     await options.tokenStore?.set(value);
   };
 
-  async function request<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; alertToken?: string } = {}): Promise<T> {
+  async function request<T>(
+    path: string,
+    init: { method?: string; body?: unknown; auth?: boolean; alertToken?: string; timeoutMs?: number } = {},
+  ): Promise<T> {
     const headers: Record<string, string> = {};
     if (init.body !== undefined) headers['content-type'] = 'application/json';
     if (init.auth) {
@@ -73,15 +85,22 @@ export function createApiDataSource(options: ApiOptions): DataSource {
     }
     if (init.alertToken) headers['x-alert-token'] = init.alertToken;
     let res: Response;
+    // Com teto de espera, uma conexão que não responde vira "sem conexão" em vez de travar a tela.
+    const abort = init.timeoutMs ? new AbortController() : null;
+    const timer = abort ? setTimeout(() => abort.abort(), init.timeoutMs) : null;
     try {
-      res = await fetch(`${base}/api${path}`, {
+      res = await doFetch(`${base}/api${path}`, {
         method: init.method ?? (init.body !== undefined ? 'POST' : 'GET'),
         headers,
         body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+        signal: abort?.signal,
       });
     } catch {
       throw new DataError('network');
+    } finally {
+      if (timer) clearTimeout(timer);
     }
+    if (GATEWAY_ERRORS.includes(res.status)) throw new DataError('network');
     if (res.status === 204) return undefined as T;
     const data = (await res.json().catch(() => null)) as { error?: string } | null;
     if (!res.ok) {
@@ -274,14 +293,18 @@ export function createApiDataSource(options: ApiOptions): DataSource {
           throw err;
         }
       },
-      async ackAlert(id) {
-        await request(`/staff/alerts/${id}/ack`, { auth: true, body: {} });
+      async ackAlert(id, meta?: ActionMeta) {
+        await request(`/staff/alerts/${id}/ack`, { auth: true, body: { ...meta }, timeoutMs: actionTimeoutMs });
       },
-      async startResponse(id) {
-        await request(`/staff/alerts/${id}/start`, { auth: true, body: {} });
+      async startResponse(id, meta?: ActionMeta) {
+        await request(`/staff/alerts/${id}/start`, { auth: true, body: { ...meta }, timeoutMs: actionTimeoutMs });
       },
-      async resolveAlert(id: string, outcome: AlertOutcome, note?: string) {
-        await request(`/staff/alerts/${id}/resolve`, { auth: true, body: note?.trim() ? { outcome, note } : { outcome } });
+      async resolveAlert(id: string, outcome: AlertOutcome, note?: string, meta?: ActionMeta) {
+        await request(`/staff/alerts/${id}/resolve`, {
+          auth: true,
+          body: note?.trim() ? { outcome, note, ...meta } : { outcome, ...meta },
+          timeoutMs: actionTimeoutMs,
+        });
       },
       async setMyAppearance(appearance) {
         await request('/me/appearance', { method: 'PUT', auth: true, body: { appearance } });
