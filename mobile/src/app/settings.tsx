@@ -77,8 +77,9 @@ export default function Settings() {
         <Button label={saved ? 'Salvo' : 'Salvar'} variant="calm" icon={saved ? 'check' : undefined} onPress={save} />
       </View>
 
-      <View style={[ui.card, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md }]}>
-        <View style={{ flex: 1 }}>
+      {/* `flexWrap`: com fonte grande a chave desce para baixo do texto, em vez de espremê-lo palavra a palavra. */}
+      <View style={[ui.card, { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.md }]}>
+        <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 180 }}>
           <Text style={ui.label} nativeID="motion-label">
             Reduzir movimento
           </Text>

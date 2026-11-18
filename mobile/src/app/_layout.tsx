@@ -97,7 +97,7 @@ export default function RootLayout() {
             <Stack.Screen name="alerts/index" options={{ title: 'Alertas', headerBackVisible: false }} />
             <Stack.Screen name="alerts/[id]" options={{ title: 'Alerta' }} />
             <Stack.Screen name="settings" options={{ title: 'Ajustes' }} />
-            <Stack.Screen name="menu" options={{ title: 'Cardápio do bar' }} />
+            <Stack.Screen name="menu" options={{ title: 'Cardápio' }} />
           </Stack>
         </SessionProvider>
       </MotionProvider>

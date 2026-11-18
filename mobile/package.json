@@ -39,7 +39,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test:offline": "node scripts/offline-check.mjs"
+    "test:offline": "node scripts/offline-check.mjs",
+    "test:a11y": "node scripts/a11y-check.mjs"
   },
   "private": true
 }

@@ -148,7 +148,7 @@ export function Report() {
 
           <section aria-labelledby="r-equipe">
             <h2 id="r-equipe">Equipe capacitada</h2>
-            <div className="report-scroll">
+            <div className="report-scroll" tabIndex={0} role="region" aria-label="Tabela da equipe capacitada">
               <table className="report-table">
                 <thead>
                   <tr>
@@ -175,7 +175,7 @@ export function Report() {
             {alerts.length === 0 ? (
               <p>Nenhum alerta no mês.</p>
             ) : (
-              <div className="report-scroll">
+              <div className="report-scroll" tabIndex={0} role="region" aria-label="Tabela com o registro de cada alerta">
                 <table className="report-table report-list">
                   <thead>
                     <tr>

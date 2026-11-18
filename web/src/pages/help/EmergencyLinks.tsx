@@ -16,11 +16,11 @@ export function EmergencyLinks({ prompt = true }: { prompt?: boolean }) {
       {prompt && <p className="help-emergency-prompt">Em perigo agora?</p>}
       <div className="help-emergency-grid">
         {NUMBERS.map((n) => (
-          <a key={n.tel} className="help-call" href={`tel:${n.tel}`} aria-label={`Ligar ${n.tel} · ${n.name}`}>
+          <a key={n.tel} className="help-call" href={`tel:${n.tel}`}>
             <span className="help-call-number">
               <Icon name="phone" size={20} className="help-call-icon" />
               Ligar {n.tel}
-            </span>
+            </span>{' '}
             <span className="help-call-name">{n.name}</span>
           </a>
         ))}

@@ -65,7 +65,9 @@ export function HelpPage() {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmTitleRef = useRef<HTMLParagraphElement>(null);
 
-  useDocumentTitle(spot ? spot.venueName : 'Carregando…');
+  // Título da aba: o nome do bar. Sem o local (carregando, QR inativo ou sem rede) um aviso
+  // curto e neutro; nunca "Carregando…" para sempre.
+  useDocumentTitle(spot ? spot.venueName : phase.name === 'loading' ? 'Carregando…' : phase.name === 'counter' ? 'Sem conexão' : 'Página indisponível');
 
   // Carrega o local e retoma um pedido em andamento (se a página recarregou).
   useEffect(() => {

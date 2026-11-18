@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import {
 } from '@nenm/shared';
 import { color, font, fontSize, motion, radius, space, ui } from '@/theme/theme';
 import { useMotion } from '@/hooks/useMotion';
+import { useFitFont } from '@/hooks/useFitFont';
 import { Icon, type IconName } from '@/components/Icon';
 import { Perforation, TicketNotches, useNotchY } from '@/components/TicketNotches';
 
@@ -63,6 +64,10 @@ export function AlertCard({
   const forMe = !alert.responderId && !!meId && alert.assignedToId === meId;
   const isNew = alert.status === 'open' || forMe;
   const [notchY, onPerforationLayout] = useNotchY();
+  // Tela estreita (ou fonte grande): menos folga lateral no tíquete e o nome do lugar encolhe, em vez de
+  // quebrar no meio da palavra.
+  const narrow = useWindowDimensions().width < 320;
+  const spot = useFitFont(alert.spotLabel, isNew ? fontSize.xxl : fontSize.xl, 20);
 
   useEffect(() => {
     if (isNew && !reduceMotion) {
@@ -95,7 +100,21 @@ export function AlertCard({
   const waited = formatDuration(elapsedSeconds(alert.createdAt, now), true);
   const responder = alert.responderName ? `${alert.responderName.split(' ')[0]} a caminho` : null;
   const statusText = STATUS_LABEL[alert.status];
-  const label = `${assignedText ? `${assignedText}. ` : ''}${statusText}${unsent ? ', ainda não enviado por falta de sinal' : ''}. ${alert.spotLabel}. ${KIND_STAFF_LABEL[alert.kind]}. Há ${waited}. Palavra ${spokenCode(alert.shortCode)}.${responder ? ` ${responder}.` : ''}`;
+  // O nome para o leitor de tela repete o texto visível, na mesma ordem em que ele aparece no cartão
+  // (WCAG 2.5.3, "rótulo no nome": quem comanda a tela por voz diz o que lê). Só a palavra-código vai
+  // por extenso (spokenCode) e o tempo ganha o "há".
+  const label = [
+    statusText,
+    `há ${waited}`,
+    assignedText,
+    unsent ? 'Sem sinal: ainda não enviado' : null,
+    alert.spotLabel,
+    KIND_STAFF_LABEL[alert.kind],
+    `Palavra: ${spokenCode(alert.shortCode)}`,
+    responder,
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   const ink = isNew ? color.onAlert : color.text;
   const inkMuted = isNew ? color.onAlert : color.textMuted;
@@ -109,7 +128,10 @@ export function AlertCard({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityHint="Abre o alerta para atender"
-        style={({ pressed }) => [isNew ? styles.ticket : [styles.card, { borderLeftColor: statusColor }], pressed && styles.pressed]}
+        style={({ pressed }) => [
+          isNew ? [styles.ticket, narrow && styles.ticketNarrow] : [styles.card, { borderLeftColor: statusColor }],
+          pressed && styles.pressed,
+        ]}
       >
         <View style={styles.top}>
           <View style={styles.status}>
@@ -127,7 +149,12 @@ export function AlertCard({
           </View>
         )}
 
-        <Text style={[ui.display, isNew ? styles.spotNew : styles.spot, { color: ink }]}>{alert.spotLabel}</Text>
+        <Text
+          style={[ui.display, isNew ? styles.spotNew : styles.spot, { color: ink, fontSize: spot.size, lineHeight: Math.round(spot.size * (isNew ? 1.1 : 1.15)) }]}
+          onLayout={spot.onLayout}
+        >
+          {alert.spotLabel}
+        </Text>
         <Text style={[styles.kind, { color: ink }]}>{KIND_STAFF_LABEL[alert.kind]}</Text>
 
         {isNew ? (
@@ -137,7 +164,8 @@ export function AlertCard({
         )}
 
         <View style={styles.bottom}>
-          <Text style={[styles.word, { color: inkMuted }]} numberOfLines={2}>
+          {/* Sem limite de linhas: com fonte grande, "quem está a caminho" não pode ser cortado. */}
+          <Text style={[styles.word, { color: inkMuted }]}>
             Palavra: <Text style={[ui.display, styles.wordValue, { color: ink }]}>{displayCode(alert.shortCode)}</Text>
             {responder ? `  ·  ${responder}` : null}
           </Text>
@@ -168,6 +196,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     gap: space.xxs,
   },
+  ticketNarrow: { paddingHorizontal: space.md },
   card: {
     backgroundColor: color.surface,
     borderRadius: radius.lg,
@@ -179,7 +208,8 @@ const styles = StyleSheet.create({
     gap: space.xxs,
   },
   pressed: { opacity: 0.88 },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.xs },
+  // `flexWrap`: com fonte grande o tempo ("há 3 s") desce para a linha de baixo em vez de sobrepor o estado.
+  top: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: space.xs },
   status: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexShrink: 1 },
   statusText: {
     fontFamily: font.bodySemibold,

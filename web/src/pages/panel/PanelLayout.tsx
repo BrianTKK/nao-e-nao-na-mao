@@ -47,6 +47,10 @@ function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
           <p className="panel-who">
             {me.fullName} · {me.role === 'manager' ? 'Gerência' : 'Equipe'}
           </p>
+          <button type="button" className="btn panel-signout" onClick={signOut}>
+            <Icon name="log-out" size={20} />
+            Sair
+          </button>
           {me.role === 'manager' && (
             <button
               type="button"
@@ -59,10 +63,6 @@ function Panel({ me, signOut }: { me: StaffMember; signOut: () => void }) {
               {alarm.enabled ? (alarm.needsTap ? 'Alarme: toque na página para liberar o som' : 'Alarme ligado') : 'Ligar o alarme'}
             </button>
           )}
-          <button type="button" className="btn panel-signout" onClick={signOut}>
-            <Icon name="log-out" size={20} />
-            Sair
-          </button>
         </div>
       </header>
       {alarm.enabled && alarm.notifications === 'denied' && (

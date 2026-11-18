@@ -34,6 +34,7 @@ import { NotSentNotice, QueuedNotice } from '@/components/OutboxNotices';
 import { OutcomeSheet } from '@/components/OutcomeSheet';
 import { StatusSteps } from '@/components/StatusSteps';
 import { Perforation, TicketNotches, useNotchY } from '@/components/TicketNotches';
+import { fitFontSize, useFitFont } from '@/hooks/useFitFont';
 import { useMotion } from '@/hooks/useMotion';
 import { useOutbox } from '@/hooks/useOutbox';
 import { useSession } from '@/hooks/useSession';
@@ -96,6 +97,7 @@ export default function AlertDetail() {
   const [note, setNote] = useState('');
   const [now, setNow] = useState(Date.now());
   const [notchY, onPerforationLayout] = useNotchY();
+  const [wordWidth, setWordWidth] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -134,6 +136,8 @@ export default function AlertDetail() {
   const notSent = noticesFor(box, meId, id);
   const queuedKinds = pending.map((a) => a.kind).filter((k): k is QueuedActionKind => k !== 'ack');
   const alert = server && me ? applyPending(server, pending, me) : server;
+  // O nome do lugar também encolhe em tela estreita, em vez de quebrar no meio da palavra.
+  const place = useFitFont(alert?.spotLabel ?? '', fontSize.xxl, 22);
 
   // Quando a fila anda (enviou ou descartou), busca o que vale agora no servidor.
   const boxMark = `${pending.length}:${notSent.length}`;
@@ -218,6 +222,10 @@ export default function AlertDetail() {
       </View>
     );
 
+  // A palavra tem de aparecer inteira e numa linha só, mesmo numa tela estreita ou com fonte grande. O
+  // `adjustsFontSizeToFit` só funciona no Android, então o tamanho também sai da largura que sobra.
+  const wordSize = fitFontSize(displayCode(alert.shortCode), wordWidth, 40, 16, 0.72);
+
   const mine = !!me && alert.responderId === me.id;
   const statusColor = color.status[alert.status];
   const who = whoLine(alert, mine, me?.id ?? null);
@@ -240,27 +248,35 @@ export default function AlertDetail() {
 
   return (
     <View style={ui.screen}>
-      <ScrollView style={ui.screen} contentContainerStyle={[ui.content, { paddingBottom: space.lg }]}>
+      <ScrollView
+        style={ui.screen}
+        contentContainerStyle={[ui.content, { paddingBottom: space.lg }]}
+        // Na web, uma área que rola precisa de foco para o teclado (WCAG 2.1.1). No Android o foco não entra.
+        {...(Platform.OS === 'web' ? { tabIndex: 0 as const } : null)}
+      >
         {notSent.map((n) => (
           <NotSentNotice key={n.id} text={notSentText(n)} onDismiss={() => outbox.dismissNotice(n.id)} />
         ))}
 
         <View style={{ gap: space.xxs }}>
-          {/* A chave troca com o estado: o estado novo entra subindo, e o olho vai para o que mudou. */}
-          <Animated.View
-            key={alert.status}
-            entering={entering ? FadeInDown.duration(motion.duration.base) : undefined}
-            style={styles.statusRow}
-          >
-            <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
-            {/* Só o estado é região viva: o tempo muda a cada segundo e não deve ser anunciado. */}
-            <Text style={[styles.statusText, { color: statusColor }]} accessibilityLiveRegion="polite">
-              {STATUS_LABEL[alert.status]}
-            </Text>
+          {/* A região viva fica fixa e só o que está dentro dela troca (a chave): o leitor de tela anuncia
+              o estado novo, e o olho vai para o que mudou. Se a própria região fosse recriada, nada seria dito. */}
+          <View style={styles.statusRow}>
+            <View accessibilityLiveRegion="polite" style={styles.statusLive}>
+              <Animated.View key={alert.status} entering={entering ? FadeInDown.duration(motion.duration.base) : undefined} style={styles.statusLive}>
+                <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
+                <Text style={[styles.statusText, { color: statusColor }]}>{STATUS_LABEL[alert.status]}</Text>
+              </Animated.View>
+            </View>
+            {/* O tempo muda a cada segundo e não deve ser anunciado: fica fora da região viva. */}
             <Text style={[ui.num, styles.time]}>· há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
-          </Animated.View>
+          </View>
           <StatusSteps status={alert.status} confirmed={server?.status ?? alert.status} />
-          <Text style={[ui.display, styles.place]} accessibilityRole="header">
+          <Text
+            style={[ui.display, styles.place, { fontSize: place.size, lineHeight: Math.round(place.size * 1.1) }]}
+            onLayout={place.onLayout}
+            accessibilityRole="header"
+          >
             {alert.spotLabel}
           </Text>
           <Text style={ui.body}>{KIND_STAFF_LABEL[alert.kind]}</Text>
@@ -269,9 +285,10 @@ export default function AlertDetail() {
         <View style={styles.ticket}>
           <Text style={ui.labelCaps}>Diga esta palavra a ela</Text>
           <Text
-            style={[ui.display, styles.word]}
+            style={[ui.display, styles.word, { fontSize: wordSize, lineHeight: Math.round(wordSize * 1.25) }]}
             adjustsFontSizeToFit
             numberOfLines={1}
+            onLayout={(e) => setWordWidth(e.nativeEvent.layout.width)}
             accessibilityLabel={`Palavra-código: ${spokenCode(alert.shortCode)}`}
           >
             {displayCode(alert.shortCode)}
@@ -282,10 +299,13 @@ export default function AlertDetail() {
         </View>
 
         {who && (
-          <Animated.View key={who.text} entering={entering ? FadeIn.duration(motion.duration.base) : undefined} style={styles.whoRow}>
-            <Icon name={who.icon} size={22} color={who.tone === color.text ? color.textMuted : who.tone} />
-            <Text style={[ui.body, ui.strong, { flex: 1 }]}>{who.text}</Text>
-          </Animated.View>
+          // Quem está cuidando também é anunciado quando muda (região viva fixa, conteúdo trocado pela chave).
+          <View accessibilityLiveRegion="polite">
+            <Animated.View key={who.text} entering={entering ? FadeIn.duration(motion.duration.base) : undefined} style={styles.whoRow}>
+              <Icon name={who.icon} size={22} color={who.tone === color.text ? color.textMuted : who.tone} />
+              <Text style={[ui.body, ui.strong, { flex: 1 }]}>{who.text}</Text>
+            </Animated.View>
+          </View>
         )}
 
         {othersGoing && <Text style={ui.muted}>Fique por perto se precisar de apoio.</Text>}
@@ -304,7 +324,7 @@ export default function AlertDetail() {
         {!active && (
           <Animated.View entering={entering ? FadeInDown.duration(motion.duration.base) : undefined} style={[ui.card, styles.result]}>
             <Icon name="check-circle" size={24} color={color.status.resolved} />
-            <View style={{ flex: 1, gap: space.xxs }}>
+            <View style={styles.resultText}>
               <Text style={ui.labelCaps}>Encerrado</Text>
               <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
               {alert.note ? <Text style={ui.muted}>{alert.note}</Text> : null}
@@ -366,6 +386,7 @@ export default function AlertDetail() {
 
 const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
+  statusLive: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   statusText: {
     fontFamily: font.bodySemibold,
     fontSize: fontSize.xs,
@@ -385,7 +406,9 @@ const styles = StyleSheet.create({
   },
   word: { fontSize: 40, lineHeight: 50 },
   whoRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  result: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  // `flexWrap`: com fonte grande o ícone fica em cima e o texto ocupa a largura toda, sem quebrar palavra no meio.
+  result: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: space.sm },
+  resultText: { flexGrow: 1, flexShrink: 1, flexBasis: 160, gap: space.xxs },
   bar: {
     borderTopWidth: 1,
     borderTopColor: color.border,
