@@ -70,7 +70,7 @@ Quem fala: ⬜ PREENCHER em todas as cenas (sugestão: uma voz para o problema e
 
 **Aparelhos**
 - [ ] Celular dela: o link da página do QR aberto no navegador (sem instalar nada: faz parte da prova). Preferir o cartaz impresso de `/painel/qr-codes/imprimir` para a cena de "ler o QR code".
-- [ ] Celular da equipe: APK próprio para o push. O link público (`/testar`) entrega o `versionCode` 2, sem a F3, até o 4 ser publicado; para as cenas 5 e 8 como escritas, instalar o `versionCode` 4 (o app novo, ainda não instalado em celular); com o app aberto, em primeiro plano, durante a tomada. Expo Go serve como reserva, mas o alarme com app fechado só vale no APK.
+- [ ] Celular da equipe: APK próprio para o push. O link público (`/testar`) entrega o `versionCode` 4, com a F3, desde 18/11/2026 (ainda não instalado em celular); instalar por cima do anterior antes das cenas 5 e 8; com o app aberto, em primeiro plano, durante a tomada. Expo Go serve como reserva, mas o alarme com app fechado só vale no APK.
 - [ ] Computador: `/painel` aberto, logado como gerência, com o som ligado (o painel bipa).
 - [ ] Câmera num tripé que enquadre os três aparelhos de uma vez, ou três gravações de tela iniciadas juntas com uma batida de palma (sincronia), a escolher: ⬜ PREENCHER.
 - [ ] Som do alarme: um microfone ou a câmera perto do celular da equipe. **NÃO CONFIRMADO** que o gravador de tela do Android capture o som do alarme; testar antes.

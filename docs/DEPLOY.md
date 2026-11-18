@@ -142,12 +142,12 @@ O grupo `10001` (`naoenao-segredos`) não tem ninguém na VPS: só o contêiner 
 
 O app próprio para Android (push com o app fechado, ver `docs/NOTIFICACOES.md`) fica em **https://naoenao.obrian.me/download/mariana.apk**. A página `/testar` tem o botão "Baixar o app para Android". Publicado pela Central em 17/11/2026, com o ok do Brian ("Link na VPS").
 
-- **Onde fica**: `/var/www/naoenao-files/`, fora da pasta do deploy. O `deploy.sh` não envia nem apaga nada ali. Hoje estão lá o `mariana-1.0.0-427bbe4.apk` (versionCode 2, visual Comanda, servido desde 17/11/2026) e o `mariana-1.0.0-31d70b9.apk` (versionCode 1, para voltar atrás).
+- **Onde fica**: `/var/www/naoenao-files/`, fora da pasta do deploy. O `deploy.sh` não envia nem apaga nada ali. Hoje estão lá o `mariana-1.0.0-e3d83cf.apk` (versionCode 4, com a F3, servido desde 18/11/2026), o `mariana-1.0.0-427bbe4.apk` (versionCode 2, visual Comanda) e o `mariana-1.0.0-31d70b9.apk` (versionCode 1), os dois últimos para voltar atrás.
 - **Quem serve**: o Nginx, direto do disco, sem passar pelo app. O bloco vai no `server` da porta 443 (o modelo está em `deploy/nginx-naoenao.obrian.me.conf`):
 
   ```nginx
   location = /download/mariana.apk {
-      alias /var/www/naoenao-files/mariana-1.0.0-427bbe4.apk;
+      alias /var/www/naoenao-files/mariana-1.0.0-e3d83cf.apk;
       types { }
       default_type application/vnd.android.package-archive;
       add_header Content-Disposition 'attachment; filename="mariana.apk"' always;

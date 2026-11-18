@@ -47,7 +47,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; falta o celular |
-| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 2 até o 4, com a F3, ser publicado. Nenhum deles foi instalado e testado num celular real |
+| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 4, com a F3, desde 18/11/2026. Nenhum APK foi instalado e testado num celular real |
 | APK Android próprio, com push | 🟡 | Gerado e assinado no PC (`mobile/scripts/build-apk.sh`), conferido com `apksigner`. Instalação, som, vibração e aviso com o app fechado: **não testados em celular** (ver `NOTIFICACOES.md`) |
 | Navegação seguindo a jornada | 🟡 | Login → alertas → alerta ("Visto" automático, Estou indo, desfecho) → ajustes |
 | Fila de toques sem sinal | ✅ no navegador, 🟡 no celular | O "Visto" (automático ao abrir o alerta), o "Estou indo" e o "Encerrar" ficam guardados no aparelho e saem na ordem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Arquivos: `shared/src/data/outbox.ts`, `mobile/src/data/outbox.ts`. Testada por `test:offline` (28 verificações) |
@@ -112,7 +112,7 @@ Detalhes em [`NOTIFICACOES.md`](NOTIFICACOES.md) e [`DEPLOY.md`](DEPLOY.md).
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | Push remoto no Android (FCM) | 🟡 | Envio direto ao FCM HTTP v1, da VPS (`server/src/push.ts`). Repete 5 vezes em 2 minutos até alguém ver. A palavra-código **não** vai na notificação. Validado contra o Firebase de verdade (`validate_only`), sem celular; o servidor em produção está com o push ligado. **Um alerta saindo da VPS até um celular real não foi testado** |
-| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 2 no link público até o `versionCode` 4 (com a F3) ser publicado. Não testado num celular real: instalação pelo link, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
+| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 4 (com a F3) no link público desde 18/11/2026. Não testado num celular real: instalação pelo link, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
 | Celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria) | ⬜ | Não testado. O push pode atrasar se o app não estiver liberado da otimização de bateria |
 | iPhone | ⬜ | Push no iOS não existe nesta entrega (exige conta Apple Developer paga). No iPhone, o app só avisa com o app aberto ou em segundo plano recente, pelo Expo Go |
 | Chaves e credenciais | ✅ | Ficam fora do git e da pasta do deploy. O `.gitignore` bloqueia `google-services.json`, conta de serviço, keystore, chaves e APK |

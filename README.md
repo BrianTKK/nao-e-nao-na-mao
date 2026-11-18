@@ -76,7 +76,7 @@ Observação: no Expo Go do Android o alarme só chega com o app aberto ou em se
 
 ### Opção 2: APK Android (app próprio, com push)
 
-1. No celular Android, abra **https://naoenao.obrian.me/testar** e toque em "Baixar o app para Android" (o link direto está na mesma página). O link público entrega a versão de `versionCode` 2, sem a F3, até o `versionCode` 4 (o app novo, com a F3) ser publicado.
+1. No celular Android, abra **https://naoenao.obrian.me/testar** e toque em "Baixar o app para Android" (o link direto está na mesma página). O link público entrega o `versionCode` 4, com a F3, e instala por cima das versões anteriores.
 2. Abra o arquivo e permita "instalar apps desconhecidos" para o navegador, quando o Android pedir.
 3. Entre com o botão de conta de teste e aceite as notificações. Para o alarme passar pelo "Não perturbe", permita isso nos ajustes do canal "Alertas (alarme)".
 
@@ -172,5 +172,5 @@ O detalhe, item por item, está em [`docs/ENTREGA.md`](docs/ENTREGA.md); o alarm
 ## Limites conhecidos
 
 - O push no iPhone não está feito (exige conta paga da Apple); no iOS, o app roda pelo Expo Go.
-- O link público do APK Android entrega o de `versionCode` 2 até o `versionCode` 4, com a F3, ser publicado. O 4 ainda não foi instalado em celular. O que foi testado em celular de verdade e o que não foi está descrito em [`docs/NOTIFICACOES.md`](docs/NOTIFICACOES.md).
+- O link público do APK Android entrega o de `versionCode` 4, com a F3, desde 18/11/2026. Ele ainda não foi instalado em celular. O que foi testado em celular de verdade e o que não foi está descrito em [`docs/NOTIFICACOES.md`](docs/NOTIFICACOES.md).
 - Não há teste com usuárias reais nem pesquisa de campo registrada neste repositório.
