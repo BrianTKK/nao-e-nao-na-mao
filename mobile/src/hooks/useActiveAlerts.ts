@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { applyPending, pendingFor, type Alert } from '@nenm/shared';
+import { applyPending, pendingFor, sendingFor, type Alert } from '@nenm/shared';
 import { dataSource } from '@/data/source';
 import { outbox } from '@/data/outbox';
 import { rememberAlerts } from '@/data/alertCache';
@@ -38,15 +38,19 @@ export function useActiveAlerts(me: { id: string; fullName: string } | null): Al
       const pending = pendingFor(outbox.snapshot(), meId);
       const list = pending.length ? fromServer.map((a) => applyPending(a, pending, { id: meId, fullName })) : fromServer;
       setAlerts(list);
+      // Para o alarme também conta o toque que está sendo enviado agora: a pessoa já viu ou já está indo,
+      // e o alarme para no toque, sem esperar a resposta do servidor (com sinal fraco, até 10 s).
+      const sending = sendingFor(outbox.snapshot(), meId);
+      const acted = sending.length ? fromServer.map((a) => applyPending(a, [...pending, ...sending], { id: meId, fullName })) : list;
       const now = new Map<string, 'new' | 'assigned'>();
-      for (const a of list) {
+      for (const a of acted) {
         if (a.assignedToId === meId && !a.responderId) now.set(a.id, 'assigned');
         else if (a.status === 'open') now.set(a.id, 'new');
       }
       // Na primeira lista (abrir o app) não toca o que já estava aberto antes: só vibra.
       for (const [id, why] of now) {
         if (ringing.current.get(id) === why) continue;
-        const alert = list.find((a) => a.id === id)!;
+        const alert = acted.find((a) => a.id === id)!;
         if (!first.current || why === 'assigned') ring(alert, why === 'assigned').catch(() => {});
       }
       for (const id of ringing.current.keys()) if (!now.has(id)) silence(id).catch(() => {});

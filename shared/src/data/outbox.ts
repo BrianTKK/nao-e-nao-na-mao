@@ -38,6 +38,11 @@ export interface QueuedAction {
   createdAt: number;
   /** Envios que falharam por erro inesperado (não conta a falta de conexão). */
   attempts: number;
+  /**
+   * A tela estava desatualizada na hora do toque (a última leitura do alerta tinha falhado).
+   * Mesmo enviado na hora, o toque vai ao servidor como "guardado": quem tocou não viu o que mudou.
+   */
+  stale?: boolean;
 }
 
 /**
@@ -70,6 +75,11 @@ export interface OutboxSnapshot {
    * "sem sinal".
    */
   readonly actions: readonly QueuedAction[];
+  /**
+   * Toques em envio agora, na hora em que a pessoa tocou. Não são "sem sinal", mas a pessoa já agiu:
+   * serve, por exemplo, para o alarme do alerta parar no toque, sem esperar a resposta do servidor.
+   */
+  readonly sending: readonly QueuedAction[];
   readonly notices: readonly OutboxNotice[];
 }
 
@@ -105,6 +115,8 @@ export interface NewAction {
   spotLabel?: string;
   outcome?: AlertOutcome;
   note?: string;
+  /** A tela estava desatualizada na hora do toque (ver `QueuedAction.stale`). */
+  stale?: boolean;
 }
 
 export interface Outbox {
@@ -175,13 +187,13 @@ export function createOutbox(options: OutboxOptions): Outbox {
 
   let actions: QueuedAction[] = [];
   let notices: OutboxNotice[] = [];
-  let snap: OutboxSnapshot = { actions, notices };
+  let snap: OutboxSnapshot = { actions, sending: [], notices };
   const listeners = new Set<() => void>();
   /** Toques cujo `perform` ainda está esperando: o erro volta para a tela, não vira aviso. */
   const direct = new Set<string>();
   const directFailures = new Map<string, DataErrorCode>();
   /** Toques já guardados que um `perform` repetido está esperando: o que aconteceu com cada um. */
-  const watched = new Set<string>();
+  const watched = new Map<string, number>();
   const fates = new Map<string, 'sent' | DataErrorCode>();
   /** A fila guardada no aparelho já foi lida. Antes disso nada é gravado, para não apagar o que está lá. */
   let loaded = false;
@@ -189,7 +201,7 @@ export function createOutbox(options: OutboxOptions): Outbox {
   // As gravações saem em ordem; se o aparelho não deixar gravar, a fila segue em memória.
   let writes: Promise<void> = Promise.resolve();
   const commit = () => {
-    snap = { actions: actions.filter((a) => !direct.has(a.id)), notices: [...notices] };
+    snap = { actions: actions.filter((a) => !direct.has(a.id)), sending: actions.filter((a) => direct.has(a.id)), notices: [...notices] };
     if (loaded) {
       // Guarda também o toque que está sendo enviado: se o app fechar no meio, ele não se perde.
       const json = JSON.stringify({ v: 1, actions, notices });
@@ -288,7 +300,8 @@ export function createOutbox(options: OutboxOptions): Outbox {
     // `queuedMs` acima de zero diz ao servidor que o toque ficou guardado: quem tocou não viu o que mudou
     // depois. O toque enviado na hora, com a pessoa olhando a tela, vai com zero.
     const waited = Math.min(QUEUED_MS_CAP, Math.max(1, Math.round(now() - action.createdAt)));
-    const meta: ActionMeta = { actionId: action.id, queuedMs: direct.has(action.id) ? 0 : waited, userId: action.userId };
+    const fresh = direct.has(action.id) && !action.stale;
+    const meta: ActionMeta = { actionId: action.id, queuedMs: fresh ? 0 : waited, userId: action.userId };
     if (action.kind === 'ack') return options.staff.ackAlert(action.alertId, meta);
     if (action.kind === 'start') return options.staff.startResponse(action.alertId, meta);
     // Sem desfecho o servidor recusa (outcome_required) e o toque acaba descartado como falha.
@@ -398,14 +411,17 @@ export function createOutbox(options: OutboxOptions): Outbox {
       if (same) {
         // O mesmo toque já está guardado (ex.: abrir o alerta de novo sem sinal): não duplica, e quem
         // tocou de novo recebe o que aconteceu com ele (enviado, ainda guardado ou recusado).
-        watched.add(same.id);
+        // Mais de uma chamada pode esperar o mesmo toque: o destino dele só é apagado quando a última ler.
+        watched.set(same.id, (watched.get(same.id) ?? 0) + 1);
         try {
           await flush(input.userId);
         } finally {
-          watched.delete(same.id);
+          const left = (watched.get(same.id) ?? 1) - 1;
+          if (left > 0) watched.set(same.id, left);
+          else watched.delete(same.id);
         }
         const fate = fates.get(same.id);
-        fates.delete(same.id);
+        if (!watched.has(same.id)) fates.delete(same.id);
         if (fate && fate !== 'sent') throw new DataError(fate);
         return actions.includes(same) ? 'queued' : 'sent';
       }
@@ -480,6 +496,12 @@ export function applyPending(alert: Alert, actions: readonly QueuedAction[], me:
 export function pendingFor(snapshot: OutboxSnapshot, userId: string | null | undefined, alertId?: string): QueuedAction[] {
   if (!userId) return [];
   return snapshot.actions.filter((a) => a.userId === userId && (alertId === undefined || a.alertId === alertId));
+}
+
+/** Toques desta pessoa em envio agora (para este alerta, se informado). */
+export function sendingFor(snapshot: OutboxSnapshot, userId: string | null | undefined, alertId?: string): QueuedAction[] {
+  if (!userId) return [];
+  return snapshot.sending.filter((a) => a.userId === userId && (alertId === undefined || a.alertId === alertId));
 }
 
 /** Avisos de toques que não foram aplicados, desta pessoa (para este alerta, se informado). */

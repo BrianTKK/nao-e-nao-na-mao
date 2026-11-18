@@ -15,6 +15,8 @@ function create(): DataSource {
   if (process.env.EXPO_PUBLIC_DATA_SOURCE === 'mock') return createMockDataSource({ latencyMs: 300 });
   return createApiDataSource({
     baseUrl: API_URL,
+    // Com sinal fraco, a leitura desiste em 8 s e o app segue com o que tem guardado.
+    readTimeoutMs: 8_000,
     tokenStore: {
       get: () => AsyncStorage.getItem(SESSION_KEY).catch(() => null),
       set: (v) => (v ? AsyncStorage.setItem(SESSION_KEY, v) : AsyncStorage.removeItem(SESSION_KEY)).catch(() => {}),

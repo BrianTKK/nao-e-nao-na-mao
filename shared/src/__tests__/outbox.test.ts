@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMockDataSource } from '../data/mock';
 import { DEMO_PASSWORD } from '../data/demo';
-import { applyPending, createOutbox, noticesFor, pendingFor, randomUuid, type OutboxOptions, type OutboxStorage } from '../data/outbox';
+import { applyPending, createOutbox, noticesFor, pendingFor, randomUuid, sendingFor, type OutboxOptions, type OutboxStorage } from '../data/outbox';
 import { DataError, type ActionMeta, type StaffApi } from '../data/ports';
 import type { Alert } from '../domain';
 
@@ -333,11 +333,14 @@ describe('fila de toques sem sinal', () => {
     await vi.waitFor(() => expect(s.net.calls).toHaveLength(1));
     // Em voo: a tela não pode dizer "sem sinal" nem mostrar o estado como se já valesse.
     expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(0);
+    // Mas o alarme precisa saber que a pessoa já tocou, para parar na hora.
+    expect(sendingFor(s.outbox.snapshot(), diego, id).map((x) => x.kind)).toEqual(['start']);
     // Mas, se o app fechar agora, o toque não se perde.
     expect(JSON.parse(s.disk.value!).actions).toHaveLength(1);
     release();
     expect(await tap).toBe('sent');
     expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(0);
+    expect(sendingFor(s.outbox.snapshot(), diego)).toHaveLength(0);
     expect(JSON.parse(s.disk.value!).actions).toHaveLength(0);
   });
 
@@ -464,6 +467,42 @@ describe('fila de toques sem sinal', () => {
     ]);
     expect(results.map((r) => (r.status === 'rejected' ? (r.reason as DataError).code : r.value))).toEqual(['already_taken', 'already_taken']);
     expect(s.outbox.snapshot().notices).toHaveLength(0);
+  });
+
+  it('duas chamadas esperando o mesmo toque guardado, recusado: as duas voltam como erro', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('diego');
+
+    s.net.mode = 'up';
+    const results = await Promise.allSettled([
+      s.outbox.perform({ kind: 'start', alertId: id, userId: diego }),
+      s.outbox.perform({ kind: 'start', alertId: id, userId: diego }),
+    ]);
+    expect(results.map((r) => (r.status === 'rejected' ? (r.reason as DataError).code : r.value))).toEqual(['already_taken', 'already_taken']);
+  });
+
+  it('toque feito com a tela desatualizada vai ao servidor como guardado: nem a gerência encerra por cima de quem assumiu', async () => {
+    const s = setup();
+    const marta = await s.login('marta');
+    const { id } = await s.newAlert();
+    // A tela da Marta não conseguiu ler o alerta; enquanto isso, a Ana assume.
+    const ana = await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('marta');
+
+    await expect(s.outbox.perform({ kind: 'resolve', alertId: id, userId: marta, outcome: 'false_alarm', stale: true })).rejects.toMatchObject({
+      code: 'already_taken',
+    });
+    expect(s.net.metas.at(-1)?.queuedMs).toBeGreaterThan(0);
+    const kept = await s.ds.staff.getAlert(id);
+    expect(kept?.status).toBe('on_the_way');
+    expect(kept?.responderId).toBe(ana);
   });
 
   it('o aviso de conflito diz quais outros toques caíram junto', async () => {

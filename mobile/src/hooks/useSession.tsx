@@ -120,12 +120,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setMe(staff);
       },
       signOut: async () => {
-        // A partir daqui ninguém está logado: a fila para de enviar, e um "quem sou eu" em andamento não vale mais.
+        // Um "quem sou eu" em andamento não vale mais.
         generation.current += 1;
-        setOutboxUser(null);
-        // Antes de apagar o login: depois dele, o servidor não aceita mais o pedido.
+        // Antes de apagar o login: depois dele, o servidor não aceita mais o pedido (tem teto de espera).
         await unregisterPush();
+        // Só agora ninguém está logado: a fila para de enviar junto com o login, não antes.
+        setOutboxUser(null);
         await dataSource.staff.signOut();
+        // De novo: um "quem sou eu" que começou durante a saída, ainda com o login antigo, também não vale.
+        generation.current += 1;
         unconfirmed.current = false;
         saveMe(null);
         forgetAlerts();

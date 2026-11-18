@@ -396,3 +396,23 @@ test('leitura que não responde (sinal fraco) vira "sem conexão" no teto de esp
   assert.equal((await ds.staff.currentStaff())?.fullName.startsWith('Diego'), true);
   await ds.staff.signOut();
 });
+
+test('sem a opção, as leituras não têm teto de espera (o painel web espera a resposta lenta)', async () => {
+  // Reaproveita o login da Marta (o servidor limita os logins por IP).
+  const memory: { v: string | null } = { v: marta };
+  const net = { slow: false };
+  const ds = createApiDataSource({
+    baseUrl: t.base,
+    tokenStore: { get: () => memory.v, set: (v) => void (memory.v = v) },
+    fetch: async (input, init) => {
+      if (net.slow) {
+        assert.equal(init?.signal ?? null, null, 'leitura sem sinal de cancelamento');
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      return fetch(input, init);
+    },
+  });
+  net.slow = true;
+  assert.equal((await ds.staff.currentStaff())?.role, 'manager');
+  assert.ok(Array.isArray(await ds.staff.listActiveAlerts()));
+});

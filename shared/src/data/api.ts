@@ -24,9 +24,10 @@ export interface ApiOptions {
   /** Teto de espera dos toques da equipe ("Vi", "Estou indo", "Encerrar"), em ms. Padrão: 10 s. */
   actionTimeoutMs?: number;
   /**
-   * Teto de espera das leituras do app da equipe (quem está logado, lista e alerta), em ms. Padrão: 8 s.
-   * Com sinal fraco a conexão fica pendurada sem falhar: sem teto, o app não chega a abrir com o último
-   * login nem mostra o que já tem.
+   * Teto de espera das leituras da equipe (quem está logado, lista e alerta), em ms. Padrão: sem teto.
+   * O app passa 8 s: com sinal fraco a conexão fica pendurada sem falhar e, sem teto, ele não chega a
+   * abrir com o último login nem mostra o que já tem guardado. O painel web não tem o que mostrar no
+   * lugar, então espera a resposta.
    */
   readTimeoutMs?: number;
 }
@@ -62,7 +63,7 @@ export function createApiDataSource(options: ApiOptions): DataSource {
   });
   const pollMs = options.pollMs ?? 3000;
   const actionTimeoutMs = options.actionTimeoutMs ?? 10_000;
-  const readTimeoutMs = options.readTimeoutMs ?? 8_000;
+  const readTimeoutMs = options.readTimeoutMs;
   const doFetch: typeof fetch = (input, init) => (options.fetch ?? fetch)(input, init);
   let token: string | null = null;
   let tokenLoaded = false;
@@ -320,7 +321,8 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       },
       registerPushToken: (token, platform) => request<{ pushEnabled: boolean }>('/me/push-token', { method: 'PUT', auth: true, body: { token, platform } }),
       async removePushToken(token) {
-        await request('/me/push-token', { method: 'DELETE', auth: true, body: { token } });
+        // Com teto: é chamado no "Sair", que não pode ficar pendurado com sinal fraco.
+        await request('/me/push-token', { method: 'DELETE', auth: true, body: { token }, timeoutMs: actionTimeoutMs });
       },
     },
 
