@@ -1,0 +1,166 @@
+[
+  {
+    "arquivo": "mariana-cena-01.mp4",
+    "cena": "1, Problema (0:00 a 0:13)",
+    "duracao_s": 15.9,
+    "resumo": "Cartela do problema: \"11,3%\" grande, a frase da pesquisa e a fonte pequena.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-02.mp4",
+    "cena": "2, Solução (0:13 a 0:27)",
+    "duracao_s": 16,
+    "resumo": "Cartela da solução: o logo da Mariana e as três partes, página dela, app da equipe e painel, ligadas por setas.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-03.mp4",
+    "cena": "3, Três telas, início (0:27 a 0:35)",
+    "duracao_s": 11.1,
+    "resumo": "As três telas paradas no estado inicial: a página dela no QR do banheiro feminino, o app em \"Nenhum alerta agora\" e o painel sem alertas.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-04.mp4",
+    "cena": "4, Pedido e alarme (0:35 a 0:52)",
+    "duracao_s": 17.6,
+    "resumo": "Ela toca em \"Estou me sentindo insegura\" e recebe a palavra-código; o app toca o alarme e o painel bipa; o alerta novo pulsa nas duas telas.",
+    "sons": [
+      {
+        "som": "Alarme do app",
+        "inicio_s": 3.946,
+        "fim_s": 6.886
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 3.955,
+        "fim_s": 4.605
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 6.455,
+        "fim_s": 7.105
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 8.955,
+        "fim_s": 9.605
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 11.455,
+        "fim_s": 12.105
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 13.955,
+        "fim_s": 14.605
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 16.455,
+        "fim_s": 17.105
+      }
+    ]
+  },
+  {
+    "arquivo": "mariana-cena-05.mp4",
+    "cena": "5, Visto e \"Estou indo\" (0:52 a 1:08)",
+    "duracao_s": 16.5,
+    "resumo": "O Diego abre o alerta, que vira \"Visto\" sozinho e cala o bipe; toca em \"Estou indo\"; a página dela e o painel mostram que ele está indo.",
+    "sons": [
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 1.605,
+        "fim_s": 2.255
+      }
+    ]
+  },
+  {
+    "arquivo": "mariana-cena-06.mp4",
+    "cena": "6, Painel, o tempo corre (1:08 a 1:18)",
+    "duracao_s": 15.4,
+    "resumo": "O painel grande: o cartão passa de \"Visto\" a \"A caminho\" e acende, com \"Diego Santos está indo até ela\" e o tempo \"há 1 min ...\" correndo.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-07.mp4",
+    "cena": "7, Encerrar (1:18 a 1:32)",
+    "duracao_s": 15.2,
+    "resumo": "A partir de \"A caminho\": o Diego toca em \"Encerrar…\" e escolhe o desfecho; a página dela chega a \"Pedido encerrado\" e o painel fica sem alertas.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-08.mp4",
+    "cena": "8, Sem sinal (1:32 a 1:50)",
+    "duracao_s": 22.4,
+    "resumo": "Sem sinal: só o app perde a rede; o \"Estou indo\" fica guardado (\"Sem sinal: vai enviar quando voltar\"); a rede volta, o toque sai e a página dela muda.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-09.mp4",
+    "cena": "9, Design e UX (1:50 a 2:03)",
+    "duracao_s": 20.8,
+    "resumo": "Design e UX: a página dela sem logo, com o nome do bar no cabeçalho, e o detalhe do alerta no app com a ação principal embaixo; depois, a cartela do antes e depois do visual.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-10.mp4",
+    "cena": "10, Acessibilidade (2:03 a 2:21)",
+    "duracao_s": 40.6,
+    "resumo": "Acessibilidade em quatro trechos: texto a 200% na página dela, o painel só no teclado com o foco visível, o selo de estado com ícone e texto, e \"Reduzir movimento\" tirando o pulso do alerta novo.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-11.mp4",
+    "cena": "11, Lei e ODS (2:21 a 2:39)",
+    "duracao_s": 20.4,
+    "resumo": "Duas cartelas: a lei paulista 17.621/2023 (art. 2º, §2º) e as metas 5.2 e 11.7 dos ODS, com o texto oficial e os links.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-cena-12.mp4",
+    "cena": "12, Fecho (2:39 a 2:47)",
+    "duracao_s": 11.7,
+    "resumo": "Cartela de fecho: o logo da Mariana, os links do site e do repositório, e o espaço vazio para o nome do grupo e os integrantes.",
+    "sons": []
+  },
+  {
+    "arquivo": "mariana-integracao.mp4",
+    "cena": "3 a 7, numa tomada só (0:27 a 1:32)",
+    "duracao_s": 46.1,
+    "resumo": "As três telas em sincronia: o pedido dela, o alarme e o atendimento no app, o painel acompanhando até o encerramento.",
+    "sons": [
+      {
+        "som": "Alarme do app",
+        "inicio_s": 5.971,
+        "fim_s": 8.911
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 5.973,
+        "fim_s": 6.623
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 8.473,
+        "fim_s": 9.123
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 10.973,
+        "fim_s": 11.623
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 13.473,
+        "fim_s": 14.123
+      },
+      {
+        "som": "Bipe do painel",
+        "inicio_s": 15.973,
+        "fim_s": 16.623
+      }
+    ]
+  }
+]

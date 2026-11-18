@@ -22,3 +22,4 @@ fcm-service-account*.json
 
 # Conferência do PDF (geradas por docs/pdf/build-pdf.mjs --capturas)
 docs/pdf/capturas/
+docs/video/capturas/

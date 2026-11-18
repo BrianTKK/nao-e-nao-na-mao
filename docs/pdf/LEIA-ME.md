@@ -1,17 +1,24 @@
 # PDF da entrega
 
-O `build-pdf.mjs` lê `Mariana_PDF.md` e gera dois arquivos nesta pasta:
+O `build-pdf.mjs` gera os quatro PDFs do projeto: o documento da entrega, a sugestão de vídeo-pitch, o resumo de funcionalidades e tecnologias e as folhas de marcação dos clipes. Sem opções, ele lê `Mariana_PDF.md` e gera dois arquivos nesta pasta:
 
 - `Mariana_PDF.html`: a página completa, com CSS, fontes e logo embutidos;
 - `Mariana_PDF.pdf`: o PDF em A4, impresso pelo Chromium do Playwright.
 
 ## Como regenerar
 
-Na raiz do repositório:
+Na raiz do repositório, um comando por documento:
 
-```
-node docs/pdf/build-pdf.mjs
-```
+| Documento | Comando | Saída |
+| --- | --- | --- |
+| Documento da entrega (19 páginas) | `node docs/pdf/build-pdf.mjs` | `docs/pdf/Mariana_PDF.pdf` |
+| Sugestão de vídeo-pitch | `node docs/pdf/build-pdf.mjs --in=docs/pdf/Mariana_Pitch_Video.md` | `docs/pdf/Mariana_Pitch_Video.pdf` |
+| Funcionalidades e tecnologias | `node docs/pdf/build-pdf.mjs --in=docs/pdf/Mariana_Resumo.md` | `docs/pdf/Mariana_Resumo.pdf` |
+| Folhas de marcação dos clipes | `node docs/pdf/build-pdf.mjs --in=docs/video/Folhas_de_Marcacao.md --out-dir=docs/video --nome=Mariana_Folhas_de_Marcacao` | `docs/video/Mariana_Folhas_de_Marcacao.pdf` |
+
+Cada comando também escreve o `.html` ao lado do PDF. O `Folhas_de_Marcacao.md` junta as folhas de `docs/video/marcacao/` (a integração e depois as cenas 1 a 12). Se um clipe for regravado, junte as folhas de novo antes de gerar: `node docs/video/juntar-folhas.mjs`.
+
+Os documentos curtos (pitch, resumo e folhas) começam com um comentário na primeira linha, por exemplo `<!-- pdf: capa=compacta; topo=Mariana · Resumo -->`. Ele troca a capa de página inteira por uma faixa no topo da página 1. As chaves (`capa`, `sumario`, `quebra`, `topo`) estão descritas no topo do `build-pdf.mjs`. Um comentário `<!-- colunas: 46%, 18%, 36% -->` logo antes de uma tabela fixa a largura das colunas dela.
 
 O script usa o Playwright e as fontes que o pacote `web` já instala. Não há dependência nova. Se faltar o Chromium, rode `npx playwright install chromium` uma vez.
 
@@ -25,6 +32,7 @@ Opções, todas opcionais:
 | `--out-dir=pasta` | `PDF_OUT_DIR` | outra pasta de saída |
 | `--imagens=pasta` | `IMAGENS_DIR` | outra pasta de imagens |
 | `--repo=pasta` | `REPO_ROOT` | raiz do repositório, se o script estiver fora dele |
+| `--nome=nome` | `PDF_NOME` | nome dos arquivos de saída, sem extensão (padrão: o do `.md`) |
 | `--capturas=1,2,9` | `CAPTURAS` | PNG dessas páginas em `capturas/`, mais `visao-geral.png` com todas (`todas` gera todas) |
 
 ## O que preencher

@@ -20,12 +20,12 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 - `npm run test:offline -w mobile`: 28 verificações da fila sem sinal, com o app aberto no navegador (Expo web) contra o servidor de verdade e a rede cortada pelo Playwright.
 - `npm run test:a11y -w mobile`: 463 verificações no app pelo Expo web, em 13 telas/estados e 3 larguras (390, 260 e 195 px, que simulam fonte grande): axe, nome acessível de todo controle, regiões vivas, alvos de 48 px, texto não cortado, palavra-código inteira, "Reduzir movimento".
 - Revisão da F3: um painel adversarial leu o diff commitado, com segundo leitor para cada achado. Foram duas rodadas, e os 24 achados confirmados foram corrigidos com teste (`a18433d` e `29f9dea`).
-- O push (FCM) foi validado contra o Firebase de verdade (`validate_only`), sem celular.
+- O push (FCM) foi validado contra o Firebase de verdade (`validate_only`) e, em 18/11/2026, testado num celular: com o app fechado e a tela bloqueada, o alerta criado pelo QR code tocou.
 
 **Não testado**
 
 - Leitor de tela de verdade (TalkBack, VoiceOver, NVDA): só nomes, papéis e regiões vivas foram conferidos, no código e no navegador.
-- Celular real: o APK `versionCode` 4 não foi instalado em aparelho, e um alerta saindo da VPS até um celular de verdade também não foi testado.
+- Celular real: só o alarme foi testado (APK `versionCode` 4, em 18/11/2026). A fila sem sinal, o motion, as fontes e os ícones não foram vistos em aparelho.
 - Fonte grande do sistema Android: foi simulada por largura de tela no navegador.
 - Firefox e Safari.
 - Impressão A4.
@@ -217,7 +217,7 @@ Correções feitas na rodada de acessibilidade da F3:
 | --- | --- |
 | Problema e cidadã | 🟡 Roteiro escrito; gravação do grupo |
 | Solução | 🟡 Roteiro escrito |
-| App e web funcionando juntos, com integração e motion | 🟡 Roteiro escrito. Para as cenas 5 e 8, o celular da equipe precisa do APK `versionCode` 4, que ainda não foi instalado em aparelho e só é publicado depois do servidor e do site |
+| App e web funcionando juntos, com integração e motion | 🟡 Roteiro escrito e 13 clipes de demonstração gravados no PC, sem voz, para dublar (`docs/video/` e `docs/pdf/Mariana_Pitch_Video.pdf`). Para a tomada no celular, o APK `versionCode` 4 está no link público |
 | Justificativas de design, UX, motion e acessibilidade | 🟡 Roteiro escrito. No vídeo, não afirmar que o leitor de tela foi testado |
 
 ## Processo

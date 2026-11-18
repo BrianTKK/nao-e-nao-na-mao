@@ -14,8 +14,25 @@
  *   --out-dir=<pasta>       PDF_OUT_DIR  saída (padrão: a pasta do script)
  *   --imagens=<pasta>       IMAGENS_DIR  imagens (padrão: imagens/ ao lado do script)
  *   --repo=<pasta>          REPO_ROOT    raiz do repositório (padrão: dois níveis acima do script)
+ *   --nome=<nome>           PDF_NOME     nome dos arquivos de saída, sem extensão (padrão: o do .md)
  *   --capturas=1,2,9        CAPTURAS     gera PNG dessas páginas em <saída>/capturas,
  *                                        mais visao-geral.png com todas as páginas ("todas" gera todas)
+ *
+ * Documento curto (cabeçalho compacto no lugar da capa de página inteira):
+ * a primeira linha do Markdown traz um comentário com as opções, por exemplo
+ *
+ *   <!-- pdf: capa=compacta; topo=Mariana · Resumo -->
+ *
+ *   capa=inteira|compacta   inteira (padrão) = capa escura de página inteira, com integrantes;
+ *                           compacta = faixa escura no topo da página 1, com logo, título (# do
+ *                           Markdown), subtítulo (linha em negrito) e as notas antes do primeiro ##
+ *   sumario=sim|nao         padrão: sim na capa inteira, nao na compacta
+ *   quebra=sim|nao          cada ## começa página nova; padrão: sim na inteira, nao na compacta
+ *   topo=<texto>            texto do topo das páginas (padrão: o título)
+ *
+ * Sem o comentário, o resultado é o de sempre (Mariana_PDF.md). Outros comentários
+ * <!-- ... --> de uma linha são ignorados, e <!-- colunas: 8%, 20%, , 30% --> logo antes
+ * de uma tabela fixa a largura das colunas dela (vazio = automática).
  */
 
 import { createRequire } from 'node:module';
@@ -35,11 +52,16 @@ const args = Object.fromEntries(
 const opt = (name, env, fallback) => args[name] ?? process.env[env] ?? fallback;
 
 const repoRoot = path.resolve(opt('repo', 'REPO_ROOT', path.join(scriptDir, '..', '..')));
-const mdIn = path.resolve(opt('in', 'MD_IN', path.join(scriptDir, 'Mariana_PDF.md')));
+// fora do repositório, sem --in, cai no Mariana_PDF.md de docs/pdf da raiz informada
+const defaultMd = fs.existsSync(path.join(scriptDir, 'Mariana_PDF.md'))
+  ? path.join(scriptDir, 'Mariana_PDF.md')
+  : path.join(repoRoot, 'docs', 'pdf', 'Mariana_PDF.md');
+const mdIn = path.resolve(opt('in', 'MD_IN', defaultMd));
 const outDir = path.resolve(opt('out-dir', 'PDF_OUT_DIR', scriptDir));
-const imagesDir = path.resolve(opt('imagens', 'IMAGENS_DIR', path.join(scriptDir, 'imagens')));
+// imagens ao lado do Markdown (no repositório, é a mesma pasta do script)
+const imagesDir = path.resolve(opt('imagens', 'IMAGENS_DIR', path.join(path.dirname(mdIn), 'imagens')));
 const capturasOpt = opt('capturas', 'CAPTURAS', '');
-const baseName = path.basename(mdIn, path.extname(mdIn));
+const baseName = opt('nome', 'PDF_NOME', path.basename(mdIn, path.extname(mdIn)));
 const htmlOut = path.join(outDir, `${baseName}.html`);
 const pdfOut = path.join(outDir, `${baseName}.pdf`);
 
@@ -137,12 +159,22 @@ function parseList(lines, i) {
   return { block: { type: 'list', ordered, start, items }, next: i };
 }
 
+const COMMENT_RE = /^\s*<!--(.*?)-->\s*$/;
+
 function parseBlocks(lines) {
   const blocks = [];
+  let widths = null; // <!-- colunas: ... --> vale para a próxima tabela
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (line.trim() === '') { i++; continue; }
+    const cm = line.match(COMMENT_RE);
+    if (cm) {
+      const w = cm[1].match(/^\s*colunas:\s*(.*?)\s*$/);
+      if (w) widths = w[1].split(',').map((s) => s.trim());
+      i++;
+      continue;
+    }
 
     if (/^\s*```/.test(line)) {
       const body = [];
@@ -163,7 +195,8 @@ function parseBlocks(lines) {
       i += 2;
       const rows = [];
       while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(splitRow(lines[i++]));
-      blocks.push({ type: 'table', header, aligns, rows });
+      blocks.push(widths ? { type: 'table', header, aligns, rows, widths } : { type: 'table', header, aligns, rows });
+      widths = null;
       continue;
     }
     if (/^\s*>/.test(line)) {
@@ -294,7 +327,9 @@ const COL_WIDTH = {
 };
 function renderTable(b) {
   const narrow = (h) => /^#$|^nº$/i.test(plain(h));
-  const colgroup = `<colgroup>${b.header.map((h) => (narrow(h) ? '<col style="width:7mm">' : COL_WIDTH[plain(h)] ? `<col style="width:${COL_WIDTH[plain(h)]}">` : '<col>')).join('')}</colgroup>`;
+  const colgroup = b.widths
+    ? `<colgroup>${b.header.map((_, c) => (b.widths[c] ? `<col style="width:${esc(b.widths[c])}">` : '<col>')).join('')}</colgroup>`
+    : `<colgroup>${b.header.map((h) => (narrow(h) ? '<col style="width:7mm">' : COL_WIDTH[plain(h)] ? `<col style="width:${COL_WIDTH[plain(h)]}">` : '<col>')).join('')}</colgroup>`;
   const cols = b.header.length;
   const head = b.header
     .map((h, c) => `<th${narrow(h) ? ' class="col-n"' : ''}${b.aligns[c] ? ` style="text-align:${b.aligns[c]}"` : ''}>${fmt(h)}</th>`)
@@ -421,6 +456,20 @@ function logoSvg() {
 
 // ---------- montagem ----------
 const md = fs.readFileSync(mdIn, 'utf8').replace(/\r\n?/g, '\n');
+// opções do documento: <!-- pdf: capa=compacta; sumario=nao; quebra=nao; topo=... --> no topo
+const meta = (() => {
+  const m = md.match(/^\s*<!--\s*pdf:(.*?)-->/);
+  const o = {};
+  if (m) for (const part of m[1].split(';')) {
+    const kv = part.match(/^\s*([\w-]+)\s*=\s*(.*?)\s*$/);
+    if (kv) o[kv[1].toLowerCase()] = kv[2];
+  }
+  return o;
+})();
+const yes = (v, d) => (v === undefined ? d : /^(sim|s|1|true|yes)$/i.test(v));
+const compact = /^compacta?$/i.test(meta.capa ?? '');
+const showToc = yes(meta.sumario, !compact);
+const breakH2 = yes(meta.quebra, !compact);
 const all = parseBlocks(md.split('\n'));
 const firstH2 = all.findIndex((b) => b.type === 'heading' && b.level === 2);
 const pre = firstH2 === -1 ? all : all.slice(0, firstH2);
@@ -441,8 +490,9 @@ for (const b of pre) {
   else if (d) { date = d[1]; dateRest = d[2]; }
   else notes.push(t);
 }
-state.h2 = 'Capa';
-const coverNotes = notes.map((t) => `<p>${inline(t, { where: 'capa' })}</p>`).join('');
+const coverLabel = compact ? 'Cabeçalho' : 'Capa';
+state.h2 = coverLabel;
+const coverNotes = notes.map((t) => `<p>${inline(t, { where: compact ? 'cabeçalho' : 'capa' })}</p>`).join('');
 const coverDateRest = dateRest ? inline(dateRest, { where: 'capa, linha da data' }) : '';
 
 // integrantes na capa: lidos da tabela da seção "Integrantes" (as pendências contam só lá)
@@ -453,7 +503,7 @@ for (let k = iH + 1; iH !== -1 && k < body.length; k++) {
   if (body[k].type === 'heading' && body[k].level <= 2) break;
   if (body[k].type === 'table') { iT = body[k]; break; }
 }
-if (iT) {
+if (iT && !compact) {
   const nameCol = iT.header.findIndex((h) => /nome/i.test(h));
   const rmCol = iT.header.findIndex((h) => /^\s*rm\s*$/i.test(plain(h)));
   members = iT.rows
@@ -464,7 +514,7 @@ if (iT) {
     .join('');
 }
 
-state.h2 = 'Capa';
+state.h2 = coverLabel;
 const bodyHtml = renderBlocks(body);
 const tocHtml = (() => {
   const items = [];
@@ -485,6 +535,29 @@ const tocHtml = (() => {
 
 const logo = logoSvg();
 const header = 'FIAP · Global Solution · CitizenTech';
+const topo = (meta.topo || title).replace(/"/g, '');
+
+// documento curto: faixa escura no topo da página 1, sem página de capa
+const compactCss = String.raw`
+@page :first{@top-left{content:none}@top-right{content:none}}
+.masthead{position:relative;background:var(--dark);color:var(--on-dark);border-radius:8px;padding:10pt 16pt 11pt;margin:0 0 12pt;break-inside:avoid}
+.masthead::before,.masthead::after{content:"";position:absolute;top:50%;width:11pt;height:11pt;margin-top:-5.5pt;border-radius:50%;background:var(--paper)}
+.masthead::before{left:-5.5pt}
+.masthead::after{right:-5.5pt}
+.masthead .mh-top{display:flex;justify-content:space-between;align-items:center;gap:12pt;margin-bottom:7pt}
+.masthead .logo{display:block;width:40mm;height:auto}
+.masthead .eyebrow{font-size:7pt;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin:0;text-align:right}
+.masthead h1{font-family:var(--serif);font-weight:600;font-size:21pt;line-height:1.12;margin:0 0 3pt;color:var(--on-dark)}
+.masthead .tagline{font-family:var(--serif);font-weight:400;font-size:11pt;line-height:1.3;margin:0 0 5pt;color:var(--sage)}
+.masthead .notes{font-size:8.4pt;line-height:1.45;color:var(--on-dark-muted);border-top:1pt dashed var(--dark-line);padding-top:5pt;margin-top:5pt}
+.masthead .notes p{margin:0 0 2pt}
+.masthead .notes a{color:var(--sage)}
+.masthead .date{color:var(--brass);font-weight:600}
+.masthead code{background:var(--dark-2);color:var(--on-dark);border:.5pt solid var(--dark-line)}
+.masthead .pend{background:transparent;color:var(--on-dark);border-color:var(--brass)}
+h2{font-size:14.5pt;margin-bottom:7pt;padding-top:6pt;border-top-width:2pt}
+h3{font-size:11pt;margin:10pt 0 4pt}
+`;
 
 const css = String.raw`
 ${fontFaces()}
@@ -500,12 +573,12 @@ ${fontFaces()}
 }
 @page{
   size:A4; margin:21mm 18mm 18mm 18mm;
-  @top-left{content:"${title}";font-family:Fraunces,Georgia,serif;font-weight:600;font-size:9.5pt;color:${brand.leaf};vertical-align:bottom;padding-bottom:3mm}
+  @top-left{content:"${topo}";font-family:Fraunces,Georgia,serif;font-weight:600;font-size:9.5pt;color:${brand.leaf};vertical-align:bottom;padding-bottom:3mm}
   @top-right{content:"${header}";font-family:"Instrument Sans",Arial,sans-serif;font-size:7.5pt;letter-spacing:.06em;color:${brand.paperMuted};vertical-align:bottom;padding-bottom:3.4mm}
   @bottom-left{content:"${tagline ? plain(tagline).replace(/"/g, '') : ''}";font-family:"Instrument Sans",Arial,sans-serif;font-size:7pt;color:${brand.paperMuted};vertical-align:top;padding-top:4mm}
   @bottom-right{content:counter(page) " de " counter(pages);font-family:"Instrument Sans",Arial,sans-serif;font-size:8pt;font-weight:600;color:${brand.garrafa};vertical-align:top;padding-top:4mm}
 }
-@page :first{margin:0;@top-left{content:none}@top-right{content:none}@bottom-left{content:none}@bottom-right{content:none}}
+${compact ? '' : '@page :first{margin:0;@top-left{content:none}@top-right{content:none}@bottom-left{content:none}@bottom-right{content:none}}'}
 *{box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:10pt;line-height:1.5;text-rendering:optimizeLegibility;font-kerning:normal}
@@ -606,7 +679,7 @@ figure.shot figcaption{display:table-caption;caption-side:bottom;font-size:8pt;l
   .cover{margin:0 auto 10mm}
   .doc{background:#fff;padding:18mm;width:210mm}
 }
-`;
+${compact ? compactCss : ''}${breakH2 ? '' : 'h2{break-before:auto;margin-top:14pt}\nh2.first{margin-top:0}\n'}`;
 
 const html = `<!doctype html>
 <html lang="pt-BR">
@@ -617,7 +690,7 @@ const html = `<!doctype html>
 <style>${css}</style>
 </head>
 <body>
-<section class="cover" aria-label="Capa">
+${compact ? '' : `<section class="cover" aria-label="Capa">
   <p class="eyebrow">${header}</p>
   ${logo ? `${logo}<h1 class="title-text" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0">${esc(title)}</h1>` : `<h1 class="title-text">${esc(title)}</h1>`}
   ${tagline ? `<p class="tagline">${fmt(tagline)}</p>` : ''}
@@ -628,8 +701,13 @@ const html = `<!doctype html>
   <div class="notes">${coverNotes}</div>
   ${members ? `<div class="members"><h2>Integrantes, em ordem alfabética</h2><ol>${members}</ol></div>` : ''}
 </section>
-<main class="doc">
-${tocHtml}
+`}<main class="doc">
+${compact ? `<header class="masthead">
+  <div class="mh-top">${logo ?? ''}<p class="eyebrow">${header}</p></div>
+  <h1>${esc(title)}</h1>
+  ${tagline ? `<p class="tagline">${fmt(tagline)}</p>` : ''}
+  ${coverNotes || date ? `<div class="notes">${coverNotes}${date ? `<p><span class="date">Entrega: ${esc(date)}</span>${coverDateRest ? ` · ${coverDateRest}` : ''}</p>` : ''}</div>` : ''}
+</header>` : ''}${showToc ? tocHtml : ''}
 ${bodyHtml}
 </main>
 </body>
