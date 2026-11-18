@@ -7,7 +7,7 @@ import { FocusInput } from '@/components/FocusInput';
 import { useMotion } from '@/hooks/useMotion';
 import { useSession } from '@/hooks/useSession';
 import { dataSource } from '@/data/source';
-import { WIFI_LIMITS, pendingFor } from '@nenm/shared';
+import { WIFI_LIMITS, pendingFor, queuedSignOutText } from '@nenm/shared';
 import { Icon } from '@/components/Icon';
 import { useOutbox } from '@/hooks/useOutbox';
 import { testAlarm } from '@/notifications/alarm';
@@ -202,10 +202,7 @@ export default function Settings() {
       {queued > 0 && (
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.xs }} accessible accessibilityRole="text">
           <Icon name="wifi-off" size={20} color={color.alert} />
-          <Text style={[ui.body, { flex: 1 }]}>
-            {queued === 1 ? 'Há 1 toque seu guardado sem sinal.' : `Há ${queued} toques seus guardados sem sinal.`} Se você sair agora, ele só é enviado
-            quando você entrar de novo neste celular, em até 12 horas.
-          </Text>
+          <Text style={[ui.body, { flex: 1 }]}>{queuedSignOutText(queued)}</Text>
         </View>
       )}
 

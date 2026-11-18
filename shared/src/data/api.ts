@@ -23,6 +23,12 @@ export interface ApiOptions {
   fetch?: typeof fetch;
   /** Teto de espera dos toques da equipe ("Vi", "Estou indo", "Encerrar"), em ms. Padrão: 10 s. */
   actionTimeoutMs?: number;
+  /**
+   * Teto de espera das leituras do app da equipe (quem está logado, lista e alerta), em ms. Padrão: 8 s.
+   * Com sinal fraco a conexão fica pendurada sem falhar: sem teto, o app não chega a abrir com o último
+   * login nem mostra o que já tem.
+   */
+  readTimeoutMs?: number;
 }
 
 /** O servidor não respondeu (proxy sem o app atrás, ou app reiniciando): para quem usa, é falta de conexão. */
@@ -44,6 +50,7 @@ const KNOWN_ERRORS: DataErrorCode[] = [
   'cannot_change_self',
   'menu_full',
   'invalid_image',
+  'action_wrong_user',
 ];
 
 export function createApiDataSource(options: ApiOptions): DataSource {
@@ -55,6 +62,7 @@ export function createApiDataSource(options: ApiOptions): DataSource {
   });
   const pollMs = options.pollMs ?? 3000;
   const actionTimeoutMs = options.actionTimeoutMs ?? 10_000;
+  const readTimeoutMs = options.readTimeoutMs ?? 8_000;
   const doFetch: typeof fetch = (input, init) => (options.fetch ?? fetch)(input, init);
   let token: string | null = null;
   let tokenLoaded = false;
@@ -110,7 +118,8 @@ export function createApiDataSource(options: ApiOptions): DataSource {
         throw new DataError('not_staff');
       }
       const code = (data?.error ?? 'unknown') as DataErrorCode;
-      throw new DataError(KNOWN_ERRORS.includes(code) ? code : 'unknown', data?.error);
+      if (KNOWN_ERRORS.includes(code)) throw new DataError(code, data?.error);
+      throw new DataError(res.status >= 500 ? 'server_error' : 'unknown', data?.error);
     }
     return data as T;
   }
@@ -269,13 +278,13 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       async currentStaff() {
         if (!(await loadToken())) return null;
         try {
-          return await request<StaffMember>('/me', { auth: true });
+          return await request<StaffMember>('/me', { auth: true, timeoutMs: readTimeoutMs });
         } catch (err) {
           if (err instanceof DataError && err.code === 'not_staff') return null;
           throw err;
         }
       },
-      listActiveAlerts: () => request<Alert[]>('/staff/alerts/active', { auth: true }),
+      listActiveAlerts: () => request<Alert[]>('/staff/alerts/active', { auth: true, timeoutMs: readTimeoutMs }),
       watchActiveAlerts(onChange) {
         const refresh = () => {
           this.listActiveAlerts()
@@ -287,7 +296,7 @@ export function createApiDataSource(options: ApiOptions): DataSource {
       },
       async getAlert(id) {
         try {
-          return await request<Alert>(`/staff/alerts/${id}`, { auth: true });
+          return await request<Alert>(`/staff/alerts/${id}`, { auth: true, timeoutMs: readTimeoutMs });
         } catch (err) {
           if (err instanceof DataError && err.code === 'alert_not_found') return null;
           throw err;

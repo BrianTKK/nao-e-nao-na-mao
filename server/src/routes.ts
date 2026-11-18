@@ -170,8 +170,14 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits, p
    * Toques da equipe. Com `actionId` (o app manda um por toque), o servidor aplica
    * uma vez só: o reenvio do mesmo toque, depois de uma queda de conexão, devolve
    * o alerta como está, sem repetir a transição nem o aviso (migração 008).
+   * `userId` é quem tocou: se o login do aparelho mudou entre o toque e o envio,
+   * o toque não é aplicado em nome de outra pessoa.
    */
-  const actionMeta = { actionId: uuid.optional(), queuedMs: z.number().int().min(0).max(QUEUED_MS_MAX).optional() };
+  const actionMeta = {
+    actionId: uuid.optional(),
+    queuedMs: z.number().int().min(0).max(QUEUED_MS_MAX).optional(),
+    userId: uuid.optional(),
+  };
   const transition = (fn: 'ack' | 'start' | 'resolve') =>
     r.post(`/staff/alerts/:id/${fn}`, auth.requireStaff, async (req, res) => {
       const id = uuid.parse(req.params.id);
@@ -180,6 +186,7 @@ export function createRoutes({ db, auth, alertChanged, disconnectUser, limits, p
         fn === 'resolve'
           ? z.object({ outcome, note: z.string().max(500).optional(), ...actionMeta }).strict().parse(req.body)
           : { outcome: null, note: undefined, ...z.object(actionMeta).strict().parse(req.body ?? {}) };
+      if (body.userId && body.userId !== actor) throw new HttpError(409, 'action_wrong_user');
       let applied = true;
       if (body.actionId) {
         const { rows } = await db.query<{ applied: boolean }>('select apply_staff_action($1, $2, $3, $4, $5, $6, $7) as applied', [

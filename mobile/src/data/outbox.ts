@@ -13,12 +13,29 @@ const RETRY_MS = 15_000;
  * guardados no AsyncStorage e saem quando ela volta, mesmo que o app tenha
  * sido fechado no meio.
  */
+/** Quem está logado neste aparelho agora (a sessão avisa a cada entrada e saída). */
+let activeUser: string | null = null;
+export function setOutboxUser(userId: string | null): void {
+  activeUser = userId;
+}
+
+const authLostListeners = new Set<() => void>();
+/** Avisa quando o servidor recusa o login no meio de um envio: a sessão confere e manda a pessoa entrar de novo. */
+export function onOutboxAuthLost(listener: () => void): () => void {
+  authLostListeners.add(listener);
+  return () => authLostListeners.delete(listener);
+}
+
 export const outbox = createOutbox({
   staff: dataSource.staff,
   storage: {
-    get: () => AsyncStorage.getItem(KEY).catch(() => null),
+    // Sem `catch` na leitura: se ela falhar, a fila tenta de novo em vez de gravar uma fila vazia por cima.
+    get: () => AsyncStorage.getItem(KEY),
     set: (value) => AsyncStorage.setItem(KEY, value).catch(() => {}),
   },
+  // O envio usa o login do aparelho: o toque de quem saiu não sai com o login de quem entrou.
+  currentUserId: () => activeUser,
+  onAuthLost: () => authLostListeners.forEach((l) => l()),
 });
 
 /**

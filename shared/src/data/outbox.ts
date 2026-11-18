@@ -12,6 +12,8 @@
  *   pessoa assumiu ou encerrou o alerta, o toque guardado é descartado e vira
  *   um aviso para a tela mostrar. Os toques seguintes do mesmo alerta caem junto.
  * - Toque velho demais (12 h) é descartado com aviso.
+ * - O toque é de quem o fez: só sai com o login dessa pessoa, e o servidor
+ *   confere (`userId` no envio).
  *
  * Não depende de React nem do React Native: a tela assina `subscribe` e lê
  * `snapshot`. Quem guarda no aparelho é o `storage` que o app passa.
@@ -56,10 +58,17 @@ export interface OutboxNotice {
   kind: QueuedActionKind;
   spotLabel?: string;
   reason: OutboxNoticeReason;
+  /** Outros toques da pessoa neste alerta que caíram junto (ex.: o "Encerrar" feito depois do "Estou indo"). */
+  alsoDropped?: QueuedActionKind[];
   at: number;
 }
 
 export interface OutboxSnapshot {
+  /**
+   * Toques guardados, esperando a conexão. O toque que está sendo enviado agora,
+   * na hora em que a pessoa tocou, não aparece aqui: para a tela ele ainda não é
+   * "sem sinal".
+   */
   readonly actions: readonly QueuedAction[];
   readonly notices: readonly OutboxNotice[];
 }
@@ -77,8 +86,16 @@ export interface OutboxOptions {
   now?: () => number;
   /** Depois disso o toque guardado é descartado. Padrão: 12 h. */
   maxAgeMs?: number;
-  /** Quantos erros inesperados do servidor um toque aguenta antes de ser descartado. Padrão: 5. */
+  /** Quantas recusas inesperadas do servidor um toque aguenta antes de ser descartado. Padrão: 5. */
   maxAttempts?: number;
+  /**
+   * Quem está logado no aparelho agora (null = ninguém). O envio usa o login do
+   * aparelho, então a rodada para antes de cada toque se a pessoa mudou: o toque
+   * de uma não sai em nome de outra.
+   */
+  currentUserId?: () => string | null | undefined;
+  /** O servidor não aceitou o login no meio de uma rodada: o app deve mandar a pessoa entrar de novo. */
+  onAuthLost?: (userId: string) => void;
 }
 
 export interface NewAction {
@@ -123,7 +140,7 @@ const CONFLICT: Partial<Record<DataErrorCode, OutboxNoticeReason>> = {
 };
 
 /** Falhas que não dizem nada sobre o toque: parar e tentar tudo de novo depois. */
-const RETRY_LATER: DataErrorCode[] = ['network', 'rate_limited', 'not_staff'];
+const RETRY_LATER: DataErrorCode[] = ['network', 'rate_limited', 'not_staff', 'action_wrong_user'];
 
 /** UUID v4. O id só precisa ser único (não é segredo: o servidor confere de quem é o toque). */
 export function randomUuid(): string {
@@ -163,16 +180,24 @@ export function createOutbox(options: OutboxOptions): Outbox {
   /** Toques cujo `perform` ainda está esperando: o erro volta para a tela, não vira aviso. */
   const direct = new Set<string>();
   const directFailures = new Map<string, DataErrorCode>();
+  /** Toques já guardados que um `perform` repetido está esperando: o que aconteceu com cada um. */
+  const watched = new Set<string>();
+  const fates = new Map<string, 'sent' | DataErrorCode>();
+  /** A fila guardada no aparelho já foi lida. Antes disso nada é gravado, para não apagar o que está lá. */
+  let loaded = false;
 
   // As gravações saem em ordem; se o aparelho não deixar gravar, a fila segue em memória.
   let writes: Promise<void> = Promise.resolve();
   const commit = () => {
-    snap = { actions: [...actions], notices: [...notices] };
-    const json = JSON.stringify({ v: 1, actions, notices });
-    writes = writes.then(() => options.storage.set(json)).then(
-      () => {},
-      () => {},
-    );
+    snap = { actions: actions.filter((a) => !direct.has(a.id)), notices: [...notices] };
+    if (loaded) {
+      // Guarda também o toque que está sendo enviado: se o app fechar no meio, ele não se perde.
+      const json = JSON.stringify({ v: 1, actions, notices });
+      writes = writes.then(() => options.storage.set(json)).then(
+        () => {},
+        () => {},
+      );
+    }
     listeners.forEach((l) => l());
     return writes;
   };
@@ -188,19 +213,35 @@ export function createOutbox(options: OutboxOptions): Outbox {
     return changed;
   };
 
-  const ready: Promise<void> = Promise.resolve()
-    .then(() => options.storage.get())
-    .then(
-      (raw) => {
-        // O que foi tocado antes de a leitura terminar fica depois do que já estava guardado.
-        const stored = parse(raw);
-        actions = [...stored.actions, ...actions];
-        notices = [...stored.notices, ...notices];
-        prune();
-        return commit();
-      },
-      () => {},
-    );
+  /**
+   * Lê a fila guardada no aparelho. Se a leitura falhar, a fila segue só em
+   * memória e a leitura é tentada de novo a cada rodada: gravar por cima agora
+   * apagaria os toques que estão lá.
+   */
+  let loading: Promise<void> | null = null;
+  const load = (): Promise<void> => {
+    if (loaded) return Promise.resolve();
+    loading ??= Promise.resolve()
+      .then(() => options.storage.get())
+      .then(
+        (raw) => {
+          // O que foi tocado antes de a leitura terminar fica depois do que já estava guardado.
+          const stored = parse(raw);
+          const known = new Set(actions.map((a) => a.id));
+          actions = [...stored.actions.filter((a) => !known.has(a.id)), ...actions];
+          notices = [...stored.notices, ...notices];
+          loaded = true;
+          prune();
+          return commit();
+        },
+        () => {},
+      )
+      .finally(() => {
+        loading = null;
+      });
+    return loading;
+  };
+  const ready: Promise<void> = load();
 
   /**
    * Tira da fila o toque que não vai ser aplicado e os toques seguintes da mesma
@@ -212,18 +253,42 @@ export function createOutbox(options: OutboxOptions): Outbox {
     if (index < 0) return;
     const victims = actions.filter((a, i) => i >= index && a.alertId === action.alertId && a.userId === action.userId);
     actions = actions.filter((a) => !victims.includes(a));
-    for (const v of victims) if (direct.has(v.id)) directFailures.set(v.id, code);
-    const shown = victims.find((v) => v.kind !== 'ack' && !direct.has(v.id));
+    for (const v of victims) {
+      if (direct.has(v.id)) directFailures.set(v.id, code);
+      if (watched.has(v.id)) fates.set(v.id, code);
+    }
+    const told = victims.filter((v) => v.kind !== 'ack' && !direct.has(v.id));
+    const shown = told[0];
     if (shown) {
+      const alsoDropped = told.slice(1).map((v) => v.kind);
       notices = [
         ...notices,
-        { id: shown.id, alertId: shown.alertId, userId: shown.userId, kind: shown.kind, spotLabel: shown.spotLabel, reason, at: now() },
+        {
+          id: shown.id,
+          alertId: shown.alertId,
+          userId: shown.userId,
+          kind: shown.kind,
+          spotLabel: shown.spotLabel,
+          reason,
+          ...(alsoDropped.length > 0 ? { alsoDropped } : {}),
+          at: now(),
+        },
       ].slice(-MAX_NOTICES);
     }
   }
 
+  /** Tira só este toque, sem aviso e sem levar os seguintes (para o "Vi" automático, que não faz falta). */
+  function drop(action: QueuedAction, code: DataErrorCode) {
+    actions = actions.filter((a) => a !== action);
+    if (direct.has(action.id)) directFailures.set(action.id, code);
+    if (watched.has(action.id)) fates.set(action.id, code);
+  }
+
   function send(action: QueuedAction): Promise<void> {
-    const meta: ActionMeta = { actionId: action.id, queuedMs: Math.min(QUEUED_MS_CAP, Math.max(0, Math.round(now() - action.createdAt))) };
+    // `queuedMs` acima de zero diz ao servidor que o toque ficou guardado: quem tocou não viu o que mudou
+    // depois. O toque enviado na hora, com a pessoa olhando a tela, vai com zero.
+    const waited = Math.min(QUEUED_MS_CAP, Math.max(1, Math.round(now() - action.createdAt)));
+    const meta: ActionMeta = { actionId: action.id, queuedMs: direct.has(action.id) ? 0 : waited, userId: action.userId };
     if (action.kind === 'ack') return options.staff.ackAlert(action.alertId, meta);
     if (action.kind === 'start') return options.staff.startResponse(action.alertId, meta);
     // Sem desfecho o servidor recusa (outcome_required) e o toque acaba descartado como falha.
@@ -233,6 +298,7 @@ export function createOutbox(options: OutboxOptions): Outbox {
   /** Uma rodada de envio. Devolve true se parou no meio (sem conexão ou sem login): o resto fica para depois. */
   async function run(userId: string, tried: Set<string>): Promise<boolean> {
     await ready;
+    if (!loaded) await load();
     if (prune()) await commit();
     /** Alertas com um toque que falhou e ficou: os seguintes esperam, para manter a ordem. */
     const blocked = new Set<string>();
@@ -240,24 +306,39 @@ export function createOutbox(options: OutboxOptions): Outbox {
       // Relê a fila a cada volta: um toque feito durante o envio entra na mesma rodada.
       const action = actions.find((a) => a.userId === userId && !tried.has(a.id) && !blocked.has(a.alertId));
       if (!action) return false;
+      // O envio usa o login do aparelho: se quem está logado mudou, o toque espera a pessoa voltar.
+      if (options.currentUserId && options.currentUserId() !== userId) return true;
       tried.add(action.id);
       try {
         await send(action);
         actions = actions.filter((a) => a !== action);
+        if (watched.has(action.id)) fates.set(action.id, 'sent');
       } catch (err) {
         const code: DataErrorCode = err instanceof DataError ? err.code : 'unknown';
         if (RETRY_LATER.includes(code)) {
-          // Sem login válido, o toque feito agora não fica guardado: a tela mostra o erro.
-          if (code === 'not_staff' && direct.has(action.id)) {
-            discard(action, 'failed', code);
+          if (code === 'not_staff') {
+            // Sem login válido, o toque feito agora não fica guardado: a tela mostra o erro. Vale para todo
+            // toque que está esperando resposta, não só para o que a rodada tentou (ela para no primeiro).
+            // O que já estava guardado continua, para quando a mesma pessoa entrar de novo.
+            for (const a of actions.filter((x) => x.userId === userId && direct.has(x.id))) discard(a, 'failed', code);
             await commit();
+            options.onAuthLost?.(userId);
           }
           return true;
         }
         const conflict = CONFLICT[code];
         if (conflict) discard(action, conflict, code);
         else if (direct.has(action.id)) discard(action, 'failed', code);
-        else {
+        else if (code === 'server_error') {
+          // Erro interno do servidor (banco fora, por exemplo) não diz nada sobre o toque: fica para depois,
+          // sem contar tentativa. Os outros alertas seguem na rodada.
+          blocked.add(action.alertId);
+          continue;
+        } else if (action.kind === 'ack') {
+          // O "Vi" é automático e o "Estou indo" já marca como visto: recusado, sai sozinho, sem aviso
+          // e sem derrubar os toques que a pessoa fez de verdade.
+          drop(action, code);
+        } else {
           action.attempts += 1;
           if (action.attempts >= maxAttempts) discard(action, 'failed', code);
           else blocked.add(action.alertId);
@@ -315,8 +396,17 @@ export function createOutbox(options: OutboxOptions): Outbox {
       await ready;
       const same = actions.find((a) => a.userId === input.userId && a.alertId === input.alertId && a.kind === input.kind);
       if (same) {
-        // O mesmo toque já está guardado (ex.: abrir o alerta de novo sem sinal): não duplica.
-        await flush(input.userId);
+        // O mesmo toque já está guardado (ex.: abrir o alerta de novo sem sinal): não duplica, e quem
+        // tocou de novo recebe o que aconteceu com ele (enviado, ainda guardado ou recusado).
+        watched.add(same.id);
+        try {
+          await flush(input.userId);
+        } finally {
+          watched.delete(same.id);
+        }
+        const fate = fates.get(same.id);
+        fates.delete(same.id);
+        if (fate && fate !== 'sent') throw new DataError(fate);
         return actions.includes(same) ? 'queued' : 'sent';
       }
       const action: QueuedAction = { ...input, id: newId(), createdAt: now(), attempts: 0 };
@@ -337,7 +427,10 @@ export function createOutbox(options: OutboxOptions): Outbox {
         directFailures.delete(action.id);
         throw new DataError(failure);
       }
-      return actions.includes(action) ? 'queued' : 'sent';
+      if (!actions.includes(action)) return 'sent';
+      // Ficou guardado: só agora ele aparece para a tela como "sem sinal".
+      await commit();
+      return 'queued';
     },
 
     flush,
@@ -383,7 +476,7 @@ export function applyPending(alert: Alert, actions: readonly QueuedAction[], me:
   return out;
 }
 
-/** Toques guardados desta pessoa (para este alerta, se informado). */
+/** Toques guardados desta pessoa (para este alerta, se informado). Não inclui o que está sendo enviado agora. */
 export function pendingFor(snapshot: OutboxSnapshot, userId: string | null | undefined, alertId?: string): QueuedAction[] {
   if (!userId) return [];
   return snapshot.actions.filter((a) => a.userId === userId && (alertId === undefined || a.alertId === alertId));

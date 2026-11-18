@@ -39,6 +39,10 @@ export type DataErrorCode =
   | 'cannot_change_self'
   | 'menu_full'
   | 'invalid_image'
+  /** O toque foi feito por outra pessoa neste aparelho (o login mudou antes do envio). */
+  | 'action_wrong_user'
+  /** O servidor respondeu com erro interno (5xx): não diz nada sobre o pedido. */
+  | 'server_error'
   | 'network'
   | 'unknown';
 
@@ -70,8 +74,13 @@ export interface PublicApi {
 export interface ActionMeta {
   /** UUID gerado no aparelho, um por toque. */
   actionId: string;
-  /** Quanto tempo o toque esperou no aparelho até este envio, em ms. */
+  /**
+   * Quanto tempo o toque esperou guardado no aparelho até este envio, em ms.
+   * Zero (ou ausente) = enviado na hora do toque, com o alerta atual na tela.
+   */
   queuedMs?: number;
+  /** Quem tocou. O servidor recusa (`action_wrong_user`) se não for quem está logado. */
+  userId?: string;
 }
 
 /** App da equipe: com login. */

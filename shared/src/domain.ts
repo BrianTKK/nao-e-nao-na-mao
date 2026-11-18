@@ -333,7 +333,19 @@ export function notSentText(notice: {
   kind: 'ack' | 'start' | 'resolve';
   reason: 'closed' | 'taken' | 'not_found' | 'failed' | 'expired';
   spotLabel?: string;
+  /** Outros toques da pessoa neste alerta que caíram junto. */
+  alsoDropped?: readonly ('ack' | 'start' | 'resolve')[];
 }, withPlace = false): string {
   const place = withPlace && notice.spotLabel ? `${notice.spotLabel}. ` : '';
-  return `${place}${NOT_SENT_WHAT[notice.kind]}: ${NOT_SENT_WHY[notice.reason]}.`;
+  // O "Estou indo" caiu e levou o encerramento que vinha depois: a pessoa precisa saber dos dois.
+  const both = notice.kind === 'start' && notice.alsoDropped?.includes('resolve');
+  const what = both ? 'O seu "Estou indo" e o encerramento não foram enviados' : NOT_SENT_WHAT[notice.kind];
+  return `${place}${what}: ${NOT_SENT_WHY[notice.reason]}.`;
+}
+
+/** Aviso dos Ajustes, antes de "Sair", quando há toques guardados (`n` de 1 em diante). */
+export function queuedSignOutText(n: number): string {
+  const first = n === 1 ? 'Há 1 toque seu guardado sem sinal.' : `Há ${n} toques seus guardados sem sinal.`;
+  const then = n === 1 ? 'ele só é enviado' : 'eles só são enviados';
+  return `${first} Se você sair agora, ${then} quando você entrar de novo neste celular. Toque guardado há mais de 12 horas é descartado.`;
 }

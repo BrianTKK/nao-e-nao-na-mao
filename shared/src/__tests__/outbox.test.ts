@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMockDataSource } from '../data/mock';
 import { DEMO_PASSWORD } from '../data/demo';
-import { applyPending, createOutbox, noticesFor, pendingFor, randomUuid, type OutboxStorage } from '../data/outbox';
+import { applyPending, createOutbox, noticesFor, pendingFor, randomUuid, type OutboxOptions, type OutboxStorage } from '../data/outbox';
 import { DataError, type ActionMeta, type StaffApi } from '../data/ports';
 import type { Alert } from '../domain';
 
@@ -9,36 +9,62 @@ import type { Alert } from '../domain';
  * A fila de toques sem sinal contra a camada simulada (as mesmas regras do
  * banco). A "rede" é um interruptor na frente dela:
  * - `down`: o toque nem chega (modo avião);
- * - `lost`: o toque chega e é aplicado, mas a resposta se perde.
+ * - `lost`: o toque chega e é aplicado, mas a resposta se perde;
+ * - `broken`: o servidor recusa com um erro que o app não conhece;
+ * - `server`: erro interno do servidor (5xx);
+ * - `auth`: o login não vale mais;
+ * - `ack-broken`: só o "Vi" é recusado.
+ * `hold()` segura o próximo envio até `release()` ser chamado.
  */
-function setup(options: { maxAgeMs?: number; maxAttempts?: number } = {}) {
+function setup(options: Pick<OutboxOptions, 'maxAgeMs' | 'maxAttempts' | 'currentUserId' | 'onAuthLost'> = {}) {
   const ds = createMockDataSource();
-  const net = { mode: 'up' as 'up' | 'down' | 'lost' | 'broken', calls: [] as string[] };
-  const through = async (label: string, fn: () => Promise<void>) => {
-    net.calls.push(label);
+  const net = {
+    mode: 'up' as 'up' | 'down' | 'lost' | 'broken' | 'server' | 'auth' | 'ack-broken',
+    calls: [] as string[],
+    metas: [] as (ActionMeta | undefined)[],
+    gate: null as Promise<void> | null,
+  };
+  let release = () => {};
+  const hold = () => {
+    net.gate = new Promise<void>((resolve) => (release = resolve));
+    return () => release();
+  };
+  const through = async (label: string, meta: ActionMeta | undefined, fn: () => Promise<void>) => {
+    net.calls.push(`${label}:${meta?.actionId}`);
+    net.metas.push(meta);
+    if (net.gate) {
+      const gate = net.gate;
+      net.gate = null;
+      await gate;
+    }
     if (net.mode === 'down') throw new DataError('network');
-    if (net.mode === 'broken') throw new DataError('unknown');
+    if (net.mode === 'broken' || (net.mode === 'ack-broken' && label === 'ack')) throw new DataError('unknown');
+    if (net.mode === 'server') throw new DataError('server_error');
+    if (net.mode === 'auth') throw new DataError('not_staff');
     await fn();
     if (net.mode === 'lost') throw new DataError('network');
   };
   const staff: Pick<StaffApi, 'ackAlert' | 'startResponse' | 'resolveAlert'> = {
-    ackAlert: (id, meta?: ActionMeta) => through(`ack:${meta?.actionId}`, () => ds.staff.ackAlert(id, meta)),
-    startResponse: (id, meta?: ActionMeta) => through(`start:${meta?.actionId}`, () => ds.staff.startResponse(id, meta)),
-    resolveAlert: (id, outcome, note, meta?: ActionMeta) => through(`resolve:${meta?.actionId}`, () => ds.staff.resolveAlert(id, outcome, note, meta)),
+    ackAlert: (id, meta?: ActionMeta) => through('ack', meta, () => ds.staff.ackAlert(id, meta)),
+    startResponse: (id, meta?: ActionMeta) => through('start', meta, () => ds.staff.startResponse(id, meta)),
+    resolveAlert: (id, outcome, note, meta?: ActionMeta) => through('resolve', meta, () => ds.staff.resolveAlert(id, outcome, note, meta)),
   };
   const disk: { value: string | null } = { value: null };
   const storage: OutboxStorage = { get: () => disk.value, set: (v) => void (disk.value = v) };
   const clock = { now: 1_000_000 };
   const make = () => createOutbox({ staff, storage, now: () => clock.now, ...options });
   const login = async (name: 'diego' | 'ana' | 'marta') => (await ds.staff.signIn(`${name}@bar-esquina.test`, DEMO_PASSWORD)).id;
+  const known = new Set<string>();
   const newAlert = async () => {
     const { token } = await ds.public.createAlert('ESQBF7K2', 'unsafe');
     const statuses: string[] = [];
     ds.public.watchAlert(token, (a) => a && statuses.push(a.status));
-    const alert = (await ds.staff.listActiveAlerts()).at(-1)!;
+    // O alerta que ainda não era conhecido (dois criados no mesmo milissegundo não têm ordem garantida).
+    const alert = (await ds.staff.listActiveAlerts()).find((x) => !known.has(x.id))!;
+    known.add(alert.id);
     return { id: alert.id, statuses };
   };
-  return { ds, net, disk, clock, make, login, newAlert, outbox: make() };
+  return { ds, net, disk, clock, make, login, newAlert, hold, staff, storage, outbox: make() };
 }
 
 describe('fila de toques sem sinal', () => {
@@ -279,6 +305,231 @@ describe('fila de toques sem sinal', () => {
     expect(changes).toBeGreaterThan(0);
     expect(s.outbox.snapshot()).not.toBe(before);
     stop();
+  });
+
+  // ---------------------------------------------------------------- correções da revisão (18/11)
+
+  it('o toque enviado na hora vai com espera zero; o guardado vai com o tempo de espera, e os dois dizem quem tocou', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    await s.outbox.perform({ kind: 'ack', alertId: id, userId: diego });
+    expect(s.net.metas.at(-1)).toMatchObject({ queuedMs: 0, userId: diego });
+
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    s.clock.now += 90_000;
+    s.net.mode = 'up';
+    await s.outbox.flush(diego);
+    expect(s.net.metas.at(-1)).toMatchObject({ queuedMs: 90_000, userId: diego });
+  });
+
+  it('o toque que está sendo enviado não aparece como guardado sem sinal, mas já está gravado no aparelho', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    const release = s.hold();
+    const tap = s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    await vi.waitFor(() => expect(s.net.calls).toHaveLength(1));
+    // Em voo: a tela não pode dizer "sem sinal" nem mostrar o estado como se já valesse.
+    expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(0);
+    // Mas, se o app fechar agora, o toque não se perde.
+    expect(JSON.parse(s.disk.value!).actions).toHaveLength(1);
+    release();
+    expect(await tap).toBe('sent');
+    expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(0);
+    expect(JSON.parse(s.disk.value!).actions).toHaveLength(0);
+  });
+
+  it('login vencido com toque antigo guardado: o toque novo volta como erro de login, o antigo fica e o app é avisado', async () => {
+    const lost: string[] = [];
+    const s = setup({ onAuthLost: (userId) => lost.push(userId) });
+    const diego = await s.login('diego');
+    const a = await s.newAlert();
+    const b = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: a.id, userId: diego });
+
+    s.net.mode = 'auth';
+    await expect(s.outbox.perform({ kind: 'start', alertId: b.id, userId: diego })).rejects.toMatchObject({ code: 'not_staff' });
+    // O toque antigo continua guardado para quando a mesma pessoa entrar de novo; o novo não ficou.
+    expect(pendingFor(s.outbox.snapshot(), diego).map((x) => x.alertId)).toEqual([a.id]);
+    expect(s.outbox.snapshot().notices).toHaveLength(0);
+    expect(lost).toEqual([diego]);
+  });
+
+  it('o login mudou no meio da rodada: o toque seguinte de quem saiu não é enviado', async () => {
+    const current = { id: null as string | null };
+    const s = setup({ currentUserId: () => current.id });
+    const diego = await s.login('diego');
+    current.id = diego;
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'ack', alertId: id, userId: diego });
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+
+    s.net.mode = 'up';
+    s.net.calls.length = 0;
+    const release = s.hold();
+    const round = s.outbox.flush(diego);
+    await vi.waitFor(() => expect(s.net.calls).toHaveLength(1));
+    // O "Vi" do Diego está em voo; ele sai e a Ana entra no mesmo aparelho.
+    current.id = null;
+    const ana = await s.login('ana');
+    current.id = ana;
+    release();
+    await round;
+    expect(s.net.calls.map((c) => c.split(':')[0])).toEqual(['ack']);
+    expect(pendingFor(s.outbox.snapshot(), diego).map((x) => x.kind)).toContain('start');
+    expect((await s.ds.staff.getAlert(id))?.responderId).toBeNull();
+  });
+
+  it('mesmo sem a conferência do app, o servidor recusa o toque de quem não está logado, e ele fica guardado', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    await s.login('ana');
+    s.net.mode = 'up';
+    await s.outbox.flush(diego);
+    expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(1);
+    expect(s.outbox.snapshot().notices).toHaveLength(0);
+    const alert = await s.ds.staff.getAlert(id);
+    expect(alert?.status).toBe('open');
+    expect(alert?.responderId).toBeNull();
+  });
+
+  it('erro interno do servidor não gasta tentativa nem derruba os toques: eles saem quando o servidor volta', async () => {
+    const s = setup({ maxAttempts: 2 });
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'ack', alertId: id, userId: diego });
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    await s.outbox.perform({ kind: 'resolve', alertId: id, userId: diego, outcome: 'escorted' });
+
+    s.net.mode = 'server';
+    for (let i = 0; i < 6; i++) await s.outbox.flush(diego);
+    expect(pendingFor(s.outbox.snapshot(), diego)).toHaveLength(3);
+    expect(s.outbox.snapshot().notices).toHaveLength(0);
+
+    s.net.mode = 'up';
+    await s.outbox.flush(diego);
+    expect(s.outbox.snapshot().actions).toHaveLength(0);
+    expect((await s.ds.staff.getAlert(id))?.outcome).toBe('escorted');
+  });
+
+  it('o "Vi" automático recusado sai sozinho, sem aviso e sem derrubar o "Estou indo"', async () => {
+    const s = setup({ maxAttempts: 2 });
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'ack', alertId: id, userId: diego });
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+
+    s.net.mode = 'ack-broken';
+    await s.outbox.flush(diego);
+    expect(s.outbox.snapshot().actions).toHaveLength(0);
+    expect(s.outbox.snapshot().notices).toHaveLength(0);
+    expect((await s.ds.staff.getAlert(id))?.responderId).toBe(diego);
+  });
+
+  it('tocar de novo num toque já guardado devolve o que aconteceu com ele: se foi recusado, volta como erro', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    // A Ana assume enquanto o Diego está sem sinal.
+    await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('diego');
+
+    s.net.mode = 'up';
+    await expect(s.outbox.perform({ kind: 'start', alertId: id, userId: diego })).rejects.toMatchObject({ code: 'already_taken' });
+    expect(s.outbox.snapshot().actions).toHaveLength(0);
+  });
+
+  it('dois toques iguais ao mesmo tempo, recusados: os dois voltam como erro (nenhum diz "enviado")', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('diego');
+    const results = await Promise.allSettled([
+      s.outbox.perform({ kind: 'start', alertId: id, userId: diego }),
+      s.outbox.perform({ kind: 'start', alertId: id, userId: diego }),
+    ]);
+    expect(results.map((r) => (r.status === 'rejected' ? (r.reason as DataError).code : r.value))).toEqual(['already_taken', 'already_taken']);
+    expect(s.outbox.snapshot().notices).toHaveLength(0);
+  });
+
+  it('o aviso de conflito diz quais outros toques caíram junto', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: id, userId: diego });
+    await s.outbox.perform({ kind: 'resolve', alertId: id, userId: diego, outcome: 'escorted', note: 'ela disse X' });
+    await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('diego');
+    s.net.mode = 'up';
+    await s.outbox.flush(diego);
+    expect(noticesFor(s.outbox.snapshot(), diego)).toMatchObject([{ kind: 'start', reason: 'taken', alsoDropped: ['resolve'] }]);
+  });
+
+  it('o "Encerrar" da gerência guardado sem sinal não passa por cima de quem assumiu depois; com sinal, a gerência encerra', async () => {
+    const s = setup();
+    const marta = await s.login('marta');
+    const { id } = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'resolve', alertId: id, userId: marta, outcome: 'false_alarm' });
+    const ana = await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('marta');
+
+    s.net.mode = 'up';
+    await s.outbox.flush(marta);
+    const kept = await s.ds.staff.getAlert(id);
+    expect(kept?.status).toBe('on_the_way');
+    expect(kept?.responderId).toBe(ana);
+    expect(noticesFor(s.outbox.snapshot(), marta)).toMatchObject([{ kind: 'resolve', reason: 'taken' }]);
+
+    // Com o alerta atual na tela (toque enviado na hora), a gerência continua podendo encerrar.
+    expect(await s.outbox.perform({ kind: 'resolve', alertId: id, userId: marta, outcome: 'escorted' })).toBe('sent');
+    expect((await s.ds.staff.getAlert(id))?.outcome).toBe('escorted');
+  });
+
+  it('a leitura da fila falhou ao abrir o app: nada é apagado, e a fila volta na rodada seguinte', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const a = await s.newAlert();
+    const b = await s.newAlert();
+    s.net.mode = 'down';
+    await s.outbox.perform({ kind: 'start', alertId: a.id, userId: diego });
+    const saved = s.disk.value;
+
+    let reads = 0;
+    const flaky: OutboxStorage = {
+      get: () => {
+        if (reads++ === 0) throw new Error('disco ocupado');
+        return s.storage.get();
+      },
+      set: (v) => s.storage.set(v),
+    };
+    const reopened = createOutbox({ staff: s.staff, storage: flaky, now: () => s.clock.now });
+    await reopened.ready;
+    // Não leu: a fila parece vazia, mas o que está no aparelho continua lá.
+    expect(reopened.snapshot().actions).toHaveLength(0);
+    expect(s.disk.value).toBe(saved);
+
+    // Um toque novo sem sinal: a rodada lê de novo e junta os dois, o antigo primeiro.
+    expect(await reopened.perform({ kind: 'start', alertId: b.id, userId: diego })).toBe('queued');
+    expect(pendingFor(reopened.snapshot(), diego).map((x) => x.alertId)).toEqual([a.id, b.id]);
+    expect(JSON.parse(s.disk.value!).actions).toHaveLength(2);
   });
 
   it('fila guardada corrompida não derruba o app', async () => {

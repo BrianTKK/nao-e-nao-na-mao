@@ -47,7 +47,8 @@ export default function Alerts() {
   const queued = pendingFor(box, me?.id).filter((a) => a.kind !== 'ack');
   const queuedAlerts = new Set(queued.map((a) => a.alertId));
   const notSent = noticesFor(box, me?.id);
-  const open = alerts?.filter((a) => isActive(a.status)).length ?? 0;
+  // Conta como aberto o alerta que só eu encerrei, sem sinal: no servidor, e para o resto da equipe, ele continua aberto.
+  const open = alerts?.filter((a) => isActive(a.status) || queuedAlerts.has(a.id)).length ?? 0;
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {

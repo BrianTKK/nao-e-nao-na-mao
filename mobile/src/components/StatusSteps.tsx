@@ -11,6 +11,11 @@ const STEPS = [1, 2, 3] as const;
 const FILL_MS = 420;
 /** Quando o alerta pula mais de uma etapa de uma vez, elas enchem em sequência, da esquerda para a direita. */
 const STAGGER_MS = 140;
+/**
+ * Trecho do toque que ainda não foi enviado: mais apagado, mas acima de 3:1 contra a trilha
+ * (WCAG 1.4.11). Com 0,45 ficava em 2,3:1; com 0,7 o pior caso dá 3,5:1.
+ */
+const DIM_OPACITY = 0.7;
 
 function Step({ filled, tone, dim, delay, animate }: { filled: boolean; tone: string; dim: boolean; delay: number; animate: boolean }) {
   const fill = useSharedValue(filled ? 1 : 0);
@@ -26,7 +31,7 @@ function Step({ filled, tone, dim, delay, animate }: { filled: boolean; tone: st
   const style = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
   return (
     <View style={styles.track}>
-      <Animated.View style={[styles.fill, { backgroundColor: tone, opacity: dim ? 0.45 : 1 }, style]} />
+      <Animated.View style={[styles.fill, { backgroundColor: tone, opacity: dim ? DIM_OPACITY : 1 }, style]} />
     </View>
   );
 }

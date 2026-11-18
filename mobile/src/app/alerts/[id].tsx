@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,7 +8,6 @@ import {
   DataError,
   KIND_STAFF_LABEL,
   OUTCOME_LABEL,
-  QUEUED_TITLE,
   STATUS_LABEL,
   applyPending,
   elapsedSeconds,
@@ -136,6 +135,8 @@ export default function AlertDetail() {
   const notSent = noticesFor(box, meId, id);
   const queuedKinds = pending.map((a) => a.kind).filter((k): k is QueuedActionKind => k !== 'ack');
   const alert = server && me ? applyPending(server, pending, me) : server;
+  /** O estado na tela ainda não chegou ao servidor: é o que os toques guardados vão deixar. */
+  const unsent = !!alert && !!server && queuedKinds.length > 0 && alert.status !== server.status;
   // O nome do lugar também encolhe em tela estreita, em vez de quebrar no meio da palavra.
   const place = useFitFont(alert?.spotLabel ?? '', fontSize.xxl, 22);
 
@@ -153,18 +154,25 @@ export default function AlertDetail() {
   // Mudança de estado depois de a tela abrir: é quando o motion entra, com um toque no aparelho.
   const status = alert?.status;
   const lastStatus = useRef(status);
-  const [changes, setChanges] = useState(0);
+  // Liga depois que o alerta apareceu pela primeira vez: o que monta a partir daí é mudança e entra com
+  // motion, já na primeira (a view nova precisa nascer com `entering`).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (status) setShown(true);
+  }, [status]);
+  const unsentRef = useRef(unsent);
+  unsentRef.current = unsent;
   useEffect(() => {
     if (status === lastStatus.current) return;
     const first = lastStatus.current === undefined;
     lastStatus.current = status;
-    if (first || !status) return;
-    setChanges((n) => n + 1);
-    if (Platform.OS === 'web') return;
-    if (status === 'resolved') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    if (first || !status || Platform.OS === 'web') return;
+    // Toque guardado sem sinal: um toque leve, não o de "deu certo" (o servidor ainda não sabe).
+    if (unsentRef.current) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    else if (status === 'resolved') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     else if (status === 'on_the_way') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
   }, [status]);
-  const entering = !reduceMotion && changes > 0;
+  const entering = !reduceMotion && shown;
 
   const [retrying, setRetrying] = useState(false);
   const retry = async () => {
@@ -189,8 +197,8 @@ export default function AlertDetail() {
     setError(null);
     try {
       const result = await outbox.perform({ ...action, alertId: alert.id, userId: me.id, spotLabel: alert.spotLabel });
+      // Guardado sem sinal: o aviso que aparece na tela é região viva e já é anunciado.
       if (result === 'sent') await load();
-      else if (Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(`${QUEUED_TITLE}.`);
       return result;
     } catch (err) {
       setError((err instanceof DataError && ERROR_TEXT[err.code]) || 'Não foi possível salvar. Tente de novo.');
@@ -205,6 +213,12 @@ export default function AlertDetail() {
   if (alert === undefined)
     return (
       <View style={[ui.screen, ui.content]}>
+        {!stale && (
+          <View style={styles.whoRow} accessible accessibilityRole="text" accessibilityLiveRegion="polite">
+            <ActivityIndicator color={color.accent} />
+            <Text style={[ui.body, { flex: 1 }]}>Carregando o alerta…</Text>
+          </View>
+        )}
         {stale && (
           <View style={styles.whoRow} accessible accessibilityRole="alert" accessibilityLiveRegion="polite">
             <Icon name="wifi-off" size={22} color={color.alert} />
@@ -265,7 +279,10 @@ export default function AlertDetail() {
             <View accessibilityLiveRegion="polite" style={styles.statusLive}>
               <Animated.View key={alert.status} entering={entering ? FadeInDown.duration(motion.duration.base) : undefined} style={styles.statusLive}>
                 <Icon name={STATUS_ICON[alert.status]} size={20} color={statusColor} />
-                <Text style={[styles.statusText, { color: statusColor }]}>{STATUS_LABEL[alert.status]}</Text>
+                <Text style={[styles.statusText, { color: statusColor }]}>
+                  {STATUS_LABEL[alert.status]}
+                  {unsent ? ', ainda não enviado' : ''}
+                </Text>
               </Animated.View>
             </View>
             {/* O tempo muda a cada segundo e não deve ser anunciado: fica fora da região viva. */}
@@ -325,7 +342,7 @@ export default function AlertDetail() {
           <Animated.View entering={entering ? FadeInDown.duration(motion.duration.base) : undefined} style={[ui.card, styles.result]}>
             <Icon name="check-circle" size={24} color={color.status.resolved} />
             <View style={styles.resultText}>
-              <Text style={ui.labelCaps}>Encerrado</Text>
+              <Text style={ui.labelCaps}>{unsent ? 'Encerramento guardado: ainda não enviado' : 'Encerrado'}</Text>
               <Text style={ui.body}>{alert.outcome ? OUTCOME_LABEL[alert.outcome] : 'Alerta encerrado.'}</Text>
               {alert.note ? <Text style={ui.muted}>{alert.note}</Text> : null}
             </View>
@@ -386,8 +403,10 @@ export default function AlertDetail() {
 
 const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
-  statusLive: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  // `flexShrink`: em tela estreita o estado quebra em duas linhas ("A caminho, ainda não enviado") em vez de sair da tela.
+  statusLive: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexShrink: 1 },
   statusText: {
+    flexShrink: 1,
     fontFamily: font.bodySemibold,
     fontSize: fontSize.xs,
     letterSpacing: 0.84,

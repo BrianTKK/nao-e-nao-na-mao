@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { StaffMember } from '@nenm/shared';
 import { dataSource } from '@/data/source';
-import { startOutboxSync } from '@/data/outbox';
+import { onOutboxAuthLost, setOutboxUser, startOutboxSync } from '@/data/outbox';
 import { forgetAlerts } from '@/data/alertCache';
 import { AppState } from 'react-native';
 import { registerPush, shouldRetryPush, unregisterPush } from '@/notifications/push';
@@ -35,19 +35,36 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   /** O servidor ainda não confirmou quem está logado (app aberto sem sinal). */
   const unconfirmed = useRef(false);
+  /** Sobe a cada entrada e saída: a resposta de um "quem sou eu" pedido antes disso é de outra sessão e não vale. */
+  const generation = useRef(0);
+  const refreshing = useRef(false);
 
   const refresh = useCallback(async () => {
+    // Um por vez: com sinal fraco, cada tentativa pode levar o teto de espera inteiro.
+    if (refreshing.current) return;
+    refreshing.current = true;
+    const mine = generation.current;
     try {
       const staff = await dataSource.staff.currentStaff();
+      if (mine !== generation.current) return;
       unconfirmed.current = false;
+      setOutboxUser(staff?.id ?? null);
       setMe(staff);
       saveMe(staff);
     } catch {
       // Sem sinal ao abrir: segue com quem entrou por último neste aparelho, para a pessoa
       // conseguir ver e tocar (os toques ficam na fila). O servidor confirma quando o sinal voltar.
+      if (mine !== generation.current) return;
       unconfirmed.current = true;
       const last = await loadMe();
-      setMe((current) => (current === undefined ? (last ?? undefined) : current));
+      if (mine !== generation.current) return;
+      setMe((current) => {
+        if (current !== undefined) return current;
+        if (last) setOutboxUser(last.id);
+        return last ?? undefined;
+      });
+    } finally {
+      refreshing.current = false;
     }
   }, []);
 
@@ -60,10 +77,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const stop = dataSource.watchConnection((state) => state === 'online' && retry());
     const sub = AppState.addEventListener('change', (state) => state === 'active' && retry());
     const timer = setInterval(retry, 10_000);
+    // O servidor recusou o login no meio de um envio da fila: confere, e a pessoa volta para a tela de entrada.
+    // Os toques guardados continuam no aparelho e saem quando ela entrar de novo.
+    const stopAuth = onOutboxAuthLost(() => {
+      refresh();
+    });
     return () => {
       stop();
       sub.remove();
       clearInterval(timer);
+      stopAuth();
     };
   }, [refresh]);
 
@@ -90,11 +113,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       refresh,
       signIn: async (email, password) => {
         const staff = await dataSource.staff.signIn(email, password);
+        generation.current += 1;
         unconfirmed.current = false;
+        setOutboxUser(staff.id);
         saveMe(staff);
         setMe(staff);
       },
       signOut: async () => {
+        // A partir daqui ninguém está logado: a fila para de enviar, e um "quem sou eu" em andamento não vale mais.
+        generation.current += 1;
+        setOutboxUser(null);
         // Antes de apagar o login: depois dele, o servidor não aceita mais o pedido.
         await unregisterPush();
         await dataSource.staff.signOut();

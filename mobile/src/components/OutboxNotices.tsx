@@ -32,13 +32,16 @@ export function QueuedNotice({ text, onRetry, retrying = false }: { text: string
   );
 }
 
-/** Toque guardado que não foi aplicado: outra pessoa agiu antes. Fica até a pessoa tocar em "Entendi". */
+/**
+ * Toque guardado que não foi aplicado: outra pessoa agiu antes. Fica até a pessoa tocar em "Entendi".
+ * Região viva educada: com vários avisos de uma vez, um não corta a fala do outro.
+ */
 export function NotSentNotice({ text, onDismiss }: { text: string; onDismiss: () => void }) {
   return (
     <View style={[styles.box, styles.notSent]}>
       <Icon name="alert-circle" size={22} color={color.danger} />
       <View style={styles.body}>
-        <View accessible accessibilityRole="alert" accessibilityLiveRegion="assertive" accessibilityLabel={text} style={styles.texts}>
+        <View accessible accessibilityRole="alert" accessibilityLiveRegion="polite" accessibilityLabel={text} style={styles.texts}>
           <Text style={[ui.body, ui.strong]}>{text}</Text>
         </View>
         <Button label="Entendi" variant="secondary" onPress={onDismiss} style={styles.action} />

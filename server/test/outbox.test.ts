@@ -213,8 +213,8 @@ test('fila do app: a Ana encerrou enquanto o Diego estava sem sinal; o toque del
     noticesFor(app.outbox.snapshot(), app.me.id, id).map((x) => `${x.kind}:${x.reason}:${x.spotLabel}`),
     ['start:closed:Banheiro feminino'],
   );
-  // O "Vi" do Diego chegou (não faz mal a ninguém); o "Estou indo" e o "Encerrar" não foram gravados.
-  assert.deepEqual((await actions(id)).map((a) => a.kind), ['ack']);
+  // Nada do Diego foi gravado: o "Vi" já não mudava nada (migração 009) e os outros dois foram recusados.
+  assert.deepEqual((await actions(id)).map((a) => a.kind), []);
   await app.ds.staff.signOut();
 });
 
@@ -249,4 +249,150 @@ test('resposta 502, 503 ou 504 (servidor reiniciando atrás do proxy) também co
     const ds = createApiDataSource({ baseUrl: t.base, fetch: async () => new Response('<html>Bad Gateway</html>', { status }) });
     await assert.rejects(ds.public.createAlert('ESQBF7K2', 'unsafe'), (err: { code?: string }) => err.code === 'network');
   }
+});
+
+// ------------------------------------------------------------------ correções da revisão (migração 009)
+
+test('o "Encerrar" da gerência que ficou guardado não passa por cima de quem assumiu depois; enviado na hora, encerra', async () => {
+  const id = await newAlert();
+  assert.equal((await t.api(`/staff/alerts/${id}/start`, { token: ana, body: {} })).status, 200);
+
+  const queued = await t.api(`/staff/alerts/${id}/resolve`, { token: marta, body: { outcome: 'false_alarm', actionId: randomUUID(), queuedMs: 45_000 } });
+  assert.equal(queued.status, 409);
+  assert.deepEqual(queued.body, { error: 'already_taken' });
+  const kept = await row(id);
+  assert.equal(kept.status, 'on_the_way');
+  assert.deepEqual(await actions(id), []);
+
+  const direct = await t.api(`/staff/alerts/${id}/resolve`, { token: marta, body: { outcome: 'escorted', actionId: randomUUID(), queuedMs: 0 } });
+  assert.equal(direct.status, 200);
+  assert.equal((await row(id)).outcome, 'escorted');
+});
+
+test('toque guardado da gerência em alerta que ninguém assumiu continua valendo', async () => {
+  const id = await newAlert();
+  const res = await t.api(`/staff/alerts/${id}/resolve`, { token: marta, body: { outcome: 'false_alarm', actionId: randomUUID(), queuedMs: 45_000 } });
+  assert.equal(res.status, 200);
+  assert.equal((await row(id)).status, 'resolved');
+});
+
+test('o toque diz quem tocou: com o login de outra pessoa, o servidor recusa e nada muda', async () => {
+  const id = await newAlert();
+  const me = async (token: string) => (await t.api<{ id: string }>('/me', { token })).body.id;
+  const [diegoId, anaId] = await Promise.all([me(diego), me(ana)]);
+
+  const wrong = await t.api(`/staff/alerts/${id}/start`, { token: ana, body: { actionId: randomUUID(), queuedMs: 5000, userId: diegoId } });
+  assert.equal(wrong.status, 409);
+  assert.deepEqual(wrong.body, { error: 'action_wrong_user' });
+  assert.equal((await row(id)).status, 'open');
+  assert.deepEqual(await actions(id), []);
+
+  const right = await t.api<Alert>(`/staff/alerts/${id}/start`, { token: ana, body: { actionId: randomUUID(), queuedMs: 0, userId: anaId } });
+  assert.equal(right.status, 200);
+  assert.equal(right.body.responderId, anaId);
+  assert.equal((await t.api(`/staff/alerts/${id}/ack`, { token: ana, body: { userId: 'nao-e-uuid' } })).status, 400);
+});
+
+test('"Vi" que não muda nada não fica gravado nem avisa de novo o painel', async () => {
+  const id = await newAlert();
+  assert.equal((await t.api(`/staff/alerts/${id}/ack`, { token: diego, body: { actionId: randomUUID() } })).status, 200);
+  assert.equal((await actions(id)).length, 1);
+
+  const board = await t.socket({ token: marta });
+  const updates: Alert[] = [];
+  board.on('alert:update', (a: Alert) => a.id === id && updates.push(a));
+  // Abrir a tela de novo (id novo a cada vez), e outra pessoa abrindo: o alerta já está "visto".
+  for (const token of [diego, ana, diego]) {
+    const res = await t.api<Alert>(`/staff/alerts/${id}/ack`, { token, body: { actionId: randomUUID() } });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, 'seen');
+  }
+  await new Promise((r) => setTimeout(r, 150));
+  assert.equal(updates.length, 0, 'nenhum aviso para o painel');
+  assert.equal((await actions(id)).length, 1);
+  board.close();
+});
+
+test('fila do app: a gerente encerra sem sinal, outra pessoa assume, e o toque guardado vira aviso em vez de encerrar', async () => {
+  const id = await newAlert();
+  const net = { down: false };
+  const memory: { v: string | null } = { v: null };
+  const ds = createApiDataSource({
+    baseUrl: t.base,
+    tokenStore: { get: () => memory.v, set: (v) => void (memory.v = v) },
+    fetch: async (input, init) => {
+      if (net.down) throw new TypeError('Network request failed');
+      return fetch(input, init);
+    },
+  });
+  const manager = await ds.staff.signIn('marta@bar-esquina.test', DEMO_PASSWORD);
+  const disk: { v: string | null } = { v: null };
+  const outbox = createOutbox({ staff: ds.staff, storage: { get: () => disk.v, set: (v) => void (disk.v = v) } });
+
+  net.down = true;
+  assert.equal(await outbox.perform({ kind: 'resolve', alertId: id, userId: manager.id, outcome: 'false_alarm' }), 'queued');
+  assert.equal((await t.api(`/staff/alerts/${id}/start`, { token: ana, body: {} })).status, 200);
+
+  net.down = false;
+  await outbox.flush(manager.id);
+  assert.equal((await row(id)).status, 'on_the_way');
+  assert.deepEqual(noticesFor(outbox.snapshot(), manager.id, id).map((x) => `${x.kind}:${x.reason}`), ['resolve:taken']);
+  await ds.staff.signOut();
+});
+
+test('erro interno do servidor (500) não é "sem conexão" nem recusa do toque: o toque guardado fica, sem contar tentativa', async () => {
+  const id = await newAlert();
+  const net = { mode: 'up' as 'up' | 'down' | 'broken' };
+  const memory: { v: string | null } = { v: null };
+  const ds = createApiDataSource({
+    baseUrl: t.base,
+    tokenStore: { get: () => memory.v, set: (v) => void (memory.v = v) },
+    fetch: async (input, init) => {
+      if (net.mode === 'down') throw new TypeError('Network request failed');
+      if (net.mode === 'broken') return new Response(JSON.stringify({ error: 'internal_error' }), { status: 500, headers: { 'content-type': 'application/json' } });
+      return fetch(input, init);
+    },
+  });
+  const me = await ds.staff.signIn('diego@bar-esquina.test', DEMO_PASSWORD);
+  const disk: { v: string | null } = { v: null };
+  const outbox = createOutbox({ staff: ds.staff, storage: { get: () => disk.v, set: (v) => void (disk.v = v) }, maxAttempts: 2 });
+
+  net.mode = 'broken';
+  await assert.rejects(ds.staff.startResponse(id), (err: { code?: string }) => err.code === 'server_error');
+  net.mode = 'down';
+  await outbox.perform({ kind: 'start', alertId: id, userId: me.id });
+  net.mode = 'broken';
+  for (let i = 0; i < 4; i++) await outbox.flush(me.id);
+  assert.equal(pendingFor(outbox.snapshot(), me.id).length, 1);
+  assert.equal(outbox.snapshot().notices.length, 0);
+
+  net.mode = 'up';
+  await outbox.flush(me.id);
+  assert.equal((await row(id)).status, 'on_the_way');
+  await ds.staff.signOut();
+});
+
+test('leitura que não responde (sinal fraco) vira "sem conexão" no teto de espera, em vez de ficar pendurada', async () => {
+  const memory: { v: string | null } = { v: null };
+  const net = { hang: false };
+  const ds = createApiDataSource({
+    baseUrl: t.base,
+    tokenStore: { get: () => memory.v, set: (v) => void (memory.v = v) },
+    readTimeoutMs: 150,
+    fetch: (input, init) =>
+      net.hang
+        ? new Promise<Response>((_, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))))
+        : fetch(input, init),
+  });
+  await ds.staff.signIn('diego@bar-esquina.test', DEMO_PASSWORD);
+  net.hang = true;
+  const started = Date.now();
+  await assert.rejects(ds.staff.currentStaff(), (err: { code?: string }) => err.code === 'network');
+  await assert.rejects(ds.staff.listActiveAlerts(), (err: { code?: string }) => err.code === 'network');
+  await assert.rejects(ds.staff.getAlert(randomUUID()), (err: { code?: string }) => err.code === 'network');
+  assert.ok(Date.now() - started < 2000, 'cada leitura desiste no teto de espera');
+  // O login continua valendo: foi só falta de resposta.
+  net.hang = false;
+  assert.equal((await ds.staff.currentStaff())?.fullName.startsWith('Diego'), true);
+  await ds.staff.signOut();
 });

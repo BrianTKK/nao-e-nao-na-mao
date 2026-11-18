@@ -101,6 +101,7 @@ try {
   check('sem sinal: aparece "Sem sinal: vai enviar quando voltar"', await visible('Sem sinal: vai enviar quando voltar'));
   check('sem sinal: a tela já mostra "Você está indo até ela"', await visible('Você está indo até ela', 3000));
   check('sem sinal: diz que a equipe e ela só veem quando o sinal voltar', await visible('A equipe e ela só veem quando o sinal voltar', 3000));
+  check('sem sinal: o estado na tela diz "ainda não enviado"', await visible('A caminho, ainda não enviado', 3000));
   check('sem sinal: o servidor ainda não sabe (continua "visto")', (await serverAlert(first.id)).status === 'seen');
   await capture('estou-indo-sem-sinal');
 
@@ -115,6 +116,7 @@ try {
   await button(/Encerrar/).click();
   await button(/Acompanhei até um lugar seguro/).click({ timeout: 10_000 });
   check('sem sinal: o encerramento fica guardado, com aviso', await visible('O encerramento está guardado neste celular'));
+  check('sem sinal: o cartão diz "Encerramento guardado: ainda não enviado"', await visible('Encerramento guardado: ainda não enviado', 3000));
   await capture('encerrar-sem-sinal');
   const byManager = await api(`/staff/alerts/${first.id}/resolve`, { token: marta, body: { outcome: 'ride_called', note: 'Encerrado pela gerência' } });
   check('enquanto isso, a gerência encerra pelo painel', byManager.status === 200);
@@ -149,6 +151,25 @@ try {
   check('conflito na lista: quem está indo é a Ana', taken.status === 'on_the_way' && /Ana/.test(taken.responderName ?? ''), taken.responderName);
   check('lista: o contador de toques guardados sumiu', await gone('toque guardado', 5000));
   await capture('lista-conflito-outra-pessoa-assumiu');
+
+  // ---------------------------------------------------------------- 4. encerrou sem sinal: a lista não diz "nenhum alerta"
+  await api(`/staff/alerts/${second.id}/resolve`, { token: ana, body: { outcome: 'escorted' } });
+  await button('Entendi').click();
+  check('a Ana encerrou o segundo alerta: a lista esvazia', await visible('Nenhum alerta agora', 20_000));
+  const third = await newAlert('ESQBF7K2');
+  check('terceiro alerta criado', !!third, third ? '' : 'o servidor recusou (limite de pedidos?)');
+  await page.getByRole('button', { name: new RegExp(third.spotLabel) }).first().click({ timeout: 20_000 });
+  await button(/Encerrar/).waitFor({ timeout: 20_000 });
+  await context.setOffline(true);
+  await button(/Encerrar/).click();
+  await button(/Era um pedido indevido|Acompanhei até um lugar seguro/).first().click({ timeout: 10_000 });
+  await visible('O encerramento está guardado neste celular');
+  await page.goBack();
+  check('lista: o alerta encerrado só neste celular continua contando como aberto', await visible('1 alerta', 5000) && (await shown('Nenhum alerta agora').count()) === 0);
+  await capture('lista-encerramento-guardado');
+  await context.setOffline(false);
+  check('o sinal voltou: o encerramento chega e a lista esvazia', await visible('Nenhum alerta agora', 40_000));
+  check('o servidor recebeu o encerramento', (await serverAlert(third.id)).status === 'resolved');
 
   check('sem erro de JavaScript na página', errors.length === 0, errors.slice(0, 2).join(' | '));
 } catch (err) {

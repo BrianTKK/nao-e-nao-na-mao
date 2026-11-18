@@ -212,6 +212,8 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
   const appliedActions = new Map<string, string>();
   const actionKey = (alertId: string, kind: string) => `${state.sessionId}:${alertId}:${kind}`;
   const replayed = (meta: ActionMeta | undefined, alertId: string, kind: string): boolean => {
+    // O toque é de quem o fez: se o login mudou antes do envio, não vale em nome de outra pessoa.
+    if (meta?.userId && meta.userId !== state.sessionId) throw new DataError('action_wrong_user');
     const prev = meta && appliedActions.get(meta.actionId);
     if (!prev) return false;
     if (prev !== actionKey(alertId, kind)) throw new DataError('unknown', 'action_id_reused');
@@ -389,11 +391,11 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         await wait();
         if (replayed(meta, id, 'ack')) return;
         const alert = myAlert(id);
-        if (alert.status === 'open') {
-          alert.status = 'seen';
-          alert.seenAt = iso();
-          commit();
-        }
+        // "Vi" que não muda nada não fica registrado (igual ao banco, migração 009).
+        if (alert.status !== 'open') return;
+        alert.status = 'seen';
+        alert.seenAt = iso();
+        commit();
         applied(meta, id, 'ack');
       },
       async startResponse(id, meta) {
@@ -422,7 +424,9 @@ export function createMockDataSource(options: MockOptions = {}): MockDataSource 
         if (!isActive(alert.status)) throw new DataError('invalid_transition');
         if (!outcome) throw new DataError('outcome_required');
         // Só a gerência encerra o alerta que outra pessoa assumiu (igual ao banco, migração 008).
-        if (alert.status === 'on_the_way' && alert.responderId !== user.id && user.role !== 'manager') throw new DataError('already_taken');
+        // Toque que ficou guardado sem sinal não passa por cima de quem assumiu, nem o da gerência (migração 009).
+        const queued = (meta?.queuedMs ?? 0) > 0;
+        if (alert.status === 'on_the_way' && alert.responderId !== user.id && (user.role !== 'manager' || queued)) throw new DataError('already_taken');
         alert.status = 'resolved';
         alert.outcome = outcome;
         alert.note = note?.trim() || null;

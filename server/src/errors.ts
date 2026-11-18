@@ -21,6 +21,7 @@ const DB_ERRORS: Record<string, number> = {
   invalid_transition: 409,
   already_taken: 409,
   action_id_reused: 409,
+  action_wrong_user: 409,
   not_staff: 403,
   not_manager: 403,
   staff_not_found: 404,
