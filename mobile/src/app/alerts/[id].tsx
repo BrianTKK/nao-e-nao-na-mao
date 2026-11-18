@@ -18,9 +18,9 @@ import {
   noticesFor,
   pendingFor,
   queuedText,
+  settledFor,
   type Alert,
   type AlertOutcome,
-  type QueuedAction,
   type QueuedActionKind,
   displayCode,
   spokenCode,
@@ -49,6 +49,12 @@ const ERROR_TEXT: Partial<Record<DataError['code'], string>> = {
 };
 
 const first = (name: string | null | undefined) => name?.split(' ')[0] ?? null;
+
+/**
+ * Sem leitura do servidor há este tempo (ex.: o socket caiu e o HTTP segue), o toque vai como "guardado":
+ * a pessoa pode não ter visto o que mudou, e o encerramento não passa por cima de quem assumiu.
+ */
+const READ_STALE_MS = 30_000;
 
 /** Quem está cuidando do alerta, com o ícone do estado. */
 function whoLine(a: Alert, mine: boolean, meId: string | null): { icon: IconName; text: string; tone: string } | null {
@@ -99,17 +105,16 @@ export default function AlertDetail() {
   const [now, setNow] = useState(Date.now());
   const [notchY, onPerforationLayout] = useNotchY();
   const [wordWidth, setWordWidth] = useState(0);
-  /** Toques que a fila acabou de enviar: seguem aplicados na tela até a leitura seguinte do servidor chegar. */
-  const [held, setHeld] = useState<QueuedAction[]>([]);
+  /** Hora da última leitura do servidor que deu certo nesta tela (null: a tela ainda mostra o que a lista sabia). */
+  const lastRead = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     try {
       const fresh = await dataSource.staff.getAlert(id);
       if (fresh) rememberAlerts([fresh]);
+      lastRead.current = Date.now();
       setServer(fresh);
       setStale(false);
-      // O servidor respondeu: o que a fila acabou de enviar já está nesse estado.
-      setHeld([]);
     } catch {
       // Sem sinal: fica o que já se sabia (a lista guarda o último estado de cada alerta).
       setStale(true);
@@ -140,29 +145,25 @@ export default function AlertDetail() {
   const pending = pendingFor(box, meId, id);
   const notSent = noticesFor(box, meId, id);
   const queuedKinds = pending.map((a) => a.kind).filter((k): k is QueuedActionKind => k !== 'ack');
-  const alert = server && me ? applyPending(server, pending.length ? pending : held, me) : server;
+  // Os toques que o servidor acabou de aceitar seguem aplicados até a leitura mostrar o novo estado (uma
+  // leitura que saiu antes do envio e chegou depois não desfaz o toque na tela).
+  const settled = settledFor(box, meId, id, now);
+  /** O que o servidor já tem: a última leitura com os toques aceitos depois dela. */
+  const confirmed = server && me && settled.length ? applyPending(server, settled, me) : server;
+  const alert = confirmed && me && pending.length ? applyPending(confirmed, pending, me) : confirmed;
   /** O estado na tela ainda não chegou ao servidor: é o que os toques guardados vão deixar. */
-  const unsent = !!alert && !!server && queuedKinds.length > 0 && alert.status !== server.status;
+  const unsent = !!alert && !!confirmed && queuedKinds.length > 0 && alert.status !== confirmed.status;
   // O nome do lugar também encolhe em tela estreita, em vez de quebrar no meio da palavra.
   const place = useFitFont(alert?.spotLabel ?? '', fontSize.xxl, 22);
 
   // Quando a fila anda (enviou ou descartou), busca o que vale agora no servidor.
   const boxMark = `${pending.length}:${notSent.length}`;
   const lastMark = useRef(boxMark);
-  const lastPending = useRef(pending);
-  const lastNotSent = useRef(notSent.length);
   useEffect(() => {
-    const before = lastPending.current;
-    const refused = notSent.length > lastNotSent.current;
-    lastPending.current = pending;
-    lastNotSent.current = notSent.length;
     if (lastMark.current === boxMark) return;
     lastMark.current = boxMark;
-    // A fila enviou tudo: até a leitura chegar, a tela continua no estado que os toques deixaram,
-    // em vez de voltar por um instante ao estado antigo. Se algum foi recusado, vale o servidor.
-    if (pending.length === 0 && before.length > 0 && !refused) setHeld(before);
     load();
-  }, [boxMark, load, pending, notSent.length]);
+  }, [boxMark, load]);
 
   const active = alert ? isActive(alert.status) : false;
 
@@ -211,9 +212,11 @@ export default function AlertDetail() {
     setBusy(key);
     setError(null);
     try {
-      // `stale`: a última leitura falhou, então a pessoa pode não ter visto o que mudou. O servidor trata
-      // o toque como guardado e não o deixa passar por cima de quem assumiu.
-      const result = await outbox.perform({ ...action, alertId: alert.id, userId: me.id, spotLabel: alert.spotLabel, stale });
+      // `stale`: a última leitura falhou, ainda não houve leitura nesta tela (ela abriu com o que a lista
+      // sabia) ou a última é antiga. A pessoa pode não ter visto o que mudou: o servidor trata o toque como
+      // guardado e não o deixa passar por cima de quem assumiu.
+      const outdated = stale || lastRead.current === null || Date.now() - lastRead.current > READ_STALE_MS;
+      const result = await outbox.perform({ ...action, alertId: alert.id, userId: me.id, spotLabel: alert.spotLabel, stale: outdated });
       if (result === 'sent') await load();
       // Guardado sem sinal: no Android o aviso da tela é região viva e já é anunciado. No iPhone não
       // existe região viva, então o VoiceOver precisa do anúncio.
@@ -307,7 +310,7 @@ export default function AlertDetail() {
             {/* O tempo muda a cada segundo e não deve ser anunciado: fica fora da região viva. */}
             <Text style={[ui.num, styles.time]}>· há {formatDuration(elapsedSeconds(alert.createdAt, now), true)}</Text>
           </View>
-          <StatusSteps status={alert.status} confirmed={server?.status ?? alert.status} />
+          <StatusSteps status={alert.status} confirmed={confirmed?.status ?? alert.status} />
           <Text
             style={[ui.display, styles.place, { fontSize: place.size, lineHeight: Math.round(place.size * 1.1) }]}
             onLayout={place.onLayout}

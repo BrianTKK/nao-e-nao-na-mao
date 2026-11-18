@@ -656,7 +656,7 @@ async function keyboardFlow(browser, size) {
     if (m2) {
       await kp.press('Enter', 200);
       await kp.press('Enter', 100);
-      await panel.getByText(/foi chamad[oa] no app/).first().waitFor({ timeout: 6000 }).catch(() => kp.fail('Enter num nome do menu "Mandar alguém" não mandou ninguém'));
+      await panel.getByText(/Aviso enviado a .+ no app/).first().waitFor({ timeout: 6000 }).catch(() => kp.fail('Enter num nome do menu "Mandar alguém" não mandou ninguém'));
       await sleep(300);
       a = await kp.active();
       kp.expect(a.connected && !a.body, 'depois de mandar alguém o foco se perdeu (está no body)');

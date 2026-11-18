@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeStats, formatDuration, onTheWayMessage, percentile, responseSeconds, type Alert } from '../domain';
+import { calledMessage, computeStats, formatDuration, onTheWayMessage, percentile, responseSeconds, type Alert } from '../domain';
 
 describe('domínio', () => {
   it('formata durações', () => {
@@ -12,6 +12,12 @@ describe('domínio', () => {
   it('mensagem de "a caminho" com e sem a roupa do dia', () => {
     expect(onTheWayMessage('Diego', 'camisa preta')).toBe('Diego, de camisa preta, está indo até você.');
     expect(onTheWayMessage(null, null)).toBe('Alguém da equipe está indo até você.');
+  });
+
+  it('mensagem de "chamado" sem gênero, com e sem a roupa do dia', () => {
+    expect(calledMessage('Diego', 'camisa preta')).toBe('Chamamos Diego, de camisa preta, para ir até você.');
+    expect(calledMessage('Ana', null)).toBe('Chamamos Ana para ir até você.');
+    expect(calledMessage(null, null)).toBe('Chamamos alguém da equipe para ir até você.');
   });
 
   it('tempo de resposta e mediana', () => {

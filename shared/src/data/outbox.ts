@@ -80,8 +80,22 @@ export interface OutboxSnapshot {
    * serve, por exemplo, para o alarme do alerta parar no toque, sem esperar a resposta do servidor.
    */
   readonly sending: readonly QueuedAction[];
+  /**
+   * Toques que o servidor acabou de aceitar. A lista do servidor chega depois (pelo socket, com uma
+   * nova leitura), então eles continuam valendo na tela e no alarme até ela mostrar o novo estado, ou
+   * por `SETTLED_MS`. Saem antes se outro toque da pessoa no mesmo alerta for recusado. Só em memória.
+   */
+  readonly settled: readonly SettledAction[];
   readonly notices: readonly OutboxNotice[];
 }
+
+export interface SettledAction extends QueuedAction {
+  /** Hora em que o servidor aceitou (ms, relógio do aparelho). */
+  settledAt: number;
+}
+
+/** Por quanto tempo um toque aceito continua valendo enquanto a lista do servidor não mostra o novo estado. */
+export const SETTLED_MS = 60_000;
 
 export interface OutboxStorage {
   get(): Promise<string | null> | string | null;
@@ -187,7 +201,8 @@ export function createOutbox(options: OutboxOptions): Outbox {
 
   let actions: QueuedAction[] = [];
   let notices: OutboxNotice[] = [];
-  let snap: OutboxSnapshot = { actions, sending: [], notices };
+  let settled: SettledAction[] = [];
+  let snap: OutboxSnapshot = { actions, sending: [], settled, notices };
   const listeners = new Set<() => void>();
   /** Toques cujo `perform` ainda está esperando: o erro volta para a tela, não vira aviso. */
   const direct = new Set<string>();
@@ -201,7 +216,14 @@ export function createOutbox(options: OutboxOptions): Outbox {
   // As gravações saem em ordem; se o aparelho não deixar gravar, a fila segue em memória.
   let writes: Promise<void> = Promise.resolve();
   const commit = () => {
-    snap = { actions: actions.filter((a) => !direct.has(a.id)), sending: actions.filter((a) => direct.has(a.id)), notices: [...notices] };
+    const t = now();
+    settled = settled.filter((a) => t - a.settledAt <= SETTLED_MS);
+    snap = {
+      actions: actions.filter((a) => !direct.has(a.id)),
+      sending: actions.filter((a) => direct.has(a.id)),
+      settled: [...settled],
+      notices: [...notices],
+    };
     if (loaded) {
       // Guarda também o toque que está sendo enviado: se o app fechar no meio, ele não se perde.
       const json = JSON.stringify({ v: 1, actions, notices });
@@ -265,6 +287,8 @@ export function createOutbox(options: OutboxOptions): Outbox {
     if (index < 0) return;
     const victims = actions.filter((a, i) => i >= index && a.alertId === action.alertId && a.userId === action.userId);
     actions = actions.filter((a) => !victims.includes(a));
+    // Recusado: vale o que o servidor tem, sem os toques aceitos há pouco neste alerta.
+    settled = settled.filter((a) => !(a.alertId === action.alertId && a.userId === action.userId));
     for (const v of victims) {
       if (direct.has(v.id)) directFailures.set(v.id, code);
       if (watched.has(v.id)) fates.set(v.id, code);
@@ -325,6 +349,7 @@ export function createOutbox(options: OutboxOptions): Outbox {
       try {
         await send(action);
         actions = actions.filter((a) => a !== action);
+        settled = [...settled, { ...action, settledAt: now() }];
         if (watched.has(action.id)) fates.set(action.id, 'sent');
       } catch (err) {
         const code: DataErrorCode = err instanceof DataError ? err.code : 'unknown';
@@ -502,6 +527,14 @@ export function pendingFor(snapshot: OutboxSnapshot, userId: string | null | und
 export function sendingFor(snapshot: OutboxSnapshot, userId: string | null | undefined, alertId?: string): QueuedAction[] {
   if (!userId) return [];
   return snapshot.sending.filter((a) => a.userId === userId && (alertId === undefined || a.alertId === alertId));
+}
+
+/** Toques desta pessoa que o servidor aceitou há pouco (para este alerta, se informado), ainda no prazo. */
+export function settledFor(snapshot: OutboxSnapshot, userId: string | null | undefined, alertId?: string, at: number = Date.now()): SettledAction[] {
+  if (!userId) return [];
+  return snapshot.settled.filter(
+    (a) => a.userId === userId && (alertId === undefined || a.alertId === alertId) && at - a.settledAt <= SETTLED_MS,
+  );
 }
 
 /** Avisos de toques que não foram aplicados, desta pessoa (para este alerta, se informado). */

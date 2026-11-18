@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { applyPending, pendingFor, sendingFor, type Alert } from '@nenm/shared';
+import { liveAlerts, type AlarmReason, type Alert } from '@nenm/shared';
 import { dataSource } from '@/data/source';
 import { outbox } from '@/data/outbox';
 import { rememberAlerts } from '@/data/alertCache';
@@ -15,7 +15,9 @@ export { setupNotifications } from '@/notifications/alarm';
  *
  * Os toques desta pessoa guardados sem sinal já contam: o alerta aparece como
  * vai ficar quando eles chegarem ao servidor, e o alarme dele para na hora (a
- * pessoa já viu ou já está indo, só o envio é que espera).
+ * pessoa já viu ou já está indo, só o envio é que espera). O toque que o
+ * servidor acabou de aceitar também segue contando até a lista nova chegar,
+ * para o alarme não voltar a tocar nesse intervalo (ver `liveAlerts`).
  *
  * No Expo Go, só toca com o app aberto ou em segundo plano recente: com o app
  * fechado, o aviso precisa do push remoto, que só o app próprio (APK) tem.
@@ -23,7 +25,7 @@ export { setupNotifications } from '@/notifications/alarm';
 export function useActiveAlerts(me: { id: string; fullName: string } | null): Alert[] | null {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const first = useRef(true);
-  const ringing = useRef<Map<string, 'new' | 'assigned'>>(new Map());
+  const ringing = useRef<Map<string, AlarmReason>>(new Map());
   const meId = me?.id ?? null;
   const fullName = me?.fullName ?? '';
 
@@ -35,22 +37,14 @@ export function useActiveAlerts(me: { id: string; fullName: string } | null): Al
 
     const evaluate = () => {
       if (!fromServer) return;
-      const pending = pendingFor(outbox.snapshot(), meId);
-      const list = pending.length ? fromServer.map((a) => applyPending(a, pending, { id: meId, fullName })) : fromServer;
+      // O toque em envio já para o alarme (com sinal fraco, a resposta leva até 10 s), e o aceito há pouco
+      // segue valendo até a lista do servidor mostrar o novo estado.
+      const { alerts: list, ringing: now } = liveAlerts(fromServer, outbox.snapshot(), { id: meId, fullName });
       setAlerts(list);
-      // Para o alarme também conta o toque que está sendo enviado agora: a pessoa já viu ou já está indo,
-      // e o alarme para no toque, sem esperar a resposta do servidor (com sinal fraco, até 10 s).
-      const sending = sendingFor(outbox.snapshot(), meId);
-      const acted = sending.length ? fromServer.map((a) => applyPending(a, [...pending, ...sending], { id: meId, fullName })) : list;
-      const now = new Map<string, 'new' | 'assigned'>();
-      for (const a of acted) {
-        if (a.assignedToId === meId && !a.responderId) now.set(a.id, 'assigned');
-        else if (a.status === 'open') now.set(a.id, 'new');
-      }
       // Na primeira lista (abrir o app) não toca o que já estava aberto antes: só vibra.
       for (const [id, why] of now) {
         if (ringing.current.get(id) === why) continue;
-        const alert = acted.find((a) => a.id === id)!;
+        const alert = list.find((a) => a.id === id)!;
         if (!first.current || why === 'assigned') ring(alert, why === 'assigned').catch(() => {});
       }
       for (const id of ringing.current.keys()) if (!now.has(id)) silence(id).catch(() => {});

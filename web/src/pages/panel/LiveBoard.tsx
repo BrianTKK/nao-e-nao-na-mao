@@ -226,7 +226,7 @@ function LiveItem({
             buttonName={`Mandar alguém (${place})`}
             menuName={`Quem mandar (${place})`}
             items={crewItems}
-            onPick={(item) => run('assign', () => dataSource.manager.assignAlert(a.id, item.value), `${item.label} foi chamado no app.`)}
+            onPick={(item) => run('assign', () => dataSource.manager.assignAlert(a.id, item.value), `Aviso enviado a ${item.label} no app.`)}
           />
         )}
         <ActionMenu

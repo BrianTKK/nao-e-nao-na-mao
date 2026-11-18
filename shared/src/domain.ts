@@ -282,10 +282,10 @@ export function firstName(fullName: string | null): string | null {
   return fullName ? fullName.trim().split(/\s+/)[0] : null;
 }
 
-/** "Diego, de camisa preta, foi chamado para ir até você." */
+/** "Chamamos Diego, de camisa preta, para ir até você." (sem gênero: serve para qualquer nome) */
 export function calledMessage(name: string | null, appearance: string | null): string {
-  const who = name ?? 'Alguém da equipe';
-  return appearance ? `${who}, de ${appearance}, foi chamado para ir até você.` : `${who} foi chamado para ir até você.`;
+  const who = name ?? 'alguém da equipe';
+  return appearance ? `Chamamos ${who}, de ${appearance}, para ir até você.` : `Chamamos ${who} para ir até você.`;
 }
 
 /** "Diego, de camisa preta, está indo até você." */
