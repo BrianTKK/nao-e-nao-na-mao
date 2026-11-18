@@ -2,13 +2,57 @@
 // (a) a página dela com texto a 200% (195 px de largura); (b) o painel só com o teclado, com o
 // foco visível; (c) o selo de estado com ícone e texto; (d) "Reduzir movimento" no app, e o
 // alerta novo sem pulso.
+//
+// No trecho (d), o palco aproxima a parte de cima do celular antes de abrir os Ajustes, e o quadro
+// termina entre o cartão "Reduzir movimento" e o cartão do alarme. O cartão do alarme nunca entra no
+// quadro: no Expo web, que é o que o PC grava, ele mostra o texto do Expo Go ("Com o app fechado, o
+// alarme não chega"), e o APK de verdade diz que o alarme chega pelo push. O app não muda; só o
+// enquadramento da gravação.
 import { cond } from '../lib/actions.mjs';
-import { API, APP } from '../lib/env.mjs';
+import { API, APP, HEIGHT } from '../lib/env.mjs';
 import { api, token } from '../lib/session.mjs';
 import { visibleButton } from '../lib/trio.mjs';
 
 const ELA = `${API}/q/ESQBF7K2`;
 const PHONE_Y = 128;
+
+/**
+ * Fora da gravação (no ready): mostra o celular do app, abre os Ajustes, mede onde ficam o cartão
+ * "Reduzir movimento" e o cartão do alarme (em px do palco) e volta para a lista. Devolve o
+ * enquadramento do trecho (d): do alto do celular até o meio do vão entre os dois cartões.
+ */
+async function measureSettings(page, frames) {
+  const app = page.frameLocator('#app');
+  await page.evaluate(() => window.__stage.showGroup('d'));
+  await page.waitForTimeout(700);
+  await visibleButton(app, 'Ajustes').click();
+  await app.getByRole('switch', { name: 'Reduzir movimento' }).waitFor({ timeout: 10_000 });
+  await page.waitForTimeout(500);
+  const r = await frames.app.evaluate(() => {
+    const cardOf = (el) => {
+      for (let e = el; e && e !== document.body; e = e.parentElement) {
+        const cs = getComputedStyle(e);
+        if (cs.borderTopWidth === '1px' && cs.borderTopLeftRadius !== '0px') return e.getBoundingClientRect();
+      }
+      return null;
+    };
+    const byText = (t) => [...document.querySelectorAll('div')].filter((e) => e.textContent.trim() === t && e.offsetParent).pop();
+    const motion = cardOf(document.getElementById('motion-label'));
+    const alarm = cardOf(byText('Alarme de alerta novo'));
+    return motion && alarm ? { motionBottom: motion.bottom, alarmTop: alarm.top } : null;
+  });
+  if (!r || r.alarmTop - r.motionBottom < 8) throw new Error(`não achei os cartões dos Ajustes: ${JSON.stringify(r)}`);
+  await app.getByRole('link', { name: /back/i }).filter({ visible: true }).first().click();
+  await app.getByText('2 alertas').first().waitFor({ timeout: 10_000 });
+  const box = await page.locator('#app').boundingBox();
+  await page.evaluate(() => window.__stage.showGroup('a'));
+  const top = PHONE_Y - 14;
+  const bottom = box.y + (r.motionBottom + r.alarmTop) / 2;
+  const k = HEIGHT / (bottom - top);
+  return { k, fx: box.x + box.width / 2, fy: (top + bottom) / 2, motionBottom: box.y + r.motionBottom, alarmTop: box.y + r.alarmTop };
+}
+
+let crop = null;
 
 /** Anima a rolagem de uma página até `top` em `ms`, com aceleração suave. */
 const scrollTo = (frame, top, ms) =>
@@ -42,6 +86,7 @@ export const clip = {
     'Trecho (b): só a tecla Tab, sem mouse. A tecla desenhada embaixo é um realce de edição; o contorno amarelo em volta de cada botão é o foco do próprio painel.',
     'Trecho (c): aproximação do palco (não é zoom do navegador) nos selos "Novo" e "A caminho" do painel: cada estado tem ícone e texto, não só cor.',
     'Trecho (d): no app, Ajustes, chave "Reduzir movimento" ligada; de volta à lista, o alerta novo fica parado, sem pulso. No começo do trecho, antes da chave, ele pulsa.',
+    'Trecho (d), enquadramento: antes de abrir os Ajustes, o palco aproxima o alto do celular, e o quadro termina logo abaixo do cartão "Reduzir movimento". O cartão do alarme fica fora de propósito: o PC grava o Expo web, que mostra o texto do Expo Go ("o alarme não chega com o app fechado"), e o APK de verdade diz que o alarme chega pelo push. O alarme com o app fechado fica para o celular filmar (cena 4).',
     'Contraste: o teste automático está em shared/src/__tests__/tokens.test.ts; o clipe não mostra número de razão. Leitor de tela não foi testado com TalkBack, VoiceOver nem NVDA: não afirmar que foi.',
     'Sem som: os dois alertas já existiam quando o app abriu (o app não toca alarme para o que já estava na lista ao abrir), e o alarme do painel está desligado neste clipe.',
     'Cada trecho tem mais que os 3 a 4 s do roteiro; a edição corta.',
@@ -78,6 +123,8 @@ export const clip = {
     await page.frameLocator('#painel').getByText('Mesa 7').first().waitFor({ timeout: 60_000 });
     await page.frameLocator('#painel').getByText('Banheiro masculino').first().waitFor({ timeout: 60_000 });
     for (const f of Object.values(frames)) await f.evaluate(() => document.fonts.ready).catch(() => {});
+    crop = await measureSettings(page, frames);
+    console.log(`  enquadramento do trecho (d): ${JSON.stringify(crop)}`);
   },
   async run({ page, frames, act }) {
     const painel = page.frameLocator('#painel');
@@ -123,7 +170,13 @@ export const clip = {
     // (d) Reduzir movimento.
     await act.stage('showGroup', 'd');
     mark('app', '(d) Troca para o app: o alerta novo da mesa 7 pulsa na lista', undefined, 'e "Reduzir movimento",');
-    await tap(visibleButton(app, 'Ajustes'), { tela: 'app', evento: 'Toca em "Ajustes"', pauseMs: 2600 });
+    await pause(2600);
+    // Aproxima o alto do celular antes de abrir os Ajustes: o cartão do alarme fica fora do quadro.
+    await act.stage('show', '[data-label="app"]', false);
+    await act.stage('zoom', 'app', crop.k, crop.fx, crop.fy);
+    mark('app', 'Aproximação no alto do celular (o cabeçalho, com "Ajustes")');
+    await pause(1100);
+    await tap(visibleButton(app, 'Ajustes'), { tela: 'app', evento: 'Toca em "Ajustes": o quadro mostra só "Como você está vestido hoje?" e "Reduzir movimento"', pauseMs: 300 });
     const sw = app.getByRole('switch', { name: 'Reduzir movimento' });
     await sw.waitFor({ timeout: 10_000 });
     await tap(sw, { tela: 'app', evento: 'Liga a chave "Reduzir movimento"', pauseMs: 1800, fala: 'que desliga animações e pulso.' });
@@ -131,6 +184,12 @@ export const clip = {
     const back = app.getByRole('link', { name: /back/i }).filter({ visible: true }).first();
     await tap(back, { tela: 'app', evento: 'Volta para a lista', pauseMs: 600 });
     await when(frames.app, cond.text, '2 alertas', { tela: 'app', evento: 'De volta à lista: o alerta novo da mesa 7 fica parado, sem pulso' });
+    // Só afasta quando os Ajustes saíram da página (o cartão do alarme não pode aparecer).
+    await when(frames.app, cond.noContent, 'Alarme de alerta novo');
+    await pause(500);
+    await act.stage('zoom', 'app', 1);
+    await act.stage('show', '[data-label="app"]', true);
+    mark('app', 'Afasta: o celular inteiro, com o alerta novo da mesa 7 parado');
     await pause(5000);
     mark('todas', 'Fim');
     return { sounds: [] };

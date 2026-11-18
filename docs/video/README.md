@@ -19,7 +19,7 @@ Um clipe por cena de `docs/pdf/Roteiro_Video.md`, mais o da integração. Todos 
 | `mariana-cena-07.mp4` | 7, Encerrar | 15,2 s | "Encerrar…", o desfecho, "Pedido encerrado" e o painel vazio |
 | `mariana-cena-08.mp4` | 8, Sem sinal | 22,4 s | Só o app sem rede: o toque fica guardado e sai quando a rede volta |
 | `mariana-cena-09.mp4` | 9, Design e UX | 20,8 s | A página dela e o detalhe do alerta, com realces; depois o antes e depois do visual |
-| `mariana-cena-10.mp4` | 10, Acessibilidade | 40,6 s | Texto a 200%, painel no teclado, selos com ícone e texto, "Reduzir movimento" |
+| `mariana-cena-10.mp4` | 10, Acessibilidade | 42,7 s | Texto a 200%, painel no teclado, selos com ícone e texto, "Reduzir movimento" |
 | `mariana-cena-11.mp4` | 11, Lei e ODS | 20,4 s | Duas cartelas: a lei 17.621/2023 e as metas 5.2 e 11.7 |
 | `mariana-cena-12.mp4` | 12, Fecho | 11,7 s | Cartela: logo, links e o espaço vazio para os nomes |
 | `mariana-integracao.mp4` | 3 a 7 | 46,1 s | As três telas numa tomada só, do pedido ao encerramento |
@@ -195,7 +195,7 @@ Antes de cada tomada, o gravador encerra os alertas abertos do bar. O que cada c
 | `mariana-cena-07.mp4` | `trio`. Pedido, "Visto" e "Estou indo" no `ready()`; na gravação, "Encerrar…" e o desfecho. |
 | `mariana-cena-08.mp4` | `pair` com `offlineSwitch`: só o app perde a rede. Sem barra de status nem ícone do avião (o navegador não tem); o rótulo acima do celular diz "App da equipe, sem rede" durante o corte. |
 | `mariana-cena-09.mp4` | `pair`: a página dela no início e o detalhe de um alerta da Mesa 12 (criado pela API), com realces; no fim, a cartela do antes e depois (`overlay`). |
-| `mariana-cena-10.mp4` | `custom`, em quatro grupos: (a) dois celulares, 100% e 200% (`zoom: 2`); (b) o painel com Tab; (c) aproximação do palco nos selos; (d) o app, Ajustes, "Reduzir movimento". Alarme do painel desligado e alertas criados no `before()`: sem som. |
+| `mariana-cena-10.mp4` | `custom`, em quatro grupos: (a) dois celulares, 100% e 200% (`zoom: 2`); (b) o painel com Tab; (c) aproximação do palco nos selos; (d) o app, Ajustes, "Reduzir movimento", com o palco aproximado no alto do celular para o cartão do alarme (texto do Expo Go) não entrar no quadro. Alarme do painel desligado e alertas criados no `before()`: sem som. |
 | `mariana-cena-11.mp4` | `card`: duas cartelas seguidas, com os textos do roteiro (a lei) e o texto oficial das metas. |
 | `mariana-cena-12.mp4` | `card`: logo e links. As faixas de y = 410 a 500 px (nome do grupo) e de 720 a 960 px (integrantes) ficam vazias para a edição. |
 
