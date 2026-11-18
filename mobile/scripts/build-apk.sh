@@ -8,6 +8,8 @@
 #   google-services.json (Firebase; sem ele, ou com MARIANA_SEM_FIREBASE=1, o APK sai sem push) e
 #   mariana-release.properties (assinatura; sem ele, o APK sai com a chave de depuração).
 # - Saída: $TOOLS/apk/mariana-<versão>-<commit>.apk
+# - Para o PC seguir usável durante o build: MARIANA_NICE=1 roda o Gradle e o que ele abre em
+#   prioridade baixa, e MARIANA_MAX_WORKERS=2 limita os processos do Gradle. Fica mais lento.
 # Detalhes em docs/NOTIFICACOES.md.
 set -euo pipefail
 
@@ -52,7 +54,14 @@ cp "$SAVED/package.json" package.json
 
 # Só ARM (os celulares de verdade); x86 e x86_64 são de emulador e quase dobram o APK.
 ARCHS="${MARIANA_ARCHS:-armeabi-v7a,arm64-v8a}"
-(cd android && ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures="$ARCHS")
+GRADLE_ARGS=(assembleRelease --no-daemon -PreactNativeArchitectures="$ARCHS")
+[ -n "${MARIANA_MAX_WORKERS:-}" ] && GRADLE_ARGS+=("--max-workers=$MARIANA_MAX_WORKERS")
+if [ "${MARIANA_NICE:-0}" = "1" ]; then
+  # No Windows, a prioridade baixa passa para os processos que o Gradle abre (Java, Kotlin, ninja, clang).
+  (cd android && nice -n 19 ./gradlew "${GRADLE_ARGS[@]}")
+else
+  (cd android && ./gradlew "${GRADLE_ARGS[@]}")
+fi
 
 VERSION="$(node -p "require('./app.json').expo.version")"
 REV="$(git rev-parse --short HEAD)"
