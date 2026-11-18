@@ -81,9 +81,10 @@ export interface OutboxSnapshot {
    */
   readonly sending: readonly QueuedAction[];
   /**
-   * Toques que o servidor acabou de aceitar. A lista do servidor chega depois (pelo socket, com uma
-   * nova leitura), então eles continuam valendo na tela e no alarme até ela mostrar o novo estado, ou
-   * por `SETTLED_MS`. Saem antes se outro toque da pessoa no mesmo alerta for recusado. Só em memória.
+   * Toques que o servidor aceitou. A lista do servidor chega depois (pelo socket, com uma nova
+   * leitura, que pode falhar), então eles continuam valendo na tela e no alarme até ela mostrar o novo
+   * estado. Os estados do alerta só andam para a frente, então um toque aceito nunca contradiz o
+   * servidor: fica por `SETTLED_MS`, mesmo que outro toque no mesmo alerta seja recusado. Só em memória.
    */
   readonly settled: readonly SettledAction[];
   readonly notices: readonly OutboxNotice[];
@@ -94,8 +95,13 @@ export interface SettledAction extends QueuedAction {
   settledAt: number;
 }
 
-/** Por quanto tempo um toque aceito continua valendo enquanto a lista do servidor não mostra o novo estado. */
-export const SETTLED_MS = 60_000;
+/**
+ * Por quanto tempo um toque aceito continua valendo enquanto a lista do servidor não mostra o novo estado.
+ * Longo de propósito (o mesmo teto dos toques guardados): com sinal fraco a leitura seguinte pode falhar
+ * e não se repetir, e um prazo curto faria o alarme e a tela voltarem ao estado de antes do toque.
+ * O corte por tempo existe só para a lista não crescer sem fim.
+ */
+export const SETTLED_MS = 12 * 60 * 60 * 1000;
 
 export interface OutboxStorage {
   get(): Promise<string | null> | string | null;
@@ -287,8 +293,8 @@ export function createOutbox(options: OutboxOptions): Outbox {
     if (index < 0) return;
     const victims = actions.filter((a, i) => i >= index && a.alertId === action.alertId && a.userId === action.userId);
     actions = actions.filter((a) => !victims.includes(a));
-    // Recusado: vale o que o servidor tem, sem os toques aceitos há pouco neste alerta.
-    settled = settled.filter((a) => !(a.alertId === action.alertId && a.userId === action.userId));
+    // Os toques já aceitos neste alerta continuam valendo: o servidor os tem (ex.: o "Vi" aceito antes de
+    // um "Estou indo" recusado). Apagá-los faria o alarme tocar de novo até a lista nova chegar.
     for (const v of victims) {
       if (direct.has(v.id)) directFailures.set(v.id, code);
       if (watched.has(v.id)) fates.set(v.id, code);

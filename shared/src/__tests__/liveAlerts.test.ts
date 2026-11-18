@@ -119,7 +119,7 @@ describe('alarme do app da equipe (liveAlerts)', () => {
     expect(view.alerts).toEqual(fresh);
   });
 
-  it('envio recusado (outra pessoa já foi): volta a tocar e a tela mostra o servidor, sem o "Vi" aceito antes', async () => {
+  it('envio recusado (outra pessoa já foi): volta a tocar e a tela mostra o servidor; o "Vi" aceito antes continua valendo', async () => {
     const s = setup();
     const diego = await s.login('diego');
     const id = await s.newAlert();
@@ -147,7 +147,48 @@ describe('alarme do app da equipe (liveAlerts)', () => {
     const view = liveAlerts(old, s.outbox.snapshot(), diego, s.clock.now);
     expect(view.ringing.get(id)).toBe('assigned');
     expect(view.alerts).toEqual(old);
-    expect(settledFor(s.outbox.snapshot(), diego.id, id, s.clock.now)).toHaveLength(0);
+    // O "Vi" aceito antes não é apagado pela recusa: o servidor o tem.
+    expect(settledFor(s.outbox.snapshot(), diego.id, id, s.clock.now).map((a) => a.kind)).toEqual(['ack']);
+  });
+
+  it('sem sinal, "Vi" e "Estou indo" guardados; outra pessoa assume: o "Vi" é aceito, o "Estou indo" cai, e o alarme não volta com a lista antiga', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const id = await s.newAlert();
+    const old = await s.list();
+    s.net.down = true;
+    expect(await s.outbox.perform({ kind: 'ack', alertId: id, userId: diego.id })).toBe('queued');
+    expect(await s.outbox.perform({ kind: 'start', alertId: id, userId: diego.id })).toBe('queued');
+    expect(ringingOf(old, s.outbox.snapshot(), diego, s.clock.now).has(id)).toBe(false);
+
+    await s.login('ana');
+    await s.ds.staff.startResponse(id);
+    await s.login('diego');
+
+    s.net.down = false;
+    await s.outbox.flush(diego.id);
+    const snap = s.outbox.snapshot();
+    expect(pendingFor(snap, diego.id, id)).toHaveLength(0);
+    expect(snap.notices.map((n) => n.reason)).toEqual(['taken']);
+    // A lista ainda é a de antes (alerta "novo"): o Diego já viu, e a Ana está indo. Não toca de novo.
+    const view = liveAlerts(old, snap, diego, s.clock.now);
+    expect(view.ringing.has(id)).toBe(false);
+    expect(view.alerts.find((a) => a.id === id)?.status).toBe('seen');
+  });
+
+  it('a leitura seguinte falhou e não se repetiu: minutos depois, outro toque da fila não faz o alarme voltar', async () => {
+    const s = setup();
+    const diego = await s.login('diego');
+    const first = await s.newAlert();
+    const second = await s.newAlert();
+    const old = await s.list();
+    expect(await s.outbox.perform({ kind: 'ack', alertId: first, userId: diego.id })).toBe('sent');
+    // Dez minutos sem lista nova; o Diego abre o outro alerta (a fila anda e o alarme é reavaliado).
+    s.clock.now += 10 * 60_000;
+    expect(await s.outbox.perform({ kind: 'ack', alertId: second, userId: diego.id })).toBe('sent');
+    const view = liveAlerts(old, s.outbox.snapshot(), diego, s.clock.now);
+    expect(view.ringing.size).toBe(0);
+    expect(view.alerts.filter((a) => a.status === 'seen').map((a) => a.id).sort()).toEqual([first, second].sort());
   });
 
   it('socket caído (a lista nunca chega): o alarme não recomeça dentro do prazo', async () => {

@@ -29,7 +29,8 @@ export function liveAlerts(
   const sending = sendingFor(snapshot, me.id);
   const settled = settledFor(snapshot, me.id, undefined, now);
   // O toque aceito sai sozinho quando a lista nova chega: os estados só andam para a frente, então, com a
-  // lista já mostrando o toque, `applyPending` não muda mais nada. A fila o descarta em `SETTLED_MS`.
+  // lista já mostrando o toque, `applyPending` não muda mais nada. A fila o descarta em `SETTLED_MS`,
+  // um prazo longo: a lista nova pode demorar ou falhar, e o toque aceito nunca contradiz o servidor.
   const shown = [...settled, ...pending];
   const alerts = shown.length ? fromServer.map((a) => applyPending(a, shown, me)) : [...fromServer];
   const acted = sending.length ? fromServer.map((a) => applyPending(a, [...shown, ...sending], me)) : alerts;
