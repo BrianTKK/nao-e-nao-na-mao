@@ -25,7 +25,7 @@ const dateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '
 const day = (d: string | null) => (d ? new Date(`${d.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR') : 'pendente');
 
 /**
- * Relatório do mês para o Procon: acionamentos, tempo de resposta, desfechos
+ * Relatório do mês, para mostrar numa fiscalização (em São Paulo, o Procon-SP): acionamentos, tempo de resposta, desfechos
  * e equipe capacitada no protocolo Não se Cale. Imprime ou salva em PDF pelo
  * navegador (Ctrl+P → "Salvar como PDF").
  */
@@ -81,7 +81,7 @@ export function Report() {
       </div>
 
       <header className="report-header">
-        <p className="report-kicker">Protocolo Não se Cale (Lei estadual 17.621/2023) · Lei federal 14.786/2023</p>
+        <p className="report-kicker">Protocolo Não se Cale (Leis estaduais 17.621 e 17.635/2023, Decreto 67.856/2023)</p>
         <h1>Relatório de alertas · {monthName(month)}</h1>
         {venue && (
           <p>

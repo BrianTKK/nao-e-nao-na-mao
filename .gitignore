@@ -8,3 +8,14 @@ web-build/
 .env
 .env.*
 !.env.example
+# Segredos e saídas de build do app: ficam fora do repositório (ver docs/NOTIFICACOES.md).
+google-services.json
+service-account*.json
+fcm-service-account*.json
+*-release.properties
+*.keystore
+*.jks
+*.pem
+*.p12
+*.apk
+*.aab
