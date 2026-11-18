@@ -162,9 +162,9 @@ Sugestão da Central (17/11/2026). Prova a entrega do Firebase sem depender da V
   - a chave da conta de serviço em `/etc/naoenao`, com dono `root:naoenao-segredos` e modo 640, e o `FCM_SERVICE_ACCOUNT_FILE` no `.env`;
   - o log do app diz "Push remoto ligado (FCM, projeto mariana-c86f0)";
   - o APK pode ser baixado em https://naoenao.obrian.me/download/mariana.apk (ver `docs/DEPLOY.md`, "APK para baixar") e pelo botão da página `/testar`.
+- **Testado num celular em 18/11/2026**, com o APK `versionCode` 4 baixado pelo link: app fechado, tela bloqueada, alerta criado pelo QR code e toque na notificação, que abre o alerta e marca "Visto". Nas palavras de quem testou: "Deu certo o alarme". É o primeiro push saindo da VPS até um aparelho de verdade.
 - **Não testado**:
-  - o APK e tudo no celular: instalar pelo link, o token de verdade, o aviso com o app minimizado e fechado, o som, a repetição na tela bloqueada e o aviso que não sai em dobro;
-  - o push saindo da VPS até um celular: o servidor no ar está com o push ligado, mas nenhum alerta chegou ainda a um aparelho de verdade;
+  - no celular, um a um: o aviso com o app só minimizado, a repetição na tela bloqueada, o "Não perturbe" e o aviso que não sai em dobro;
   - celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria): neles, o push pode atrasar se o app não estiver liberado da otimização de bateria.
 
 ## O que exige build próprio (fora do APK atual, nenhuma conta criada)

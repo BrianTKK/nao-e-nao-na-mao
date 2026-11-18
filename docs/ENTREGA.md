@@ -4,7 +4,7 @@ O projeto se chamava **Não é Não na Mão** até 16/11/2026.
 
 Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ falta.
 
-Última atualização: **F3** (18/11/2026). A F3 está commitada na `main` do repositório público (https://github.com/BrianTKK/nao-e-nao-na-mao); as correções das revisões estão em `a18433d`, `29f9dea`, `c62115f` e `0933077`. ⬜ CONFERIR antes da entrega: O servidor e o site com a F3 foram publicados em 18/11/2026. O app novo (`versionCode` 4) é publicado em seguida. Até lá, o link público do APK entrega o `versionCode` 2. A entrega é em 19/11/2026.
+Última atualização: **F3** (18/11/2026). A F3 está commitada na `main` do repositório público (https://github.com/BrianTKK/nao-e-nao-na-mao); as correções das revisões estão em `a18433d`, `29f9dea`, `c62115f` e `0933077`. O servidor, o site e o app com a F3 estão publicados desde 18/11/2026: o app pelo Expo Go e o APK `versionCode` 4 no link público. O alarme foi testado num celular no mesmo dia. A entrega é em 19/11/2026.
 
 ## O que foi testado e o que não foi
 
@@ -47,7 +47,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; falta o celular |
-| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 4, com a F3, desde 18/11/2026. Nenhum APK foi instalado e testado num celular real |
+| App acessível no celular de qualquer pessoa, sem PC | ✅ | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 4, com a F3, desde 18/11/2026. O APK `versionCode` 4 foi instalado num celular em 18/11/2026, e o alarme tocou com o app fechado |
 | APK Android próprio, com push | 🟡 | Gerado e assinado no PC (`mobile/scripts/build-apk.sh`), conferido com `apksigner`. Instalação, som, vibração e aviso com o app fechado: **não testados em celular** (ver `NOTIFICACOES.md`) |
 | Navegação seguindo a jornada | 🟡 | Login → alertas → alerta ("Visto" automático, Estou indo, desfecho) → ajustes |
 | Fila de toques sem sinal | ✅ no navegador, 🟡 no celular | O "Visto" (automático ao abrir o alerta), o "Estou indo" e o "Encerrar" ficam guardados no aparelho e saem na ordem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Arquivos: `shared/src/data/outbox.ts`, `mobile/src/data/outbox.ts`. Testada por `test:offline` (28 verificações) |
@@ -111,8 +111,8 @@ Detalhes em [`NOTIFICACOES.md`](NOTIFICACOES.md) e [`DEPLOY.md`](DEPLOY.md).
 
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
-| Push remoto no Android (FCM) | 🟡 | Envio direto ao FCM HTTP v1, da VPS (`server/src/push.ts`). Repete 5 vezes em 2 minutos até alguém ver. A palavra-código **não** vai na notificação. Validado contra o Firebase de verdade (`validate_only`), sem celular; o servidor em produção está com o push ligado. **Um alerta saindo da VPS até um celular real não foi testado** |
-| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 4 (com a F3) no link público desde 18/11/2026. Não testado num celular real: instalação pelo link, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
+| Push remoto no Android (FCM) | 🟡 | Envio direto ao FCM HTTP v1, da VPS (`server/src/push.ts`). Repete 5 vezes em 2 minutos até alguém ver. A palavra-código **não** vai na notificação. Validado contra o Firebase de verdade (`validate_only`), sem celular; o servidor em produção está com o push ligado. **Testado num celular em 18/11/2026 por um integrante do grupo, com o APK `versionCode` 4 do link: app fechado, tela bloqueada, alerta pelo QR code e toque na notificação, que abre o alerta e marca "Visto". Nas palavras de quem testou: "Deu certo o alarme"** |
+| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 4 (com a F3) no link público desde 18/11/2026. Testado num celular em 18/11/2026 por um integrante do grupo, com o APK `versionCode` 4 do link: app fechado, tela bloqueada, alerta pelo QR code e toque na notificação, que abre o alerta e marca "Visto". Nas palavras de quem testou: "Deu certo o alarme". Não conferidos um a um: vibração, repetição na tela bloqueada e "Não perturbe" |
 | Celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria) | ⬜ | Não testado. O push pode atrasar se o app não estiver liberado da otimização de bateria |
 | iPhone | ⬜ | Push no iOS não existe nesta entrega (exige conta Apple Developer paga). No iPhone, o app só avisa com o app aberto ou em segundo plano recente, pelo Expo Go |
 | Chaves e credenciais | ✅ | Ficam fora do git e da pasta do deploy. O `.gitignore` bloqueia `google-services.json`, conta de serviço, keystore, chaves e APK |
@@ -179,7 +179,7 @@ Correções feitas na rodada de acessibilidade da F3:
 | Quem é desativado perde o tempo real na hora | ✅ | Sala `user:<id>`; o servidor derruba os sockets ao desativar. Testado |
 | Discrição: título da aba só com o nome do bar e **o cardápio do próprio local** (fotos ou PDF cadastrados no painel ou fotografados no app; ou o link do cardápio digital). Também o **Wi-Fi do local**, opcional. Sem nenhum dos dois, fica sem disfarce | ✅ | Testado no navegador com a CSP de produção: PDF de 2 páginas e foto viram imagens de até 1600 px e aparecem na página dela; o Wi-Fi aparece sozinho ou junto do cardápio, com Voltar e Esc. Falta o app no celular, o copiar com toque de verdade e teste com usuárias |
 | Sem sinal: cartão para o balcão | ✅ no navegador | Testado com a rede desligada (32 conferências). Ver o limite conhecido no começo |
-| Celular no bolso | 🟡 | Alarme no Expo Go (canal de prioridade máxima, repetição por 2 min, vibração, "Testar o alarme" nos Ajustes) e, no APK, push pelo Firebase. **Não testado num celular** |
+| Celular no bolso | 🟡 | Alarme no Expo Go (canal de prioridade máxima, repetição por 2 min, vibração, "Testar o alarme" nos Ajustes) e, no APK, push pelo Firebase. **Testado num celular em 18/11/2026** com o APK `versionCode` 4, o app fechado e a tela bloqueada. Nas palavras de quem testou: "Deu certo o alarme" |
 | WebSocket com reconexão; a página da mulher consulta a cada 3 s se cair | ✅ | Socket.IO com reconexão; a queda é testada derrubando o WebSocket pelo servidor |
 | Com sinal fraco, o app não fica carregando | ✅ no navegador | Teto de espera de 8 s; o app abre com o último login |
 | Conta de demonstração inofensiva | ✅ | As contas só agem no bar de demonstração. O cron diário volta o bar ao seed, e o teste confere que o outro bar fica intacto. O botão de teste mostra a senha na tela (decisão do grupo de 16/11), só do bar fictício |

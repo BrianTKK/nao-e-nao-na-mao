@@ -2,7 +2,7 @@
 
 Duração total prevista: **2 min 47 s** (limite do briefing: 3 min; margem de segurança: 2 min 50 s). Cálculo das falas: cerca de 2,5 palavras por segundo. Cada FALA cabe no tempo da cena, já descontando os toques e as pausas da tela.
 
-Legenda: ⬜ PREENCHER = depende do grupo. F3 = fatia de 18/11/2026 (fila sem sinal, motion no detalhe, rodada de acessibilidade), commitada na `main` e testada. ⬜ CONFERIR antes da entrega: O servidor e o site com a F3 foram publicados em 18/11/2026. O app novo (`versionCode` 4) é publicado em seguida. O link público do APK entrega o `versionCode` 2 até o 4 ser publicado, e o 4 ainda não foi instalado em celular. Para gravar as cenas 5 e 8 como estão aqui, o celular da equipe precisa do APK `versionCode` 4.
+Legenda: ⬜ PREENCHER = depende do grupo. F3 = fatia de 18/11/2026 (fila sem sinal, motion no detalhe, rodada de acessibilidade), commitada na `main` e testada. O servidor, o site e o app com a F3 estão publicados desde 18/11/2026: o app pelo Expo Go e o APK `versionCode` 4 no link público. O APK 4 já foi instalado num celular, e o alarme tocou com o app fechado e a tela bloqueada. Para gravar as cenas 5 e 8 como estão aqui, o celular da equipe precisa do APK `versionCode` 4.
 
 ## Mapa do vídeo
 
@@ -70,11 +70,11 @@ Quem fala: ⬜ PREENCHER em todas as cenas (sugestão: uma voz para o problema e
 
 **Aparelhos**
 - [ ] Celular dela: o link da página do QR aberto no navegador (sem instalar nada: faz parte da prova). Preferir o cartaz impresso de `/painel/qr-codes/imprimir` para a cena de "ler o QR code".
-- [ ] Celular da equipe: APK próprio para o push. O link público (`/testar`) entrega o `versionCode` 4, com a F3, desde 18/11/2026 (ainda não instalado em celular); instalar por cima do anterior antes das cenas 5 e 8; com o app aberto, em primeiro plano, durante a tomada. Expo Go serve como reserva, mas o alarme com app fechado só vale no APK.
+- [ ] Celular da equipe: APK próprio para o push. O link público (`/testar`) entrega o `versionCode` 4, com a F3, desde 18/11/2026 (instalado e com o alarme testado num celular em 18/11/2026); instalar por cima do anterior antes das cenas 5 e 8; com o app aberto, em primeiro plano, durante a tomada. Expo Go serve como reserva, mas o alarme com app fechado só vale no APK.
 - [ ] Computador: `/painel` aberto, logado como gerência, com o som ligado (o painel bipa).
 - [ ] Câmera num tripé que enquadre os três aparelhos de uma vez, ou três gravações de tela iniciadas juntas com uma batida de palma (sincronia), a escolher: ⬜ PREENCHER.
 - [ ] Som do alarme: um microfone ou a câmera perto do celular da equipe. **NÃO CONFIRMADO** que o gravador de tela do Android capture o som do alarme; testar antes.
-- [ ] Alarme no celular de verdade: a própria documentação diz que o APK e o alarme **não foram testados num celular**. Rodar "Testar o alarme" nos Ajustes e um alerta completo antes do dia da gravação. Permitir o "Não perturbe" no canal "Alertas (alarme)" e deixar o volume de alarme alto.
+- [ ] Alarme no celular de verdade: o alarme foi testado num celular em 18/11/2026, com o app fechado e a tela bloqueada. No celular da gravação, rodar "Testar o alarme" nos Ajustes e um alerta completo antes do dia da gravação. Permitir o "Não perturbe" no canal "Alertas (alarme)" e deixar o volume de alarme alto.
 - [ ] Notificações, brilho e "Não perturbe" do celular de gravação: desligar o que não é da cena (mensagens pessoais).
 
 **O que deixar aberto**
@@ -122,7 +122,7 @@ Quem fala: ⬜ PREENCHER em todas as cenas (sugestão: uma voz para o problema e
 
 ## O que ficou sem confirmar (resumo)
 
-1. Alarme tocando num celular de verdade, e o som sendo captado na gravação.
-2. Fila sem sinal e motion no celular real: testados só no app aberto no navegador. O APK `versionCode` 4 não foi instalado em aparelho.
+1. O som do alarme sendo captado na gravação (o alarme em si tocou num celular em 18/11/2026).
+2. Fila sem sinal e motion no celular real: testados só no app aberto no navegador.
 3. Leitor de tela: não foi testado com TalkBack, VoiceOver nem NVDA; no vídeo, não afirmar que foi.
 4. Quem fala, onde grava, posição das telas, endereço do repositório público e nomes: ⬜ PREENCHER.

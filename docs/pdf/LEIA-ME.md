@@ -34,8 +34,7 @@ Tudo é editado em `Mariana_PDF.md`. Cada trecho marcado com `⬜ PREENCHER`, `�
 1. **Capa: turma e disciplina.** Na linha "Data de entrega", logo abaixo do título.
 2. **Integrantes (seção 1).** Nome completo e RM na tabela, **em ordem alfabética pelo nome completo**. Apague as linhas que sobrarem. A capa lê essa mesma tabela, então basta preencher uma vez.
 3. **Pesquisa de campo (seção 8).** As duas tabelas de conversa (quem e quando, o que foi perguntado, o que ouvimos, o que mudou na interface) e a conclusão logo abaixo.
-4. **Estado da publicação (seção 9).** O trecho "⬜ CONFERIR": confirme o que foi publicado antes da entrega.
-5. **Links (seção 10).** O link do repositório público e o link do vídeo-pitch.
+4. **Links (seção 10).** O link do repositório público e o link do vídeo-pitch.
 
 ## Imagens
 

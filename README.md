@@ -56,7 +56,7 @@ flowchart LR
 ```
 
 1. **O pedido.** A página do QR chama `POST /api/alerts` com o código do local e o tipo de pedido. O servidor grava no banco e devolve um **token aleatório** que só aquela página conhece; o banco guarda apenas o hash.
-2. **O aviso.** O servidor avisa a sala do bar por **WebSocket (Socket.IO)**. O app da equipe toca e o quadro da gerência atualiza. No APK Android próprio, o servidor também manda **push pelo Firebase (FCM)**, para o alerta chegar com o app minimizado ou fechado, com repetição até alguém ver. Isso foi validado contra o Firebase de verdade (`validate_only`) e ainda não foi testado num celular real.
+2. **O aviso.** O servidor avisa a sala do bar por **WebSocket (Socket.IO)**. O app da equipe toca e o quadro da gerência atualiza. No APK Android próprio, o servidor também manda **push pelo Firebase (FCM)**, para o alerta chegar com o app minimizado ou fechado, com repetição até alguém ver. Isso foi validado contra o Firebase de verdade (`validate_only`) e testado num celular em 18/11/2026, com o app fechado e a tela bloqueada.
 3. **A resposta.** Quem toca em "Estou indo" no app chama a API. O servidor grava o horário e avisa duas salas: a do bar (app e quadro) e a do pedido, que é a da página da mulher.
 4. **Sem sinal.** Se o WebSocket da página dela cair, ela consulta o servidor a cada 3 segundos; sem nenhuma conexão, a página mostra um cartão para levar ao balcão. No app, o que a equipe faz sem sinal (o "Visto", automático ao abrir o alerta, o "Estou indo" e o "Encerrar") fica guardado no aparelho e são enviados quando a conexão volta, sem duplicar no servidor (cada ação tem um id). O estado aparece com texto e ícone de Wi-Fi riscado ("Sem sinal: vai enviar quando voltar" e "A caminho, ainda não enviado"). Se outra pessoa assumiu ou encerrou o alerta enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app avisa, sem sobrescrever; o aviso fica até a pessoa tocar em "Entendi". Toque guardado há mais de 12 horas também é descartado, com aviso. Quem é da equipe comum não encerra o alerta que outra pessoa assumiu. A gerência encerra esse alerta pelo painel: o app esconde "Encerrar…" de quem não é o responsável quando o alerta está a caminho com outra pessoa, e isso vale também para a gerência. Toque guardado sem sinal nunca passa por cima de quem assumiu, nem o da gerência. Limite conhecido, de propósito: abrir a página do QR já sem conexão não funciona, porque a página dela não instala nada no celular nem guarda nada além do próprio pedido.
 
@@ -123,7 +123,7 @@ npm run test:offline -w mobile  # fila de toques sem sinal no app
 npm run test:a11y -w mobile  # acessibilidade do app, pelo Expo web
 ```
 
-Estado em 18/11/2026: a F3 está commitada na `main` deste repositório, que é público. ⬜ CONFERIR antes da entrega: O servidor e o site com a F3 foram publicados em 18/11/2026. O app novo (`versionCode` 4) é publicado em seguida.
+Estado em 18/11/2026: a F3 está commitada na `main` deste repositório, que é público. O servidor, o site e o app com a F3 estão publicados desde 18/11/2026: o app pelo Expo Go e o APK `versionCode` 4 no link público.
 
 - **`npm test`**: 167 testes automáticos (68 em shared, 13 do banco, 79 do servidor, 7 do deploy), mais o `npm run typecheck`. Cobrem os tokens visuais e o contraste, as funções do banco (token só como hash e com validade, limites, ordem das etapas, bar não age sobre outro bar), a API (login, token falso ou vencido, validação de entrada, limite por IP, tempo real entre salas, push, gerência, idempotência da fila sem sinal) e o script de limpeza do deploy.
 - **`test:reflow`** (Playwright, Chromium): 90 verificações, sem rolagem lateral a 195, 260, 320, 390 e 1440 px, em 18 telas. 195 px é um celular de 390 px com zoom de 200%. Se faltar o navegador, rode antes `npx playwright install chromium`.
@@ -131,7 +131,7 @@ Estado em 18/11/2026: a F3 está commitada na `main` deste repositório, que é 
 - **`test:offline` no app**: 28 verificações da fila sem sinal, com o app aberto no navegador (Expo web) contra o servidor de verdade e a rede cortada pelo Playwright.
 - **`test:a11y` no app**: 463 verificações pelo Expo web, em 13 telas/estados e 3 larguras (390, 260 e 195 px, que simulam fonte grande): axe, nome acessível de todo controle, regiões vivas, alvos de 48 px, texto não cortado, palavra-código inteira e "Reduzir movimento".
 - **Revisão**: a F3 passou por um painel adversarial sobre o diff commitado, com segundo leitor para cada achado. Foram duas rodadas, e os 24 achados confirmados foram corrigidos com teste (`a18433d` e `29f9dea`).
-- **Não testado**: leitor de tela de verdade (TalkBack, VoiceOver, NVDA; só nomes, papéis e regiões vivas foram conferidos, no código e no navegador); celular real (o APK `versionCode` 4 não foi instalado em aparelho); fonte grande do sistema Android (simulada por largura de tela); Firefox e Safari; impressão A4.
+- **Não testado**: leitor de tela de verdade (TalkBack, VoiceOver, NVDA; só nomes, papéis e regiões vivas foram conferidos, no código e no navegador); no celular real, só o alarme foi testado (APK `versionCode` 4, app fechado e tela bloqueada, em 18/11/2026): a fila sem sinal, o motion e as fontes não foram vistos em aparelho; fonte grande do sistema Android (simulada por largura de tela); Firefox e Safari; impressão A4.
 
 O estado de cada requisito está em [`docs/ENTREGA.md`](docs/ENTREGA.md), separando o que foi testado do que não foi.
 
@@ -172,5 +172,5 @@ O detalhe, item por item, está em [`docs/ENTREGA.md`](docs/ENTREGA.md); o alarm
 ## Limites conhecidos
 
 - O push no iPhone não está feito (exige conta paga da Apple); no iOS, o app roda pelo Expo Go.
-- O link público do APK Android entrega o de `versionCode` 4, com a F3, desde 18/11/2026. Ele ainda não foi instalado em celular. O que foi testado em celular de verdade e o que não foi está descrito em [`docs/NOTIFICACOES.md`](docs/NOTIFICACOES.md).
+- O link público do APK Android entrega o de `versionCode` 4, com a F3, desde 18/11/2026. Foi instalado num celular em 18/11/2026, e o alarme tocou com o app fechado e a tela bloqueada. O que foi testado em celular de verdade e o que não foi está descrito em [`docs/NOTIFICACOES.md`](docs/NOTIFICACOES.md).
 - Não há teste com usuárias reais nem pesquisa de campo registrada neste repositório.
