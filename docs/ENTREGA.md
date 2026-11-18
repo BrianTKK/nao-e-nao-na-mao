@@ -4,13 +4,13 @@ O projeto se chamava **Não é Não na Mão** até 16/11/2026.
 
 Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ falta.
 
-Última atualização: **F3** (18/11/2026). A F3 está commitada na `main` (privada), nos commits `d373a10`, `f0fd89e`, `a18433d` e `29f9dea`. **A produção em https://naoenao.obrian.me continua no commit `dfc9054`** (visual "Comanda", reflow a 195 px e CSP): a F3 ainda não foi publicada, porque o deploy é um passo separado. O APK novo (`versionCode` 3) foi gerado no PC e não foi publicado: o link público continua com o `versionCode` 2.
+Última atualização: **F3** (18/11/2026). A F3 está commitada na `main` do repositório público (https://github.com/BrianTKK/nao-e-nao-na-mao); as correções das revisões estão em `a18433d`, `29f9dea`, `c62115f` e `0933077`. ⬜ CONFERIR antes da entrega: O servidor e o site com a F3 foram publicados em 18/11/2026. O app novo (`versionCode` 4) é publicado em seguida. Até lá, o link público do APK entrega o `versionCode` 2. A entrega é em 19/11/2026.
 
 ## O que foi testado e o que não foi
 
 **Testado (18/11/2026)**
 
-- `npm test`: 159 testes automáticos (60 em shared, 13 do banco, 79 do servidor, 7 do deploy), mais `npm run typecheck` nos quatro pacotes.
+- `npm test`: 167 testes automáticos (68 em shared, 13 do banco, 79 do servidor, 7 do deploy), mais `npm run typecheck` nos quatro pacotes.
 - `npm run test:reflow -w web` (Playwright, Chromium): 90 verificações, sem rolagem lateral a 195, 260, 320, 390 e 1440 px, em 18 telas.
 - `npm run test:a11y -w web`:
     - axe (WCAG 2.1 A e AA) em 18 telas e 3 tamanhos (390x844, 820x1180, 1440x900), mais o menu aberto e o cartão do balcão (60 telas/tamanhos);
@@ -25,7 +25,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 **Não testado**
 
 - Leitor de tela de verdade (TalkBack, VoiceOver, NVDA): só nomes, papéis e regiões vivas foram conferidos, no código e no navegador.
-- Celular real: o APK `versionCode` 3 não foi instalado em aparelho, e um alerta saindo da VPS até um celular de verdade também não foi testado.
+- Celular real: o APK `versionCode` 4 não foi instalado em aparelho, e um alerta saindo da VPS até um celular de verdade também não foi testado.
 - Fonte grande do sistema Android: foi simulada por largura de tela no navegador.
 - Firefox e Safari.
 - Impressão A4.
@@ -38,7 +38,7 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Ator | Plataforma | Estado |
 | --- | --- | --- |
 | Mulher no bar | **Só a web**, pelo QR code (`/q/<código>`), sem login e sem instalar nada | ✅ Ligada ao servidor; testada no navegador, com axe, teclado e texto a 200% |
-| Quem vai até ela (garçom, segurança) | **App**: recebe o alerta, toca em "Vi o alerta", "Estou indo" e "Encerrar" com o desfecho | 🟡 Ligado ao servidor, com o estado da conexão e a fila de toques sem sinal (F3). Testado no Expo web; falta o celular |
+| Quem vai até ela (garçom, segurança) | **App**: recebe o alerta, abre o alerta (o "Visto" é automático), toca em "Estou indo" e "Encerrar" com o desfecho | 🟡 Ligado ao servidor, com o estado da conexão e a fila de toques sem sinal (F3). Testado no Expo web; falta o celular |
 | Quem coordena e prova (gerência, caixa) | **Web** (`/painel`): quadro ao vivo, direcionar ou assumir, cadastro da equipe e dos locais, QR codes, histórico, tempo de resposta e relatório do mês | ✅ Testado no navegador e pela API |
 | Integração | Web da mulher → app da equipe → web da gerência, com a volta à página dela | ✅ Testada no PC nas três telas, à mão e em teste automático; medida em produção na F1 (69 ms até o app e o painel, 99 ms na volta) |
 
@@ -47,10 +47,10 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | React Native funcional | 🟡 | `mobile/` (Expo SDK 58, Expo Router), ligado à API. Testado no Expo web; falta o celular |
-| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 2; o 3, com a F3, foi gerado no PC e não foi publicado. Nenhum deles foi instalado e testado num celular real |
+| App acessível no celular de qualquer pessoa, sem PC | 🟡 | Expo Go pela página `/testar` e APK próprio em https://naoenao.obrian.me/download/mariana.apk. O link entrega o `versionCode` 2 até o 4, com a F3, ser publicado. Nenhum deles foi instalado e testado num celular real |
 | APK Android próprio, com push | 🟡 | Gerado e assinado no PC (`mobile/scripts/build-apk.sh`), conferido com `apksigner`. Instalação, som, vibração e aviso com o app fechado: **não testados em celular** (ver `NOTIFICACOES.md`) |
-| Navegação seguindo a jornada | 🟡 | Login → alertas → alerta (Vi o alerta, Estou indo, desfecho) → ajustes |
-| Fila de toques sem sinal | ✅ no navegador, 🟡 no celular | "Vi o alerta", "Estou indo" e "Encerrar" ficam guardados no aparelho e saem na ordem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Arquivos: `shared/src/data/outbox.ts`, `mobile/src/data/outbox.ts`. Testada por `test:offline` (28 verificações) |
+| Navegação seguindo a jornada | 🟡 | Login → alertas → alerta ("Visto" automático, Estou indo, desfecho) → ajustes |
+| Fila de toques sem sinal | ✅ no navegador, 🟡 no celular | O "Visto" (automático ao abrir o alerta), o "Estou indo" e o "Encerrar" ficam guardados no aparelho e saem na ordem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Arquivos: `shared/src/data/outbox.ts`, `mobile/src/data/outbox.ts`. Testada por `test:offline` (28 verificações) |
 | Motion com função clara | ✅ no navegador, 🟡 no celular | Pulso do alerta novo, botão que encolhe, cartões com fade e, na F3, a mudança de estado no detalhe (`mobile/src/components/StatusSteps.tsx`). Falta ver no celular |
 
 ## Fila de toques sem sinal (F3)
@@ -62,9 +62,9 @@ Atualizado a cada fatia. Legenda: ✅ feito e testado · 🟡 parcial · ⬜ fal
 | Conflito não é sobrescrito | Se outra pessoa assumiu ou encerrou enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app mostra o aviso 'O seu "Estou indo" não foi enviado: outra pessoa da equipe assumiu o alerta enquanto você estava sem sinal'. O aviso fica até a pessoa tocar em "Entendi" | `db/migrations/009_staff_actions_review.sql`, `shared/src/__tests__/outbox.test.ts` |
 | Prazo | Toque guardado há mais de 12 horas é descartado, com aviso | `shared/src/domain.ts`, `mobile/src/components/OutboxNotices.tsx` |
 | De quem é o toque | O toque é de quem o fez: não sai com o login de outra pessoa | `mobile/src/data/outbox.ts` |
-| Regra no servidor | Quem é da equipe comum não encerra o alerta que outra pessoa assumiu. A gerência encerra, pelo painel ou pelo app com sinal. Toque que ficou guardado sem sinal nunca passa por cima de quem assumiu, nem o da gerência | `server/test/outbox.test.ts` |
+| Regra no servidor | Quem é da equipe comum não encerra o alerta que outra pessoa assumiu. A gerência encerra esse alerta pelo painel: o app esconde "Encerrar…" de quem não é o responsável quando o alerta está a caminho com outra pessoa, e isso vale também para a gerência. Toque que ficou guardado sem sinal nunca passa por cima de quem assumiu, nem o da gerência | `server/test/outbox.test.ts` |
 
-Não testado: a fila no celular real, com o APK `versionCode` 3.
+Não testado: a fila no celular real, com o APK `versionCode` 4.
 
 ## Web
 
@@ -73,7 +73,7 @@ Não testado: a fila no celular real, com o APK `versionCode` 3.
 | HTML, CSS e JS | ✅ | `web/` (Vite + React, CSS próprio a partir dos tokens) |
 | Navegação funcional | ✅ | Início, página do QR, painel com seis seções (Início, Alertas, Equipe, QR codes, Cardápio e Wi-Fi, Relatório do mês). Testado no navegador |
 | Responsiva (celular, tablet, computador) | ✅ | Reflow a 195, 260, 320, 390 e 1440 px, em 18 telas, sem rolagem lateral (`npm run test:reflow -w web`, 90 verificações). Axe nos tamanhos 390x844, 820x1180 e 1440x900. Firefox e Safari não foram testados |
-| Publicada | ✅ | https://naoenao.obrian.me, no commit `dfc9054`. A F3 ainda não foi publicada |
+| Publicada | ✅ | https://naoenao.obrian.me, com a F3 desde 18/11/2026 |
 
 ## Papéis e integração
 
@@ -112,7 +112,7 @@ Detalhes em [`NOTIFICACOES.md`](NOTIFICACOES.md) e [`DEPLOY.md`](DEPLOY.md).
 | Item | Estado | Onde / observação |
 | --- | --- | --- |
 | Push remoto no Android (FCM) | 🟡 | Envio direto ao FCM HTTP v1, da VPS (`server/src/push.ts`). Repete 5 vezes em 2 minutos até alguém ver. A palavra-código **não** vai na notificação. Validado contra o Firebase de verdade (`validate_only`), sem celular; o servidor em produção está com o push ligado. **Um alerta saindo da VPS até um celular real não foi testado** |
-| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 2 no link público; `versionCode` 3 (com a F3) gerado no PC e não publicado. Não testado num celular real: instalação pelo link, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
+| APK próprio | 🟡 | Assinado, pacote `me.obrian.mariana`. `versionCode` 2 no link público até o `versionCode` 4 (com a F3) ser publicado. Não testado num celular real: instalação pelo link, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
 | Celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria) | ⬜ | Não testado. O push pode atrasar se o app não estiver liberado da otimização de bateria |
 | iPhone | ⬜ | Push no iOS não existe nesta entrega (exige conta Apple Developer paga). No iPhone, o app só avisa com o app aberto ou em segundo plano recente, pelo Expo Go |
 | Chaves e credenciais | ✅ | Ficam fora do git e da pasta do deploy. O `.gitignore` bloqueia `google-services.json`, conta de serviço, keystore, chaves e APK |
@@ -157,9 +157,9 @@ Correções feitas na rodada de acessibilidade da F3:
 | --- | --- | --- |
 | Quadro ao vivo com quem está indo e o tempo correndo | ✅ | `web/src/pages/panel/LiveBoard.tsx` |
 | "Vi o alerta" pelo painel | ✅ | A página dela passa a "A equipe viu o seu pedido" na hora. Testado no PC com as três telas |
-| "Mandar alguém" (direcionar) | ✅ | `POST /api/manager/alerts/:id/assign`, só para alguém ativo do mesmo bar. O app da pessoa mostra "Marta pediu que você vá" e vibra de novo. A página dela mostra "Diego, de camisa preta, foi chamado para ir até você" e, quando ele toca em "Estou indo", "está indo até você". Testado no PC com as três telas |
+| "Mandar alguém" (direcionar) | ✅ | `POST /api/manager/alerts/:id/assign`, só para alguém ativo do mesmo bar. O app da pessoa mostra "Marta pediu que você vá" e vibra de novo. A página dela mostra "Chamamos Diego, de camisa preta, para ir até você.", o painel responde "Aviso enviado a Diego no app." e, quando ele toca em "Estou indo", a página passa a "está indo até você". Testado no PC com as três telas |
 | Motion e acessibilidade das ações do painel | ✅ no navegador | O cartão "acende" a cada troca de estado. Os botões têm rótulo com o local, o retorno da ação fica numa região viva e o foco é visível. Rodada de teclado e axe na F3. Sem leitor de tela de verdade |
-| Assumir (a gerência vai) e encerrar pelo painel | ✅ | Usa as mesmas rotas da equipe. A gerência encerra o alerta que outra pessoa assumiu; a equipe comum não |
+| Assumir (a gerência vai) e encerrar pelo painel | ✅ | Usa as mesmas rotas da equipe. A gerência encerra, pelo painel, o alerta que outra pessoa assumiu; a equipe comum não, e o app também não oferece isso à gerência |
 | Cadastrar e desativar a equipe, com a data do curso | ✅ | `POST/PATCH /api/manager/staff`, com senha provisória (bcrypt). Ninguém tira o próprio acesso |
 | QR codes com código aleatório, troca de código e página para imprimir | ✅ | `/painel/qr-codes` e `/painel/qr-codes/imprimir` (cartazes A4, dois por folha). Impressão A4 em papel real: não testada |
 | Relatório do mês | ✅ | `/painel/relatorio`. Traz acionamentos, tempos (mediana e 9 em cada 10), tipo, local, desfecho, equipe capacitada e o registro de cada pedido. Imprime ou salva em PDF. É uma ferramenta do bar para mostrar o que fez numa fiscalização: nenhuma das normas conferidas exige esse relatório, e o Procon-SP não o recebe automaticamente |
@@ -188,7 +188,7 @@ Correções feitas na rodada de acessibilidade da F3:
 
 | Item | Estado |
 | --- | --- |
-| Repositório público | ⬜ Privado; público só com a decisão do grupo |
+| Repositório público | ✅ https://github.com/BrianTKK/nao-e-nao-na-mao (público desde 18/11/2026) |
 | As duas partes integradas | ✅ Pelo servidor; testado no PC |
 | Identidade visual comum | ✅ `shared/src/tokens.ts` nas duas partes |
 | Hierarquia clara e código organizado | 🟡 `shared/`, `server/`, `web/`, `mobile/`, `db/` |
@@ -209,7 +209,7 @@ Correções feitas na rodada de acessibilidade da F3:
 | Explicação da integração | 🟡 Rascunho escrito |
 | Justificativa visual, de UX, de motion e de acessibilidade | 🟡 Rascunho escrito, com o que foi testado e o que não foi |
 | ODS justificados (5, 11 e 16) | 🟡 Rascunho escrito, com as metas conferidas na fonte |
-| Links do GitHub, do deploy e do vídeo | ⬜ Faltam o repositório público e o vídeo |
+| Links do GitHub, do deploy e do vídeo | 🟡 GitHub e deploy no PDF; falta o link do vídeo |
 
 ## Vídeo de 2 a 3 minutos
 
@@ -217,7 +217,7 @@ Correções feitas na rodada de acessibilidade da F3:
 | --- | --- |
 | Problema e cidadã | 🟡 Roteiro escrito; gravação do grupo |
 | Solução | 🟡 Roteiro escrito |
-| App e web funcionando juntos, com integração e motion | 🟡 Roteiro escrito. Para as cenas 5 e 8, o celular da equipe precisa do APK `versionCode` 3, que ainda não foi publicado nem instalado em aparelho |
+| App e web funcionando juntos, com integração e motion | 🟡 Roteiro escrito. Para as cenas 5 e 8, o celular da equipe precisa do APK `versionCode` 4, que ainda não foi instalado em aparelho e só é publicado depois do servidor e do site |
 | Justificativas de design, UX, motion e acessibilidade | 🟡 Roteiro escrito. No vídeo, não afirmar que o leitor de tela foi testado |
 
 ## Processo
@@ -238,8 +238,8 @@ Correções feitas na rodada de acessibilidade da F3:
 | 5 | Design visual, hierarquia, consistência | Visual "Comanda" e tokens compartilhados | 🟡 |
 | 6 | Motion design | Ver motion | 🟡 |
 | 7 | Acessibilidade e responsividade | Ver acessibilidade e reflow | 🟡 |
-| 8 | Qualidade técnica, código, deploy funcionando | 159 testes e typecheck, quatro verificadores de ponta a ponta, F3 commitada e revisada; falta o deploy da F3 (produção em `dfc9054`) | 🟡 |
+| 8 | Qualidade técnica, código, deploy funcionando | 167 testes e typecheck, quatro verificadores de ponta a ponta, F3 commitada, revisada e publicada no servidor e no site (18/11/2026); falta publicar o app (`versionCode` 4) | 🟡 |
 | 9 | ODS justificado | PDF | 🟡 |
-| 10 | GitHub e documentação | README, este checklist | 🟡 |
+| 10 | GitHub e documentação | Repositório público, README, este checklist; faltam os integrantes no README | 🟡 |
 | 11 | Vídeo-pitch e argumentação | Roteiro | ⬜ |
 | 12 | Solução disruptiva | Liga a lei que já existe à equipe do bar; em duas buscas, não achamos ferramenta que faça esse elo (seção 2.2 do PDF) | 🟡 |

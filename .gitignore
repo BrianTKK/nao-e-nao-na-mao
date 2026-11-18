@@ -19,3 +19,6 @@ fcm-service-account*.json
 *.p12
 *.apk
 *.aab
+
+# Conferência do PDF (geradas por docs/pdf/build-pdf.mjs --capturas)
+docs/pdf/capturas/

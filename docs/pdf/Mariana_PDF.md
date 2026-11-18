@@ -4,7 +4,7 @@
 
 Global Solution CitizenTech, FIAP. O projeto se chamava "Não é Não na Mão" até 16/11/2026. O endereço e o repositório ainda levam o nome antigo.
 
-⬜ PREENCHER: turma, disciplina e data de entrega, como a FIAP pede na capa.
+Data de entrega: 19/11/2026. ⬜ PREENCHER: turma e disciplina, como a FIAP pede na capa.
 
 ---
 
@@ -34,10 +34,10 @@ Os números abaixo são nacionais. Não são de São Paulo nem de bar, e o texto
 
 | Dado | O que mede | Fonte |
 | --- | --- | --- |
-| 11,3% das mulheres, o equivalente a 5,7 milhões, disseram ter sido abordadas de maneira agressiva durante uma festa no último ano (2025). Em 2023, o mesmo item deu 11,2%. | Pergunta específica sobre festa. Pesquisa nacional do Fórum Brasileiro de Segurança Pública (FBSP) com o Datafolha, "Visível e Invisível", 5ª edição: 2.007 entrevistas, 126 municípios, 10 a 14/02/2025. | [FBSP 2025](https://forumseguranca.org.br/wp-content/uploads/2025/03/visiveleinvisivel-2025-infografico.pdf) e [FBSP 2023](https://forumseguranca.org.br/wp-content/uploads/2023/03/visiveleinvisivel-2023-infografico.pdf) |
-| 37,5% das brasileiras sofreram algum tipo de violência ou agressão no último ano (21,4 milhões de mulheres). | Violência em geral, em qualquer lugar. **Atenção:** na mesma pesquisa, 57,0% dos casos relatados na pesquisa foram em casa, 11,6% na rua e 3,3% em bar ou balada. | [FBSP 2025](https://forumseguranca.org.br/wp-content/uploads/2025/03/visiveleinvisivel-2025-infografico.pdf) |
+| 11,3% das mulheres, o equivalente a ao menos 5,7 milhões (a projeção usa o valor mínimo da margem de erro), disseram ter sido abordadas de maneira agressiva durante uma festa no último ano (2025). Em 2023, o mesmo item deu 11,2%. | Pergunta específica sobre festa, feita só às mulheres, no módulo de autopreenchimento: 1.040 mulheres, das quais 793 respondentes, com margem de erro de 3,0 pontos. Pesquisa nacional do Fórum Brasileiro de Segurança Pública (FBSP) com o Datafolha, "Visível e Invisível", 5ª edição: amostra nacional de 2.007 entrevistas, 126 municípios, 10 a 14/02/2025. | [FBSP 2025](https://forumseguranca.org.br/wp-content/uploads/2025/03/visiveleinvisivel-2025-infografico.pdf) e [FBSP 2023](https://forumseguranca.org.br/wp-content/uploads/2023/03/visiveleinvisivel-2023-infografico.pdf) |
+| 37,5% das brasileiras sofreram algum tipo de violência ou agressão no último ano (21,4 milhões de mulheres). | Violência em geral, em qualquer lugar. **Atenção:** na mesma pesquisa, cada mulher que sofreu violência indicou o local da violência mais grave do último ano (um local por mulher, não o total de casos): 57,0% em casa, 11,6% na rua e 3,3% em bar ou balada. | [FBSP 2025](https://forumseguranca.org.br/wp-content/uploads/2025/03/visiveleinvisivel-2025-infografico.pdf) |
 
-O bar é um lugar pequeno na conta da violência contra a mulher. O argumento do projeto é outro: o bar é um lugar onde a ajuda poderia estar a poucos metros, na própria equipe, e o protocolo prevê cartaz e fala em códigos e sinais; o pedido depende de ela conhecer o código.
+Na conta da violência mais grave que cada mulher sofreu, o bar é um lugar pequeno. O argumento do projeto é outro: o bar é um lugar onde a ajuda poderia estar a poucos metros, na própria equipe, e o protocolo prevê cartaz e fala em códigos e sinais; o pedido depende de ela conhecer o código.
 
 ### 2.2 O que a lei já pede e o que falta
 
@@ -105,10 +105,10 @@ A web da mulher e a web da gerência são duas partes diferentes do mesmo site (
 | --- | --- | --- | --- |
 | 1. Entrar | Faz login com a conta que a gerência criou. | App | O app só mostra os alertas do próprio bar. |
 | 2. Ser avisado | O celular vibra e toca como alarme, com o local e o tipo de pedido. No APK Android, o aviso chega também com o app minimizado ou fechado, por push (Firebase). Isso foi validado contra o Firebase e ainda não foi testado num celular real. A palavra-código **não** vai na notificação, porque aparece na tela bloqueada. | App | O alerta novo é o único tíquete em latão da lista, para não se perder no meio das outras telas. |
-| 3. Ver | Toca em "Vi o alerta". | App | A mulher vê "A equipe viu o seu pedido" e a gerência vê no quadro. |
+| 3. Ver | Toca no alerta para abrir. O app marca "Visto" sozinho ao abrir o detalhe: não há botão "Vi o alerta" no app. | App | A mulher vê "A equipe viu o seu pedido" e a gerência vê "Visto" no quadro. O alarme daquele alerta para. |
 | 4. Ir | Toca em "Estou indo" (botão de 64 px numa barra fixa) e diz a palavra-código a ela. | App | A página dela mostra o primeiro nome e a aparência cadastrada ("Diego, de camisa preta"). |
 | 5. Encerrar | Toca em "Encerrar" e escolhe o desfecho: acompanhou até um lugar seguro ou até o carro, a pessoa que incomodava foi retirada, chamou um carro ou um contato dela, a conversa resolveu, acionou o 190, não encontrou a pessoa ou alerta indevido. | App | O desfecho e os horários de cada etapa ficam registrados para o relatório. |
-| 6. Sem sinal | Os toques em "Estou indo", "Vi o alerta" e "Encerrar" ficam guardados no aparelho e são enviados quando a conexão volta, sem duplicar no servidor (cada ação tem um id). Se outra pessoa assumiu ou encerrou enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app avisa, sem sobrescrever. Toque guardado há mais de 12 horas também é descartado, com aviso. O toque é de quem o fez: não sai com o login de outra pessoa. O estado aparece com texto e ícone: "Sem sinal: vai enviar quando voltar" e "A caminho, ainda não enviado". | App | O app acompanha quem anda pelo salão, onde o sinal falha. |
+| 6. Sem sinal | O "Visto" (automático ao abrir o alerta), o "Estou indo" e o "Encerrar" ficam guardados no aparelho e são enviados quando a conexão volta, sem duplicar no servidor (cada ação tem um id). Se outra pessoa assumiu ou encerrou enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app avisa, sem sobrescrever. Toque guardado há mais de 12 horas também é descartado, com aviso. O toque é de quem o fez: não sai com o login de outra pessoa. O estado aparece com texto e ícone: "Sem sinal: vai enviar quando voltar" e "A caminho, ainda não enviado". | App | O app acompanha quem anda pelo salão, onde o sinal falha. |
 
 ### 3.3 A gerência (Marta, gerente)
 
@@ -116,14 +116,14 @@ A web da mulher e a web da gerência são duas partes diferentes do mesmo site (
 | --- | --- | --- | --- |
 | 1. Preparar | Cadastra a equipe (com a data do curso), cadastra os locais, imprime os QR codes em cartazes A4 e, se quiser, cadastra o cardápio ou o Wi-Fi do local. | Web (`/painel`) | Tela grande e impressão: o que o app não faz bem. |
 | 2. Acompanhar ao vivo | Vê o quadro com cada alerta, quem está indo e o tempo correndo. O painel também bipa enquanto houver alerta que ninguém viu. | Web | Mostra o que a equipe fez, na hora, sem precisar perguntar. |
-| 3. Agir | "Vi o alerta", "Mandar alguém", assumir ela mesma o atendimento ou encerrar. Ao mandar alguém, o app da pessoa mostra "Marta pediu que você vá" e vibra de novo. | Web, com efeito no app | A página da mulher mostra "Diego foi chamado para ir até você", e só passa a "está indo" quando ele toca em "Estou indo". |
+| 3. Agir | "Vi o alerta", "Mandar alguém", assumir ela mesma o atendimento ou encerrar. Ao mandar alguém, o app da pessoa mostra "Marta pediu que você vá" e vibra de novo. | Web, com efeito no app | A página da mulher mostra "Chamamos Diego, de camisa preta, para ir até você." e o painel responde "Aviso enviado a Diego no app." A página só passa a "está indo" quando ele toca em "Estou indo". |
 | 4. Registrar | Cada alerta termina com o desfecho. | Web e app | O histórico busca por palavra-código, local e desfecho. |
 | 5. Prestar contas | Gera o relatório do mês: acionamentos, tempo até ver e até ir (mediana e 9 em cada 10), tipo, local, desfecho, equipe capacitada e o registro de cada pedido. Imprime ou salva em PDF. | Web (`/painel/relatorio`) | É uma ferramenta do bar para mostrar o que fez numa fiscalização. **Nenhuma das normas da seção 2.2 exige esse relatório**, e o Procon-SP não o recebe automaticamente. O registro da Mariana é anônimo por escolha, o que difere do livro de ocorrências do decreto, que pede dados do suposto agressor apontado pela vítima, ainda que por meios indiretos, e do funcionário que faz o registro, para valer como prova. |
 
 ⬜ IMAGEM: a página do QR no celular, com as três opções e o 190 e o 180.
 ⬜ IMAGEM: a página dela depois do pedido, com a palavra-código e a linha do tempo.
-⬜ IMAGEM: o app com o alerta novo em latão e a barra "Estou indo".
-⬜ IMAGEM: o quadro ao vivo do painel, com um alerta "a caminho".
+⬜ IMAGEM: o app da equipe com o alerta novo em latão, na lista de alertas.
+⬜ IMAGEM: o quadro ao vivo do painel da gerência, com um alerta novo e os quatro controles.
 
 ---
 
@@ -171,8 +171,8 @@ página do QR (web) ──POST /api/alerts──▶ servidor ──WebSocket "ve
 | --- | --- | --- | --- | --- |
 | 1 | Mulher (web) | Toca numa das três opções | Cria o alerta no banco com a palavra-código e devolve um token só dela | Página dela: palavra-código e "pedido enviado" |
 | 2 | Servidor | Avisa a sala do bar por WebSocket; no APK, manda também o push pelo Firebase (FCM) | Repete o aviso 5 vezes em 2 minutos até alguém ver | App da equipe: vibra e toca. Painel: o alerta entra em latão e o painel bipa |
-| 3 | Equipe (app) | Toca em "Vi o alerta" | Grava o horário e avisa as salas do bar e do pedido | Página dela: "A equipe viu o seu pedido". Painel: estado "Visto". O push para de repetir |
-| 4 | Gerência (web), opcional | "Mandar alguém" | Marca a pessoa designada e avisa só ela | App dessa pessoa: "Marta pediu que você vá". Página dela: "foi chamado para ir até você" |
+| 3 | Equipe (app) | Abre o alerta (o "Visto" é automático) | Grava o horário e avisa as salas do bar e do pedido | Página dela: "A equipe viu o seu pedido". Painel: estado "Visto". O push para de repetir |
+| 4 | Gerência (web), opcional | "Mandar alguém" | Marca a pessoa designada e avisa só ela | App dessa pessoa: "Marta pediu que você vá". Página dela: "Chamamos Diego, de camisa preta, para ir até você." Painel: "Aviso enviado a Diego no app." |
 | 5 | Equipe (app) | Toca em "Estou indo" | Grava o horário e avisa as duas salas | Página dela: "Diego, de camisa preta, está indo até você". Painel: "A caminho" e o tempo correndo |
 | 6 | Equipe (app) ou gerência (web) | Encerra com o desfecho | Grava o desfecho e o horário | Página dela: encerrado. Painel: sai do quadro e entra no histórico e no relatório |
 
@@ -181,7 +181,7 @@ página do QR (web) ──POST /api/alerts──▶ servidor ──WebSocket "ve
 ### 5.3 Como o app se comporta sem sinal
 
 - **Página da mulher:** se o WebSocket cair, ela consulta o servidor a cada 3 segundos. Sem nenhuma conexão, mostra o cartão para o balcão.
-- **App da equipe:** a fila de toques descrita na etapa 6 da jornada de Diego guarda as ações no aparelho. Cada ação leva um id, e o servidor ignora uma repetição do mesmo id. Se outra pessoa assumiu ou encerrou o alerta enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app mostra um aviso, que fica até a pessoa tocar em "Entendi". Quem é da equipe comum não encerra o alerta que outra pessoa assumiu: a gerência encerra, pelo painel ou pelo app com sinal. Toque guardado nunca passa por cima de quem assumiu, nem o da gerência.
+- **App da equipe:** a fila de toques descrita na etapa 6 da jornada de Diego guarda as ações no aparelho. Cada ação leva um id, e o servidor ignora uma repetição do mesmo id. Se outra pessoa assumiu ou encerrou o alerta enquanto o aparelho estava sem sinal, o toque guardado é descartado e o app mostra um aviso, que fica até a pessoa tocar em "Entendi". Quem é da equipe comum não encerra o alerta que outra pessoa assumiu. A gerência encerra esse alerta pelo painel: o app esconde "Encerrar…" de quem não é o responsável quando o alerta está a caminho com outra pessoa, e isso vale também para a gerência. Toque guardado sem sinal nunca passa por cima de quem assumiu, nem o da gerência.
 
 ### 5.4 Quem pode ver o quê
 
@@ -259,7 +259,7 @@ página do QR (web) ──POST /api/alerts──▶ servidor ──WebSocket "ve
 | Rótulos para leitor de tela | Ícones e botões com rótulo. Os botões do painel levam o local no rótulo, para o leitor de tela dizer a qual alerta o botão se refere. A região viva anuncia "Alerta novo: Mesa 12" e o resultado das ações. No app, o estado do alerta e "quem está indo" são região viva fixa: o leitor de tela anuncia a mudança. | Nomes, papéis e regiões vivas conferidos no código e no navegador (axe e nome acessível de todo controle no app). **Não testado com TalkBack, VoiceOver nem NVDA** |
 | App: área de toque | Mínimo de 48 px. "Estou indo" tem 64 px. | Medido no código e no verificador do app (`npm run test:a11y -w mobile`: alvos de 48 px) |
 | App: palavra-código, nome do local e sinal fraco | A palavra-código e o nome do local encolhem em tela estreita em vez de quebrar no meio da palavra. Com sinal fraco, o app espera no máximo 8 s e abre com o último login em vez de ficar carregando. | Verificador do app: texto não cortado e palavra-código inteira, a 390, 260 e 195 px |
-| App: fila sem sinal | Os toques "Estou indo", "Vi o alerta" e "Encerrar" ficam guardados e saem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Conflito não é sobrescrito: o toque guardado é descartado e o app avisa, até a pessoa tocar em "Entendi". | `npm run test:offline -w mobile`: 28 verificações, no app aberto no navegador (Expo web) contra o servidor de verdade, com a rede cortada. Não testado em celular real |
+| App: fila sem sinal | O "Visto" (automático ao abrir o alerta), o "Estou indo" e o "Encerrar" ficam guardados e saem quando a conexão volta. A tela mostra, com ícone de Wi-Fi riscado e texto, "Sem sinal: vai enviar quando voltar", e o estado "A caminho, ainda não enviado". Conflito não é sobrescrito: o toque guardado é descartado e o app avisa, até a pessoa tocar em "Entendi". | `npm run test:offline -w mobile`: 28 verificações, no app aberto no navegador (Expo web) contra o servidor de verdade, com a rede cortada. Não testado em celular real |
 | Web: HTML semântico, teclado, foco | Foco amarelo (`#FFD866`), link "Pular para o conteúdo", menus do painel e Esc da página dela funcionam por teclado | Rodada só com teclado na página dela e no painel, a 390 e 1440 px (604 passos: foco visível, ordem do Tab igual à ordem visual, sem armadilha, Esc, menus com setas), e axe. Correções da rodada: links 190 e 180 com nome acessível igual ao texto visível, tabelas do relatório que rolam com foco do teclado, ordem do Tab no topo do painel e título da aba que não fica mais em "Carregando…" |
 | Animação que não atrapalha | `prefers-reduced-motion` e a chave "Reduzir movimento" | Seção 6.3. O verificador do app confere o "Reduzir movimento" |
 | Linguagem simples | Frases curtas. A palavra-código vem de uma lista de 62 palavras comuns, sem acento e sem duplo sentido (ficam de fora, por exemplo, nomes de pessoa, apelidos de cantada e palavras de política). | Lista em `shared/src/codeWords.ts`, com teste |
@@ -312,18 +312,18 @@ A pergunta que decide um ponto central do projeto: **"Você instalaria um app pa
 
 ## 9. O que está pronto e o que não foi testado
 
-Estado do código em 18/11/2026. A F3 está commitada na `main` (privada): `d373a10`, `f0fd89e`, `a18433d` e `29f9dea`. **A produção em https://naoenao.obrian.me continua no commit `dfc9054`** (visual "Comanda", reflow a 195 px e CSP). A F3 ainda não foi publicada: o deploy é um passo separado.
+Estado do código em 18/11/2026. A F3 está commitada na `main` do repositório público; as correções das revisões estão em `a18433d`, `29f9dea`, `c62115f` e `0933077`. ⬜ CONFERIR antes da entrega: O servidor e o site com a F3 foram publicados em 18/11/2026. O app novo (`versionCode` 4) é publicado em seguida.
 
 | Item | Estado |
 | --- | --- |
 | Laço completo (página do QR, app da equipe e painel, em tempo real) | **Testado**: no PC com as três telas (app pelo Expo no navegador), em teste automático e em produção (F1, 16/11) |
 | Painel: quadro, mandar alguém, equipe, QR codes, cardápio e Wi-Fi, histórico e relatório | **Testado** no navegador e pela API. Impressão A4 em papel real: **não testada** |
 | Segurança da API (login, isolamento entre bares, limites, validação de entrada, CSP) | **Testada** em testes automáticos |
-| Testes automáticos | 159 (60 em shared, 13 do banco, 79 do servidor, 7 do deploy), mais o typecheck dos quatro pacotes. Comandos: `npm test` e `npm run typecheck` |
+| Testes automáticos | 167 (68 em shared, 13 do banco, 79 do servidor, 7 do deploy), mais o typecheck dos quatro pacotes. Comandos: `npm test` e `npm run typecheck` |
 | Visual "Comanda", reflow a 195 px | **Testado** no navegador, a 195, 260, 320, 390 e 1440 px, com verificador automático |
-| F3: fila de toques sem sinal, motion no detalhe do alerta e rodada de acessibilidade (teclado, axe, texto a 200%, três tamanhos, cartão do balcão sem rede) | **Testada**, commitada e **ainda não publicada** (produção em `dfc9054`). Testado: os verificadores de reflow (90), de acessibilidade da web (axe, teclado, texto a 200%, cartão sem rede) e do app (463 verificações), e a fila sem sinal do app no navegador contra o servidor de verdade (28). A fatia passou por revisão adversarial sobre o diff commitado, e os 24 achados confirmados, em duas rodadas, foram corrigidos com teste (`a18433d` e `29f9dea`). **Não testado:** leitor de tela de verdade, celular real, fonte grande do sistema Android (simulada por largura de tela), Firefox e Safari, impressão A4 |
+| F3: fila de toques sem sinal, motion no detalhe do alerta e rodada de acessibilidade (teclado, axe, texto a 200%, três tamanhos, cartão do balcão sem rede) | **Testada** e commitada. Servidor e site com a F3 publicados em 18/11/2026; o app novo (`versionCode` 4) é publicado em seguida. Testado: os verificadores de reflow (90), de acessibilidade da web (axe, teclado, texto a 200%, cartão sem rede) e do app (463 verificações), e a fila sem sinal do app no navegador contra o servidor de verdade (28). A fatia passou por revisão adversarial sobre o diff commitado, e os 24 achados confirmados, em duas rodadas, foram corrigidos com teste (`a18433d` e `29f9dea`). **Não testado:** leitor de tela de verdade, celular real, fonte grande do sistema Android (simulada por largura de tela), Firefox e Safari, impressão A4 |
 | Push com o Firebase (FCM) | O servidor e o APK foram validados contra o Firebase de verdade (`validate_only`, sem celular). **Um alerta saindo da VPS até um celular real ainda não foi testado** |
-| APK Android próprio e o app pelo Expo Go (`/testar`) | O APK `versionCode` 3 (com a F3) foi gerado no PC e **ainda não foi publicado**: o link público continua com o `versionCode` 2. Gerado, assinado e conferido no PC. **Não testado num celular real**: instalação pelo link, fontes e ícones, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
+| APK Android próprio e o app pelo Expo Go (`/testar`) | O APK com a F3 é o `versionCode` 4, gerado e assinado no PC. O link público entrega o `versionCode` 2 até o 4 ser publicado. **Não testado num celular real**: instalação pelo link, fontes e ícones, som de alarme, vibração, aviso com o app fechado, repetição na tela bloqueada, "Não perturbe" |
 | Celulares que matam apps em segundo plano (Xiaomi, Samsung com economia de bateria) | **Não testado**. O push pode atrasar se o app não estiver liberado da otimização de bateria |
 | iPhone | Push no iOS **não existe** nesta entrega (exige conta Apple Developer paga). No iPhone, o app só avisa com o app aberto ou em segundo plano recente |
 | Leitor de tela de verdade (TalkBack, VoiceOver, NVDA) | **Não testado**: só nomes, papéis e regiões vivas foram conferidos, no código e no navegador |
@@ -337,7 +337,7 @@ Estado do código em 18/11/2026. A F3 está commitada na `main` (privada): `d373
 
 | O quê | Link |
 | --- | --- |
-| Repositório no GitHub (público) | ⬜ PREENCHER: o link do repositório público. Hoje o repositório está **privado**, e só vira público com a decisão do grupo |
+| Repositório no GitHub (público) | https://github.com/BrianTKK/nao-e-nao-na-mao |
 | Deploy da web | https://naoenao.obrian.me |
 | App para testar sem PC (Expo Go) | https://naoenao.obrian.me/testar |
 | APK Android | https://naoenao.obrian.me/download/mariana.apk |
